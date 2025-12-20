@@ -1,0 +1,3973 @@
+{
+  "bookings": [
+    {
+      "id": "ORDER801",
+      "customerName": "Amanda Johnson",
+      "status": "completed",
+      "bookingType": "booked",
+      "bookingDate": "2025-01-05",
+      "bookingTime": "10:00",
+      "total": 95.00,
+      "technician": ["Maria Garcia"],
+      "services": [
+        {
+          "name": "Classic Manicure",
+          "price": 35.00,
+          "quantity": 1
+        },
+        {
+          "name": "Spa Pedicure",
+          "price": 55.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Polish",
+          "price": 20.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER802",
+      "customerName": "Jessica Brown",
+      "status": "paid",
+      "bookingType": "booked",
+      "bookingDate": "2025-01-08",
+      "bookingTime": "14:30",
+      "total": 65.00,
+      "technician": ["Lisa Wong"],
+      "services": [
+        {
+          "name": "Acrylic Full Set",
+          "price": 65.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER803",
+      "customerName": "Sarah Williams",
+      "status": "completed",
+      "bookingType": "walk-in",
+      "bookingDate": "2025-01-12",
+      "bookingTime": null,
+      "total": 120.00,
+      "technician": ["Anna Kim", "Maria Garcia"],
+      "services": [
+        {
+          "name": "Full Set Gel Extensions",
+          "price": 85.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Art Design",
+          "price": 25.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Polish",
+          "price": 20.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER804",
+      "customerName": "Emily Davis",
+      "status": "paid",
+      "bookingType": "booked",
+      "bookingDate": "2025-01-15",
+      "bookingTime": "11:00",
+      "total": 75.00,
+      "technician": ["Sarah Lee"],
+      "services": [
+        {
+          "name": "Gel Manicure",
+          "price": 45.00,
+          "quantity": 1
+        },
+        {
+          "name": "Classic Pedicure",
+          "price": 40.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER805",
+      "customerName": "Rachel Martinez",
+      "status": "completed",
+      "bookingType": "booked",
+      "bookingDate": "2025-01-20",
+      "bookingTime": "13:00",
+      "total": 110.00,
+      "technician": ["Lisa Wong", "Anna Kim"],
+      "services": [
+        {
+          "name": "Acrylic Full Set",
+          "price": 65.00,
+          "quantity": 1
+        },
+        {
+          "name": "Spa Pedicure",
+          "price": 55.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER806",
+      "customerName": "Michelle Taylor",
+      "status": "paid",
+      "bookingType": "walk-in",
+      "bookingDate": "2025-01-25",
+      "bookingTime": null,
+      "total": 85.00,
+      "technician": ["Maria Garcia"],
+      "services": [
+        {
+          "name": "French Manicure",
+          "price": 40.00,
+          "quantity": 1
+        },
+        {
+          "name": "Dip Powder Pedicure",
+          "price": 60.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER807",
+      "customerName": "Jennifer Anderson",
+      "status": "completed",
+      "bookingType": "booked",
+      "bookingDate": "2025-02-03",
+      "bookingTime": "09:30",
+      "total": 100.00,
+      "technician": ["Sarah Lee", "Lisa Wong"],
+      "services": [
+        {
+          "name": "Classic Manicure",
+          "price": 35.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Pedicure",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Art Design",
+          "price": 25.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER808",
+      "customerName": "Amanda White",
+      "status": "paid",
+      "bookingType": "booked",
+      "bookingDate": "2025-02-07",
+      "bookingTime": "15:00",
+      "total": 70.00,
+      "technician": ["Anna Kim"],
+      "services": [
+        {
+          "name": "Gel Manicure",
+          "price": 45.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Polish",
+          "price": 20.00,
+          "quantity": 1
+        },
+        {
+          "name": "Hand Massage",
+          "price": 15.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER809",
+      "customerName": "Jessica Harris",
+      "status": "completed",
+      "bookingType": "walk-in",
+      "bookingDate": "2025-02-10",
+      "bookingTime": null,
+      "total": 135.00,
+      "technician": ["Maria Garcia"],
+      "services": [
+        {
+          "name": "Acrylic Full Set",
+          "price": 65.00,
+          "quantity": 1
+        },
+        {
+          "name": "Spa Pedicure",
+          "price": 55.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Art Accent",
+          "price": 5.00,
+          "quantity": 1
+        },
+        {
+          "name": "Paraffin Wax Treatment",
+          "price": 20.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER810",
+      "customerName": "Sarah Thompson",
+      "status": "paid",
+      "bookingType": "booked",
+      "bookingDate": "2025-02-14",
+      "bookingTime": "10:30",
+      "total": 90.00,
+      "technician": ["Lisa Wong"],
+      "services": [
+        {
+          "name": "Dip Powder Manicure",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Classic Pedicure",
+          "price": 40.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER811",
+      "customerName": "Emily Jackson",
+      "status": "completed",
+      "bookingType": "booked",
+      "bookingDate": "2025-02-18",
+      "bookingTime": "12:00",
+      "total": 115.00,
+      "technician": ["Anna Kim", "Sarah Lee"],
+      "services": [
+        {
+          "name": "Full Set Gel Extensions",
+          "price": 85.00,
+          "quantity": 1
+        },
+        {
+          "name": "3D Nail Art",
+          "price": 35.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER812",
+      "customerName": "Rachel Clark",
+      "status": "paid",
+      "bookingType": "walk-in",
+      "bookingDate": "2025-02-22",
+      "bookingTime": null,
+      "total": 80.00,
+      "technician": ["Maria Garcia"],
+      "services": [
+        {
+          "name": "Gel Overlay",
+          "price": 55.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Polish",
+          "price": 20.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Strengthening Treatment",
+          "price": 25.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER813",
+      "customerName": "Michelle Lewis",
+      "status": "completed",
+      "bookingType": "booked",
+      "bookingDate": "2025-03-05",
+      "bookingTime": "14:00",
+      "total": 95.00,
+      "technician": ["Lisa Wong"],
+      "services": [
+        {
+          "name": "Classic Manicure",
+          "price": 35.00,
+          "quantity": 1
+        },
+        {
+          "name": "Spa Pedicure",
+          "price": 55.00,
+          "quantity": 1
+        },
+        {
+          "name": "Foot Massage",
+          "price": 25.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER814",
+      "customerName": "Jennifer Walker",
+      "status": "paid",
+      "bookingType": "booked",
+      "bookingDate": "2025-03-08",
+      "bookingTime": "11:30",
+      "total": 105.00,
+      "technician": ["Anna Kim"],
+      "services": [
+        {
+          "name": "Acrylic Fill",
+          "price": 45.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Pedicure",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Hot Stone Massage",
+          "price": 30.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER815",
+      "customerName": "Amanda Hall",
+      "status": "completed",
+      "bookingType": "walk-in",
+      "bookingDate": "2025-03-12",
+      "bookingTime": null,
+      "total": 125.00,
+      "technician": ["Maria Garcia", "Sarah Lee"],
+      "services": [
+        {
+          "name": "Acrylic Full Set",
+          "price": 65.00,
+          "quantity": 1
+        },
+        {
+          "name": "Dip Powder Pedicure",
+          "price": 60.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER816",
+      "customerName": "Jessica Allen",
+      "status": "paid",
+      "bookingType": "booked",
+      "bookingDate": "2025-03-15",
+      "bookingTime": "09:00",
+      "total": 75.00,
+      "technician": ["Lisa Wong"],
+      "services": [
+        {
+          "name": "French Manicure",
+          "price": 40.00,
+          "quantity": 1
+        },
+        {
+          "name": "Classic Pedicure",
+          "price": 40.00,
+          "quantity": 1
+        },
+        {
+          "name": "Cuticle Treatment",
+          "price": 10.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER817",
+      "customerName": "Sarah Young",
+      "status": "completed",
+      "bookingType": "booked",
+      "bookingDate": "2025-03-20",
+      "bookingTime": "13:30",
+      "total": 110.00,
+      "technician": ["Anna Kim"],
+      "services": [
+        {
+          "name": "Gel Extensions",
+          "price": 85.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Art Design",
+          "price": 25.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER818",
+      "customerName": "Emily King",
+      "status": "paid",
+      "bookingType": "walk-in",
+      "bookingDate": "2025-03-25",
+      "bookingTime": null,
+      "total": 90.00,
+      "technician": ["Maria Garcia"],
+      "services": [
+        {
+          "name": "Gel Manicure",
+          "price": 45.00,
+          "quantity": 1
+        },
+        {
+          "name": "Spa Pedicure",
+          "price": 55.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER819",
+      "customerName": "Rachel Wright",
+      "status": "completed",
+      "bookingType": "booked",
+      "bookingDate": "2025-04-02",
+      "bookingTime": "10:00",
+      "total": 140.00,
+      "technician": ["Sarah Lee", "Lisa Wong", "Anna Kim"],
+      "services": [
+        {
+          "name": "Full Set Gel Extensions",
+          "price": 85.00,
+          "quantity": 1
+        },
+        {
+          "name": "Spa Pedicure",
+          "price": 55.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER820",
+      "customerName": "Michelle Lopez",
+      "status": "paid",
+      "bookingType": "booked",
+      "bookingDate": "2025-04-05",
+      "bookingTime": "15:00",
+      "total": 65.00,
+      "technician": ["Maria Garcia"],
+      "services": [
+        {
+          "name": "Acrylic Overlay",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Polish",
+          "price": 20.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Buffing",
+          "price": 8.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER821",
+      "customerName": "Jennifer Hill",
+      "status": "completed",
+      "bookingType": "walk-in",
+      "bookingDate": "2025-04-09",
+      "bookingTime": null,
+      "total": 100.00,
+      "technician": ["Lisa Wong"],
+      "services": [
+        {
+          "name": "Dip Powder Manicure",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Pedicure",
+          "price": 50.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER822",
+      "customerName": "Amanda Scott",
+      "status": "paid",
+      "bookingType": "booked",
+      "bookingDate": "2025-04-12",
+      "bookingTime": "11:00",
+      "total": 120.00,
+      "technician": ["Anna Kim", "Maria Garcia"],
+      "services": [
+        {
+          "name": "Acrylic Full Set",
+          "price": 65.00,
+          "quantity": 1
+        },
+        {
+          "name": "Classic Pedicure",
+          "price": 40.00,
+          "quantity": 1
+        },
+        {
+          "name": "Paraffin Wax Treatment",
+          "price": 20.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER823",
+      "customerName": "Jessica Green",
+      "status": "completed",
+      "bookingType": "booked",
+      "bookingDate": "2025-04-16",
+      "bookingTime": "14:30",
+      "total": 85.00,
+      "technician": ["Sarah Lee"],
+      "services": [
+        {
+          "name": "Gel Fill",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "3D Nail Art",
+          "price": 35.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER824",
+      "customerName": "Sarah Adams",
+      "status": "paid",
+      "bookingType": "walk-in",
+      "bookingDate": "2025-04-20",
+      "bookingTime": null,
+      "total": 95.00,
+      "technician": ["Lisa Wong"],
+      "services": [
+        {
+          "name": "Classic Manicure",
+          "price": 35.00,
+          "quantity": 1
+        },
+        {
+          "name": "Dip Powder Pedicure",
+          "price": 60.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER825",
+      "customerName": "Emily Baker",
+      "status": "completed",
+      "bookingType": "booked",
+      "bookingDate": "2025-04-25",
+      "bookingTime": "09:30",
+      "total": 130.00,
+      "technician": ["Maria Garcia", "Anna Kim"],
+      "services": [
+        {
+          "name": "Full Set Gel Extensions",
+          "price": 85.00,
+          "quantity": 1
+        },
+        {
+          "name": "Spa Pedicure",
+          "price": 55.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER826",
+      "customerName": "Rachel Nelson",
+      "status": "paid",
+      "bookingType": "booked",
+      "bookingDate": "2025-05-03",
+      "bookingTime": "13:00",
+      "total": 70.00,
+      "technician": ["Sarah Lee"],
+      "services": [
+        {
+          "name": "French Manicure",
+          "price": 40.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Polish",
+          "price": 20.00,
+          "quantity": 1
+        },
+        {
+          "name": "Hand Massage",
+          "price": 15.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER827",
+      "customerName": "Michelle Carter",
+      "status": "completed",
+      "bookingType": "walk-in",
+      "bookingDate": "2025-05-07",
+      "bookingTime": null,
+      "total": 105.00,
+      "technician": ["Lisa Wong"],
+      "services": [
+        {
+          "name": "Acrylic Fill",
+          "price": 45.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Pedicure",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Wraps",
+          "price": 30.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER828",
+      "customerName": "Jennifer Mitchell",
+      "status": "paid",
+      "bookingType": "booked",
+      "bookingDate": "2025-05-10",
+      "bookingTime": "10:30",
+      "total": 115.00,
+      "technician": ["Anna Kim"],
+      "services": [
+        {
+          "name": "Gel Overlay",
+          "price": 55.00,
+          "quantity": 1
+        },
+        {
+          "name": "Dip Powder Pedicure",
+          "price": 60.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER829",
+      "customerName": "Amanda Perez",
+      "status": "completed",
+      "bookingType": "booked",
+      "bookingDate": "2025-05-14",
+      "bookingTime": "15:30",
+      "total": 90.00,
+      "technician": ["Maria Garcia"],
+      "services": [
+        {
+          "name": "Classic Manicure",
+          "price": 35.00,
+          "quantity": 1
+        },
+        {
+          "name": "Classic Pedicure",
+          "price": 40.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Art Accent",
+          "price": 5.00,
+          "quantity": 1
+        },
+        {
+          "name": "Cuticle Treatment",
+          "price": 10.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER830",
+      "customerName": "Jessica Roberts",
+      "status": "paid",
+      "bookingType": "walk-in",
+      "bookingDate": "2025-05-18",
+      "bookingTime": null,
+      "total": 125.00,
+      "technician": ["Sarah Lee", "Lisa Wong"],
+      "services": [
+        {
+          "name": "Acrylic Full Set",
+          "price": 65.00,
+          "quantity": 1
+        },
+        {
+          "name": "Spa Pedicure",
+          "price": 55.00,
+          "quantity": 1
+        },
+        {
+          "name": "Foot Wax Treatment",
+          "price": 25.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER831",
+      "customerName": "Sarah Turner",
+      "status": "completed",
+      "bookingType": "booked",
+      "bookingDate": "2025-05-22",
+      "bookingTime": "11:00",
+      "total": 80.00,
+      "technician": ["Anna Kim"],
+      "services": [
+        {
+          "name": "Gel Manicure",
+          "price": 45.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Polish",
+          "price": 20.00,
+          "quantity": 1
+        },
+        {
+          "name": "Paraffin Wax Treatment",
+          "price": 20.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER832",
+      "customerName": "Emily Phillips",
+      "status": "paid",
+      "bookingType": "booked",
+      "bookingDate": "2025-05-26",
+      "bookingTime": "14:00",
+      "total": 110.00,
+      "technician": ["Maria Garcia"],
+      "services": [
+        {
+          "name": "Full Set Gel Extensions",
+          "price": 85.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Art Design",
+          "price": 25.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER833",
+      "customerName": "Rachel Campbell",
+      "status": "completed",
+      "bookingType": "walk-in",
+      "bookingDate": "2025-06-02",
+      "bookingTime": null,
+      "total": 75.00,
+      "technician": ["Lisa Wong"],
+      "services": [
+        {
+          "name": "French Manicure",
+          "price": 40.00,
+          "quantity": 1
+        },
+        {
+          "name": "Classic Pedicure",
+          "price": 40.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER834",
+      "customerName": "Michelle Parker",
+      "status": "paid",
+      "bookingType": "booked",
+      "bookingDate": "2025-06-05",
+      "bookingTime": "09:00",
+      "total": 140.00,
+      "technician": ["Sarah Lee", "Maria Garcia"],
+      "services": [
+        {
+          "name": "Acrylic Full Set",
+          "price": 65.00,
+          "quantity": 1
+        },
+        {
+          "name": "Dip Powder Pedicure",
+          "price": 60.00,
+          "quantity": 1
+        },
+        {
+          "name": "Hot Stone Massage",
+          "price": 30.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER835",
+      "customerName": "Jennifer Evans",
+      "status": "completed",
+      "bookingType": "booked",
+      "bookingDate": "2025-06-09",
+      "bookingTime": "13:30",
+      "total": 95.00,
+      "technician": ["Anna Kim"],
+      "services": [
+        {
+          "name": "Gel Fill",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Spa Pedicure",
+          "price": 55.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER836",
+      "customerName": "Amanda Edwards",
+      "status": "paid",
+      "bookingType": "walk-in",
+      "bookingDate": "2025-06-13",
+      "bookingTime": null,
+      "total": 100.00,
+      "technician": ["Lisa Wong"],
+      "services": [
+        {
+          "name": "Dip Powder Manicure",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Pedicure",
+          "price": 50.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER837",
+      "customerName": "Jessica Collins",
+      "status": "completed",
+      "bookingType": "booked",
+      "bookingDate": "2025-06-17",
+      "bookingTime": "10:30",
+      "total": 120.00,
+      "technician": ["Maria Garcia", "Anna Kim"],
+      "services": [
+        {
+          "name": "Gel Extensions",
+          "price": 85.00,
+          "quantity": 1
+        },
+        {
+          "name": "Classic Pedicure",
+          "price": 40.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER838",
+      "customerName": "Sarah Stewart",
+      "status": "paid",
+      "bookingType": "booked",
+      "bookingDate": "2025-06-20",
+      "bookingTime": "15:00",
+      "total": 85.00,
+      "technician": ["Sarah Lee"],
+      "services": [
+        {
+          "name": "Acrylic Overlay",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "3D Nail Art",
+          "price": 35.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER839",
+      "customerName": "Emily Sanchez",
+      "status": "completed",
+      "bookingType": "walk-in",
+      "bookingDate": "2025-06-24",
+      "bookingTime": null,
+      "total": 110.00,
+      "technician": ["Lisa Wong"],
+      "services": [
+        {
+          "name": "Classic Manicure",
+          "price": 35.00,
+          "quantity": 1
+        },
+        {
+          "name": "Spa Pedicure",
+          "price": 55.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Art Design",
+          "price": 25.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER840",
+      "customerName": "Rachel Morris",
+      "status": "paid",
+      "bookingType": "booked",
+      "bookingDate": "2025-07-03",
+      "bookingTime": "11:30",
+      "total": 70.00,
+      "technician": ["Anna Kim"],
+      "services": [
+        {
+          "name": "Gel Manicure",
+          "price": 45.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Polish",
+          "price": 20.00,
+          "quantity": 1
+        },
+        {
+          "name": "Hand Massage",
+          "price": 15.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER841",
+      "customerName": "Michelle Rogers",
+      "status": "completed",
+      "bookingType": "walk-in",
+      "bookingDate": "2025-07-07",
+      "bookingTime": null,
+      "total": 135.00,
+      "technician": ["Maria Garcia", "Sarah Lee"],
+      "services": [
+        {
+          "name": "Acrylic Full Set",
+          "price": 65.00,
+          "quantity": 1
+        },
+        {
+          "name": "Spa Pedicure",
+          "price": 55.00,
+          "quantity": 1
+        },
+        {
+          "name": "Foot Massage",
+          "price": 25.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER842",
+      "customerName": "Jennifer Reed",
+      "status": "paid",
+      "bookingType": "booked",
+      "bookingDate": "2025-07-10",
+      "bookingTime": "14:00",
+      "total": 95.00,
+      "technician": ["Lisa Wong"],
+      "services": [
+        {
+          "name": "French Manicure",
+          "price": 40.00,
+          "quantity": 1
+        },
+        {
+          "name": "Dip Powder Pedicure",
+          "price": 60.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER843",
+      "customerName": "Amanda Cook",
+      "status": "completed",
+      "bookingType": "booked",
+      "bookingDate": "2025-07-14",
+      "bookingTime": "09:30",
+      "total": 105.00,
+      "technician": ["Anna Kim"],
+      "services": [
+        {
+          "name": "Gel Fill",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Pedicure",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Strengthening Treatment",
+          "price": 25.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER844",
+      "customerName": "Jessica Morgan",
+      "status": "paid",
+      "bookingType": "walk-in",
+      "bookingDate": "2025-07-18",
+      "bookingTime": null,
+      "total": 125.00,
+      "technician": ["Maria Garcia"],
+      "services": [
+        {
+          "name": "Full Set Gel Extensions",
+          "price": 85.00,
+          "quantity": 1
+        },
+        {
+          "name": "Classic Pedicure",
+          "price": 40.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER845",
+      "customerName": "Sarah Bell",
+      "status": "completed",
+      "bookingType": "booked",
+      "bookingDate": "2025-07-22",
+      "bookingTime": "12:30",
+      "total": 80.00,
+      "technician": ["Sarah Lee", "Lisa Wong"],
+      "services": [
+        {
+          "name": "Acrylic Fill",
+          "price": 45.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Polish",
+          "price": 20.00,
+          "quantity": 1
+        },
+        {
+          "name": "Paraffin Wax Treatment",
+          "price": 20.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER846",
+      "customerName": "Emily Murphy",
+      "status": "paid",
+      "bookingType": "booked",
+      "bookingDate": "2025-07-26",
+      "bookingTime": "15:30",
+      "total": 115.00,
+      "technician": ["Anna Kim"],
+      "services": [
+        {
+          "name": "Gel Overlay",
+          "price": 55.00,
+          "quantity": 1
+        },
+        {
+          "name": "Spa Pedicure",
+          "price": 55.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Art Accent",
+          "price": 5.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER847",
+      "customerName": "Rachel Bailey",
+      "status": "completed",
+      "bookingType": "walk-in",
+      "bookingDate": "2025-08-02",
+      "bookingTime": null,
+      "total": 90.00,
+      "technician": ["Maria Garcia"],
+      "services": [
+        {
+          "name": "Classic Manicure",
+          "price": 35.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Pedicure",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Foot Massage",
+          "price": 25.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER848",
+      "customerName": "Michelle Rivera",
+      "status": "paid",
+      "bookingType": "booked",
+      "bookingDate": "2025-08-05",
+      "bookingTime": "10:00",
+      "total": 140.00,
+      "technician": ["Lisa Wong", "Anna Kim"],
+      "services": [
+        {
+          "name": "Acrylic Full Set",
+          "price": 65.00,
+          "quantity": 1
+        },
+        {
+          "name": "Dip Powder Pedicure",
+          "price": 60.00,
+          "quantity": 1
+        },
+        {
+          "name": "3D Nail Art",
+          "price": 35.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER849",
+      "customerName": "Jennifer Cooper",
+      "status": "completed",
+      "bookingType": "booked",
+      "bookingDate": "2025-08-09",
+      "bookingTime": "14:30",
+      "total": 75.00,
+      "technician": ["Sarah Lee"],
+      "services": [
+        {
+          "name": "French Manicure",
+          "price": 40.00,
+          "quantity": 1
+        },
+        {
+          "name": "Classic Pedicure",
+          "price": 40.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER850",
+      "customerName": "Amanda Richardson",
+      "status": "paid",
+      "bookingType": "walk-in",
+      "bookingDate": "2025-08-13",
+      "bookingTime": null,
+      "total": 110.00,
+      "technician": ["Maria Garcia"],
+      "services": [
+        {
+          "name": "Gel Extensions",
+          "price": 85.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Art Design",
+          "price": 25.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER851",
+      "customerName": "Jessica Cox",
+      "status": "completed",
+      "bookingType": "booked",
+      "bookingDate": "2025-08-17",
+      "bookingTime": "11:00",
+      "total": 100.00,
+      "technician": ["Lisa Wong"],
+      "services": [
+        {
+          "name": "Dip Powder Manicure",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Spa Pedicure",
+          "price": 55.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER852",
+      "customerName": "Sarah Howard",
+      "status": "paid",
+      "bookingType": "booked",
+      "bookingDate": "2025-08-21",
+      "bookingTime": "13:00",
+      "total": 85.00,
+      "technician": ["Anna Kim", "Sarah Lee"],
+      "services": [
+        {
+          "name": "Acrylic Overlay",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Polish",
+          "price": 20.00,
+          "quantity": 1
+        },
+        {
+          "name": "Hand Massage",
+          "price": 15.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER853",
+      "customerName": "Emily Ward",
+      "status": "completed",
+      "bookingType": "walk-in",
+      "bookingDate": "2025-08-25",
+      "bookingTime": null,
+      "total": 120.00,
+      "technician": ["Maria Garcia"],
+      "services": [
+        {
+          "name": "Full Set Gel Extensions",
+          "price": 85.00,
+          "quantity": 1
+        },
+        {
+          "name": "Classic Pedicure",
+          "price": 40.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER854",
+      "customerName": "Rachel Torres",
+      "status": "paid",
+      "bookingType": "booked",
+      "bookingDate": "2025-09-03",
+      "bookingTime": "09:00",
+      "total": 70.00,
+      "technician": ["Lisa Wong"],
+      "services": [
+        {
+          "name": "Gel Manicure",
+          "price": 45.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Polish",
+          "price": 20.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Buffing",
+          "price": 8.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER855",
+      "customerName": "Michelle Peterson",
+      "status": "completed",
+      "bookingType": "walk-in",
+      "bookingDate": "2025-09-07",
+      "bookingTime": null,
+      "total": 135.00,
+      "technician": ["Sarah Lee", "Maria Garcia"],
+      "services": [
+        {
+          "name": "Acrylic Full Set",
+          "price": 65.00,
+          "quantity": 1
+        },
+        {
+          "name": "Spa Pedicure",
+          "price": 55.00,
+          "quantity": 1
+        },
+        {
+          "name": "Hot Stone Massage",
+          "price": 30.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER856",
+      "customerName": "Jennifer Gray",
+      "status": "paid",
+      "bookingType": "booked",
+      "bookingDate": "2025-09-11",
+      "bookingTime": "14:00",
+      "total": 95.00,
+      "technician": ["Anna Kim"],
+      "services": [
+        {
+          "name": "French Manicure",
+          "price": 40.00,
+          "quantity": 1
+        },
+        {
+          "name": "Dip Powder Pedicure",
+          "price": 60.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER857",
+      "customerName": "Amanda Ramirez",
+      "status": "completed",
+      "bookingType": "booked",
+      "bookingDate": "2025-09-15",
+      "bookingTime": "10:30",
+      "total": 105.00,
+      "technician": ["Maria Garcia"],
+      "services": [
+        {
+          "name": "Gel Fill",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Pedicure",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Cuticle Treatment",
+          "price": 10.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER858",
+      "customerName": "Jessica James",
+      "status": "paid",
+      "bookingType": "walk-in",
+      "bookingDate": "2025-09-19",
+      "bookingTime": null,
+      "total": 125.00,
+      "technician": ["Lisa Wong", "Anna Kim"],
+      "services": [
+        {
+          "name": "Acrylic Full Set",
+          "price": 65.00,
+          "quantity": 1
+        },
+        {
+          "name": "Classic Pedicure",
+          "price": 40.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Art Design",
+          "price": 25.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER859",
+      "customerName": "Sarah Watson",
+      "status": "completed",
+      "bookingType": "booked",
+      "bookingDate": "2025-09-23",
+      "bookingTime": "13:30",
+      "total": 80.00,
+      "technician": ["Sarah Lee"],
+      "services": [
+        {
+          "name": "Gel Extensions",
+          "price": 85.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Art Accent",
+          "price": 5.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER860",
+      "customerName": "Emily Brooks",
+      "status": "paid",
+      "bookingType": "walk-in",
+      "bookingDate": "2025-09-27",
+      "bookingTime": null,
+      "total": 115.00,
+      "technician": ["Maria Garcia"],
+      "services": [
+        {
+          "name": "Gel Overlay",
+          "price": 55.00,
+          "quantity": 1
+        },
+        {
+          "name": "Spa Pedicure",
+          "price": 55.00,
+          "quantity": 1
+        },
+        {
+          "name": "Foot Massage",
+          "price": 25.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER861",
+      "customerName": "Rachel Kelly",
+      "status": "completed",
+      "bookingType": "booked",
+      "bookingDate": "2025-10-02",
+      "bookingTime": "09:30",
+      "total": 90.00,
+      "technician": ["Lisa Wong"],
+      "services": [
+        {
+          "name": "Classic Manicure",
+          "price": 35.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Pedicure",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Paraffin Wax Treatment",
+          "price": 20.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER862",
+      "customerName": "Michelle Sanders",
+      "status": "paid",
+      "bookingType": "walk-in",
+      "bookingDate": "2025-10-05",
+      "bookingTime": null,
+      "total": 140.00,
+      "technician": ["Sarah Lee", "Maria Garcia", "Anna Kim"],
+      "services": [
+        {
+          "name": "Full Set Gel Extensions",
+          "price": 85.00,
+          "quantity": 1
+        },
+        {
+          "name": "Spa Pedicure",
+          "price": 55.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER863",
+      "customerName": "Jennifer Price",
+      "status": "completed",
+      "bookingType": "booked",
+      "bookingDate": "2025-10-09",
+      "bookingTime": "14:30",
+      "total": 75.00,
+      "technician": ["Anna Kim"],
+      "services": [
+        {
+          "name": "French Manicure",
+          "price": 40.00,
+          "quantity": 1
+        },
+        {
+          "name": "Classic Pedicure",
+          "price": 40.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER864",
+      "customerName": "Amanda Bennett",
+      "status": "paid",
+      "bookingType": "booked",
+      "bookingDate": "2025-10-13",
+      "bookingTime": "11:00",
+      "total": 110.00,
+      "technician": ["Maria Garcia"],
+      "services": [
+        {
+          "name": "Gel Extensions",
+          "price": 85.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Art Design",
+          "price": 25.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER865",
+      "customerName": "Jessica Wood",
+      "status": "completed",
+      "bookingType": "walk-in",
+      "bookingDate": "2025-10-17",
+      "bookingTime": null,
+      "total": 100.00,
+      "technician": ["Lisa Wong"],
+      "services": [
+        {
+          "name": "Dip Powder Manicure",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Spa Pedicure",
+          "price": 55.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER866",
+      "customerName": "Sarah Barnes",
+      "status": "paid",
+      "bookingType": "booked",
+      "bookingDate": "2025-10-21",
+      "bookingTime": "13:00",
+      "total": 85.00,
+      "technician": ["Sarah Lee", "Anna Kim"],
+      "services": [
+        {
+          "name": "Acrylic Overlay",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Polish",
+          "price": 20.00,
+          "quantity": 1
+        },
+        {
+          "name": "Hand Massage",
+          "price": 15.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER867",
+      "customerName": "Emily Ross",
+      "status": "completed",
+      "bookingType": "walk-in",
+      "bookingDate": "2025-10-25",
+      "bookingTime": null,
+      "total": 120.00,
+      "technician": ["Maria Garcia"],
+      "services": [
+        {
+          "name": "Full Set Gel Extensions",
+          "price": 85.00,
+          "quantity": 1
+        },
+        {
+          "name": "Classic Pedicure",
+          "price": 40.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER868",
+      "customerName": "Rachel Henderson",
+      "status": "paid",
+      "bookingType": "booked",
+      "bookingDate": "2025-10-29",
+      "bookingTime": "15:30",
+      "total": 130.00,
+      "technician": ["Lisa Wong", "Anna Kim"],
+      "services": [
+        {
+          "name": "Acrylic Full Set",
+          "price": 65.00,
+          "quantity": 1
+        },
+        {
+          "name": "Dip Powder Pedicure",
+          "price": 60.00,
+          "quantity": 1
+        },
+        {
+          "name": "3D Nail Art",
+          "price": 35.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER869",
+      "customerName": "Michelle Coleman",
+      "status": "completed",
+      "bookingType": "walk-in",
+      "bookingDate": "2025-11-03",
+      "bookingTime": null,
+      "total": 70.00,
+      "technician": ["Sarah Lee"],
+      "services": [
+        {
+          "name": "Gel Manicure",
+          "price": 45.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Polish",
+          "price": 20.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Buffing",
+          "price": 8.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER870",
+      "customerName": "Jennifer Jenkins",
+      "status": "paid",
+      "bookingType": "booked",
+      "bookingDate": "2025-11-07",
+      "bookingTime": "10:00",
+      "total": 135.00,
+      "technician": ["Maria Garcia", "Lisa Wong"],
+      "services": [
+        {
+          "name": "Acrylic Full Set",
+          "price": 65.00,
+          "quantity": 1
+        },
+        {
+          "name": "Spa Pedicure",
+          "price": 55.00,
+          "quantity": 1
+        },
+        {
+          "name": "Foot Massage",
+          "price": 25.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER871",
+      "customerName": "Amanda Perry",
+      "status": "completed",
+      "bookingType": "booked",
+      "bookingDate": "2025-11-11",
+      "bookingTime": "14:00",
+      "total": 95.00,
+      "technician": ["Anna Kim"],
+      "services": [
+        {
+          "name": "French Manicure",
+          "price": 40.00,
+          "quantity": 1
+        },
+        {
+          "name": "Dip Powder Pedicure",
+          "price": 60.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER872",
+      "customerName": "Jessica Powell",
+      "status": "paid",
+      "bookingType": "walk-in",
+      "bookingDate": "2025-11-15",
+      "bookingTime": null,
+      "total": 105.00,
+      "technician": ["Maria Garcia"],
+      "services": [
+        {
+          "name": "Gel Fill",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Pedicure",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Strengthening Treatment",
+          "price": 25.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER873",
+      "customerName": "Sarah Long",
+      "status": "completed",
+      "bookingType": "booked",
+      "bookingDate": "2025-11-19",
+      "bookingTime": "11:30",
+      "total": 125.00,
+      "technician": ["Lisa Wong", "Anna Kim"],
+      "services": [
+        {
+          "name": "Acrylic Full Set",
+          "price": 65.00,
+          "quantity": 1
+        },
+        {
+          "name": "Classic Pedicure",
+          "price": 40.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Art Design",
+          "price": 25.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER874",
+      "customerName": "Emily Patterson",
+      "status": "paid",
+      "bookingType": "walk-in",
+      "bookingDate": "2025-11-23",
+      "bookingTime": null,
+      "total": 80.00,
+      "technician": ["Sarah Lee"],
+      "services": [
+        {
+          "name": "Gel Extensions",
+          "price": 85.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Art Accent",
+          "price": 5.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER875",
+      "customerName": "Rachel Hughes",
+      "status": "completed",
+      "bookingType": "booked",
+      "bookingDate": "2025-11-27",
+      "bookingTime": "09:00",
+      "total": 115.00,
+      "technician": ["Maria Garcia"],
+      "services": [
+        {
+          "name": "Gel Overlay",
+          "price": 55.00,
+          "quantity": 1
+        },
+        {
+          "name": "Spa Pedicure",
+          "price": 55.00,
+          "quantity": 1
+        },
+        {
+          "name": "Foot Massage",
+          "price": 25.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER925",
+      "customerName": "Sarah Johnson",
+      "status": "waiting",
+      "bookingType": "walk-in",
+      "bookingDate": "2025-12-30",
+      "bookingTime": null,
+      "total": 55.00,
+      "technician": ["Maria Garcia"],
+      "services": [
+        {
+          "name": "Classic Manicure",
+          "price": 35.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Polish",
+          "price": 20.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER926",
+      "customerName": "Emily Chen",
+      "status": "in-progress",
+      "bookingType": "booked",
+      "bookingDate": "2025-12-30",
+      "bookingTime": null,
+      "total": 200.00,
+      "technician": ["Maria Garcia", "Lisa Wong", "Anna Kim", "Sarah Lee"],
+      "services": [
+        {
+          "name": "Acrylic Full Set",
+          "price": 65.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Art Design",
+          "price": 25.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Polish",
+          "price": 20.00,
+          "quantity": 1
+        },
+        {
+          "name": "Spa Pedicure",
+          "price": 55.00,
+          "quantity": 1
+        },
+        {
+          "name": "Classic Manicure",
+          "price": 35.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER927",
+      "customerName": "Amanda Taylor",
+      "status": "waiting",
+      "bookingType": "booked",
+      "bookingDate": "2025-12-30",
+      "bookingTime": "14:00",
+      "total": 85.00,
+      "technician": ["Lisa Wong"],
+      "services": [
+        {
+          "name": "Full Set Gel Extensions",
+          "price": 85.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER928",
+      "customerName": "Michelle Brown",
+      "status": "in-progress",
+      "bookingType": "walk-in",
+      "bookingDate": "2025-12-30",
+      "bookingTime": null,
+      "total": 135.00,
+      "technician": ["Sarah Lee", "Maria Garcia", "Lisa Wong", "Anna Kim"],
+      "services": [
+        {
+          "name": "Classic Manicure",
+          "price": 35.00,
+          "quantity": 1
+        },
+        {
+          "name": "Spa Pedicure",
+          "price": 55.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Polish",
+          "price": 20.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Art Design",
+          "price": 25.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER929",
+      "customerName": "Jessica Martinez",
+      "status": "completed",
+      "bookingType": "booked",
+      "bookingDate": "2025-12-30",
+      "bookingTime": null,
+      "total": 75.00,
+      "technician": ["Anna Kim"],
+      "services": [
+        {
+          "name": "Spa Pedicure",
+          "price": 55.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Polish",
+          "price": 20.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER930",
+      "customerName": "Rachel Green",
+      "status": "paid",
+      "bookingType": "booked",
+      "bookingDate": "2025-12-30",
+      "bookingTime": null,
+      "total": 45.00,
+      "technician": ["Lisa Wong"],
+      "services": [
+        {
+          "name": "Gel Manicure",
+          "price": 45.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER931",
+      "customerName": "Sarah Johnson",
+      "status": "booked",
+      "bookingType": "booked",
+      "bookingDate": "2025-12-04",
+      "bookingTime": "10:30",
+      "total": 90.00,
+      "technician": ["Maria Garcia"],
+      "services": [
+        {
+          "name": "Classic Manicure",
+          "price": 35.00,
+          "quantity": 1
+        },
+        {
+          "name": "Spa Pedicure",
+          "price": 55.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER932",
+      "customerName": "Emily Chen",
+      "status": "in-progress",
+      "bookingType": "walk-in",
+      "bookingDate": "2025-12-04",
+      "bookingTime": null,
+      "total": 50.00,
+      "technician": ["Anna Kim"],
+      "services": [
+        {
+          "name": "Gel Manicure",
+          "price": 45.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Art Accent",
+          "price": 5.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER933",
+      "customerName": "Jessica Martinez",
+      "status": "completed",
+      "bookingType": "booked",
+      "bookingDate": "2025-12-04",
+      "bookingTime": "14:00",
+      "total": 100.00,
+      "technician": ["Lisa Wong", "Sarah Lee"],
+      "services": [
+        {
+          "name": "Acrylic Full Set",
+          "price": 65.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Art Design",
+          "price": 25.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Polish",
+          "price": 20.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER934",
+      "customerName": "Amanda Taylor",
+      "status": "waiting",
+      "bookingType": "booked",
+      "bookingDate": "2025-12-07",
+      "bookingTime": "11:00",
+      "total": 65.00,
+      "technician": ["Maria Garcia"],
+      "services": [
+        {
+          "name": "French Manicure",
+          "price": 40.00,
+          "quantity": 1
+        },
+        {
+          "name": "Hand Massage",
+          "price": 15.00,
+          "quantity": 1
+        },
+        {
+          "name": "Cuticle Treatment",
+          "price": 10.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER935",
+      "customerName": "Michelle Brown",
+      "status": "paid",
+      "bookingType": "booked",
+      "bookingDate": "2025-12-07",
+      "bookingTime": "09:30",
+      "total": 120.00,
+      "technician": ["Anna Kim"],
+      "services": [
+        {
+          "name": "Gel Extensions",
+          "price": 85.00,
+          "quantity": 1
+        },
+        {
+          "name": "Classic Pedicure",
+          "price": 40.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER936",
+      "customerName": "Rachel Green",
+      "status": "in-progress",
+      "bookingType": "walk-in",
+      "bookingDate": "2025-12-07",
+      "bookingTime": null,
+      "total": 70.00,
+      "technician": ["Sarah Lee"],
+      "services": [
+        {
+          "name": "Dip Powder Manicure",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Paraffin Wax Treatment",
+          "price": 20.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER937",
+      "customerName": "Sarah Johnson",
+      "status": "booked",
+      "bookingType": "booked",
+      "bookingDate": "2025-12-14",
+      "bookingTime": "15:00",
+      "total": 95.00,
+      "technician": ["Lisa Wong"],
+      "services": [
+        {
+          "name": "Spa Pedicure",
+          "price": 55.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Polish",
+          "price": 20.00,
+          "quantity": 1
+        },
+        {
+          "name": "Foot Massage",
+          "price": 25.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER938",
+      "customerName": "Emily Chen",
+      "status": "waiting",
+      "bookingType": "booked",
+      "bookingDate": "2025-12-14",
+      "bookingTime": "13:30",
+      "total": 80.00,
+      "technician": ["Maria Garcia", "Anna Kim"],
+      "services": [
+        {
+          "name": "Acrylic Fill",
+          "price": 45.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Art Design",
+          "price": 25.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Buffing",
+          "price": 8.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER939",
+      "customerName": "Jessica Martinez",
+      "status": "completed",
+      "bookingType": "booked",
+      "bookingDate": "2025-12-14",
+      "bookingTime": "10:00",
+      "total": 105.00,
+      "technician": ["Sarah Lee"],
+      "services": [
+        {
+          "name": "Gel Manicure",
+          "price": 45.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Pedicure",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Strengthening Treatment",
+          "price": 25.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER940",
+      "customerName": "Amanda Taylor",
+      "status": "paid",
+      "bookingType": "walk-in",
+      "bookingDate": "2025-12-14",
+      "bookingTime": null,
+      "total": 60.00,
+      "technician": ["Lisa Wong"],
+      "services": [
+        {
+          "name": "Dip Powder Manicure",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Cuticle Treatment",
+          "price": 10.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER941",
+      "customerName": "Michelle Brown",
+      "status": "booked",
+      "bookingType": "booked",
+      "bookingDate": "2025-12-02",
+      "bookingTime": "11:00",
+      "total": 140.00,
+      "technician": ["Maria Garcia", "Lisa Wong"],
+      "services": [
+        {
+          "name": "Full Set Gel Extensions",
+          "price": 85.00,
+          "quantity": 1
+        },
+        {
+          "name": "Spa Pedicure",
+          "price": 55.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER942",
+      "customerName": "Rachel Green",
+      "status": "waiting",
+      "bookingType": "booked",
+      "bookingDate": "2025-12-05",
+      "bookingTime": "14:30",
+      "total": 75.00,
+      "technician": ["Anna Kim"],
+      "services": [
+        {
+          "name": "Acrylic Full Set",
+          "price": 65.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Art Accent",
+          "price": 5.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Shaping",
+          "price": 10.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER943",
+      "customerName": "Sarah Johnson",
+      "status": "in-progress",
+      "bookingType": "walk-in",
+      "bookingDate": "2025-12-08",
+      "bookingTime": null,
+      "total": 110.00,
+      "technician": ["Sarah Lee", "Maria Garcia"],
+      "services": [
+        {
+          "name": "Classic Manicure",
+          "price": 35.00,
+          "quantity": 1
+        },
+        {
+          "name": "Classic Pedicure",
+          "price": 40.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Art Design",
+          "price": 25.00,
+          "quantity": 1
+        },
+        {
+          "name": "Paraffin Wax Treatment",
+          "price": 20.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER944",
+      "customerName": "Emily Chen",
+      "status": "completed",
+      "bookingType": "booked",
+      "bookingDate": "2025-12-10",
+      "bookingTime": "09:00",
+      "total": 50.00,
+      "technician": ["Lisa Wong"],
+      "services": [
+        {
+          "name": "Gel Fill",
+          "price": 50.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER945",
+      "customerName": "Jessica Martinez",
+      "status": "paid",
+      "bookingType": "booked",
+      "bookingDate": "2025-12-12",
+      "bookingTime": "16:00",
+      "total": 85.00,
+      "technician": ["Anna Kim"],
+      "services": [
+        {
+          "name": "Gel Manicure",
+          "price": 45.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Polish",
+          "price": 20.00,
+          "quantity": 1
+        },
+        {
+          "name": "Hand Massage",
+          "price": 15.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER946",
+      "customerName": "Amanda Taylor",
+      "status": "booked",
+      "bookingType": "booked",
+      "bookingDate": "2025-12-15",
+      "bookingTime": "12:00",
+      "total": 130.00,
+      "technician": ["Maria Garcia"],
+      "services": [
+        {
+          "name": "Acrylic Full Set",
+          "price": 65.00,
+          "quantity": 1
+        },
+        {
+          "name": "Dip Powder Pedicure",
+          "price": 60.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER947",
+      "customerName": "Michelle Brown",
+      "status": "waiting",
+      "bookingType": "walk-in",
+      "bookingDate": "2025-12-18",
+      "bookingTime": null,
+      "total": 90.00,
+      "technician": ["Sarah Lee"],
+      "services": [
+        {
+          "name": "French Manicure",
+          "price": 40.00,
+          "quantity": 1
+        },
+        {
+          "name": "Spa Pedicure",
+          "price": 55.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER948",
+      "customerName": "Rachel Green",
+      "status": "in-progress",
+      "bookingType": "booked",
+      "bookingDate": "2025-12-20",
+      "bookingTime": "10:30",
+      "total": 100.00,
+      "technician": ["Lisa Wong", "Anna Kim"],
+      "services": [
+        {
+          "name": "Gel Overlay",
+          "price": 55.00,
+          "quantity": 1
+        },
+        {
+          "name": "3D Nail Art",
+          "price": 35.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Buffing",
+          "price": 8.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER949",
+      "customerName": "Sarah Johnson",
+      "status": "completed",
+      "bookingType": "booked",
+      "bookingDate": "2025-12-22",
+      "bookingTime": "13:00",
+      "total": 70.00,
+      "technician": ["Maria Garcia"],
+      "services": [
+        {
+          "name": "Classic Manicure",
+          "price": 35.00,
+          "quantity": 1
+        },
+        {
+          "name": "Classic Pedicure",
+          "price": 40.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER950",
+      "customerName": "Emily Chen",
+      "status": "paid",
+      "bookingType": "booked",
+      "bookingDate": "2025-12-28",
+      "bookingTime": "15:30",
+      "total": 115.00,
+      "technician": ["Sarah Lee"],
+      "services": [
+        {
+          "name": "Acrylic Overlay",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Pedicure",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Foot Wax Treatment",
+          "price": 25.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER951",
+      "customerName": "Jessica Martinez",
+      "status": "booked",
+      "bookingType": "booked",
+      "bookingDate": "2026-01-03",
+      "bookingTime": "09:30",
+      "total": 55.00,
+      "technician": ["Lisa Wong"],
+      "services": [
+        {
+          "name": "Spa Pedicure",
+          "price": 55.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER952",
+      "customerName": "Amanda Taylor",
+      "status": "waiting",
+      "bookingType": "walk-in",
+      "bookingDate": "2026-01-05",
+      "bookingTime": null,
+      "total": 125.00,
+      "technician": ["Maria Garcia", "Anna Kim"],
+      "services": [
+        {
+          "name": "Gel Extensions",
+          "price": 85.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Art Design",
+          "price": 25.00,
+          "quantity": 1
+        },
+        {
+          "name": "Hot Stone Massage",
+          "price": 30.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER953",
+      "customerName": "Michelle Brown",
+      "status": "in-progress",
+      "bookingType": "booked",
+      "bookingDate": "2026-01-08",
+      "bookingTime": "11:00",
+      "total": 95.00,
+      "technician": ["Sarah Lee"],
+      "services": [
+        {
+          "name": "Dip Powder Manicure",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Polish",
+          "price": 20.00,
+          "quantity": 1
+        },
+        {
+          "name": "Paraffin Wax Treatment",
+          "price": 20.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER954",
+      "customerName": "Rachel Green",
+      "status": "completed",
+      "bookingType": "booked",
+      "bookingDate": "2026-01-10",
+      "bookingTime": "14:00",
+      "total": 80.00,
+      "technician": ["Lisa Wong"],
+      "services": [
+        {
+          "name": "Gel Manicure",
+          "price": 45.00,
+          "quantity": 1
+        },
+        {
+          "name": "Classic Pedicure",
+          "price": 40.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER955",
+      "customerName": "Sarah Johnson",
+      "status": "paid",
+      "bookingType": "booked",
+      "bookingDate": "2026-01-12",
+      "bookingTime": "10:00",
+      "total": 135.00,
+      "technician": ["Maria Garcia", "Lisa Wong"],
+      "services": [
+        {
+          "name": "Acrylic Full Set",
+          "price": 65.00,
+          "quantity": 1
+        },
+        {
+          "name": "Spa Pedicure",
+          "price": 55.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Art Accent",
+          "price": 5.00,
+          "quantity": 1
+        },
+        {
+          "name": "Cuticle Treatment",
+          "price": 10.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER956",
+      "customerName": "Emily Chen",
+      "status": "booked",
+      "bookingType": "booked",
+      "bookingDate": "2026-01-15",
+      "bookingTime": "13:30",
+      "total": 60.00,
+      "technician": ["Anna Kim"],
+      "services": [
+        {
+          "name": "Acrylic Fill",
+          "price": 45.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Strengthening Treatment",
+          "price": 25.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER957",
+      "customerName": "Jessica Martinez",
+      "status": "waiting",
+      "bookingType": "walk-in",
+      "bookingDate": "2026-01-18",
+      "bookingTime": null,
+      "total": 110.00,
+      "technician": ["Sarah Lee"],
+      "services": [
+        {
+          "name": "Gel Overlay",
+          "price": 55.00,
+          "quantity": 1
+        },
+        {
+          "name": "Dip Powder Pedicure",
+          "price": 60.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER958",
+      "customerName": "Amanda Taylor",
+      "status": "in-progress",
+      "bookingType": "booked",
+      "bookingDate": "2026-01-20",
+      "bookingTime": "15:00",
+      "total": 75.00,
+      "technician": ["Lisa Wong"],
+      "services": [
+        {
+          "name": "French Manicure",
+          "price": 40.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Polish",
+          "price": 20.00,
+          "quantity": 1
+        },
+        {
+          "name": "Hand Massage",
+          "price": 15.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER959",
+      "customerName": "Michelle Brown",
+      "status": "completed",
+      "bookingType": "booked",
+      "bookingDate": "2026-01-25",
+      "bookingTime": "09:00",
+      "total": 100.00,
+      "technician": ["Maria Garcia"],
+      "services": [
+        {
+          "name": "Classic Manicure",
+          "price": 35.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Pedicure",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Foot Massage",
+          "price": 25.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER960",
+      "customerName": "Rachel Green",
+      "status": "paid",
+      "bookingType": "booked",
+      "bookingDate": "2026-01-28",
+      "bookingTime": "11:30",
+      "total": 90.00,
+      "technician": ["Anna Kim", "Sarah Lee"],
+      "services": [
+        {
+          "name": "Dip Powder Manicure",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Classic Pedicure",
+          "price": 40.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER961",
+      "customerName": "Sarah Johnson",
+      "status": "booked",
+      "bookingType": "booked",
+      "bookingDate": "2026-02-02",
+      "bookingTime": "10:00",
+      "total": 70.00,
+      "technician": ["Lisa Wong"],
+      "services": [
+        {
+          "name": "Gel Manicure",
+          "price": 45.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Art Design",
+          "price": 25.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER962",
+      "customerName": "Emily Chen",
+      "status": "waiting",
+      "bookingType": "walk-in",
+      "bookingDate": "2026-02-05",
+      "bookingTime": null,
+      "total": 145.00,
+      "technician": ["Maria Garcia", "Lisa Wong", "Anna Kim"],
+      "services": [
+        {
+          "name": "Full Set Gel Extensions",
+          "price": 85.00,
+          "quantity": 1
+        },
+        {
+          "name": "Spa Pedicure",
+          "price": 55.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER963",
+      "customerName": "Jessica Martinez",
+      "status": "in-progress",
+      "bookingType": "booked",
+      "bookingDate": "2026-02-08",
+      "bookingTime": "14:30",
+      "total": 85.00,
+      "technician": ["Sarah Lee"],
+      "services": [
+        {
+          "name": "Acrylic Overlay",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Polish",
+          "price": 20.00,
+          "quantity": 1
+        },
+        {
+          "name": "Paraffin Wax Treatment",
+          "price": 20.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER964",
+      "customerName": "Amanda Taylor",
+      "status": "completed",
+      "bookingType": "booked",
+      "bookingDate": "2026-02-10",
+      "bookingTime": "09:30",
+      "total": 120.00,
+      "technician": ["Lisa Wong"],
+      "services": [
+        {
+          "name": "Acrylic Full Set",
+          "price": 65.00,
+          "quantity": 1
+        },
+        {
+          "name": "3D Nail Art",
+          "price": 35.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Wraps",
+          "price": 30.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER965",
+      "customerName": "Michelle Brown",
+      "status": "paid",
+      "bookingType": "booked",
+      "bookingDate": "2026-02-12",
+      "bookingTime": "12:00",
+      "total": 95.00,
+      "technician": ["Maria Garcia"],
+      "services": [
+        {
+          "name": "Gel Fill",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Pedicure",
+          "price": 50.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER966",
+      "customerName": "Rachel Green",
+      "status": "booked",
+      "bookingType": "booked",
+      "bookingDate": "2026-02-15",
+      "bookingTime": "11:00",
+      "total": 65.00,
+      "technician": ["Anna Kim"],
+      "services": [
+        {
+          "name": "French Manicure",
+          "price": 40.00,
+          "quantity": 1
+        },
+        {
+          "name": "Hand Massage",
+          "price": 15.00,
+          "quantity": 1
+        },
+        {
+          "name": "Cuticle Treatment",
+          "price": 10.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER967",
+      "customerName": "Sarah Johnson",
+      "status": "waiting",
+      "bookingType": "walk-in",
+      "bookingDate": "2026-02-18",
+      "bookingTime": null,
+      "total": 110.00,
+      "technician": ["Sarah Lee", "Lisa Wong"],
+      "services": [
+        {
+          "name": "Classic Manicure",
+          "price": 35.00,
+          "quantity": 1
+        },
+        {
+          "name": "Dip Powder Pedicure",
+          "price": 60.00,
+          "quantity": 1
+        },
+        {
+          "name": "Foot Wax Treatment",
+          "price": 25.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER968",
+      "customerName": "Emily Chen",
+      "status": "in-progress",
+      "bookingType": "booked",
+      "bookingDate": "2026-02-20",
+      "bookingTime": "13:00",
+      "total": 80.00,
+      "technician": ["Maria Garcia"],
+      "services": [
+        {
+          "name": "Gel Overlay",
+          "price": 55.00,
+          "quantity": 1
+        },
+        {
+          "name": "Classic Pedicure",
+          "price": 40.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER969",
+      "customerName": "Jessica Martinez",
+      "status": "completed",
+      "bookingType": "booked",
+      "bookingDate": "2026-02-22",
+      "bookingTime": "10:30",
+      "total": 130.00,
+      "technician": ["Anna Kim", "Sarah Lee"],
+      "services": [
+        {
+          "name": "Acrylic Full Set",
+          "price": 65.00,
+          "quantity": 1
+        },
+        {
+          "name": "Spa Pedicure",
+          "price": 55.00,
+          "quantity": 1
+        },
+        {
+          "name": "Hot Stone Massage",
+          "price": 30.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER970",
+      "customerName": "Amanda Taylor",
+      "status": "paid",
+      "bookingType": "booked",
+      "bookingDate": "2026-02-25",
+      "bookingTime": "15:30",
+      "total": 55.00,
+      "technician": ["Lisa Wong"],
+      "services": [
+        {
+          "name": "Spa Pedicure",
+          "price": 55.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER971",
+      "customerName": "Sarah Johnson",
+      "status": "booked",
+      "bookingType": "booked",
+      "bookingDate": "2025-12-17",
+      "bookingTime": "09:00",
+      "total": 60.00,
+      "technician": ["Maria Garcia"],
+      "services": [
+        {
+          "name": "Gel Manicure",
+          "price": 45.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Art Accent",
+          "price": 5.00,
+          "quantity": 1
+        },
+        {
+          "name": "Cuticle Treatment",
+          "price": 10.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER972",
+      "customerName": "Emily Chen",
+      "status": "waiting",
+      "bookingType": "walk-in",
+      "bookingDate": "2025-12-17",
+      "bookingTime": null,
+      "total": 140.00,
+      "technician": ["Lisa Wong", "Anna Kim"],
+      "services": [
+        {
+          "name": "Acrylic Full Set",
+          "price": 65.00,
+          "quantity": 1
+        },
+        {
+          "name": "Spa Pedicure",
+          "price": 55.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Art Design",
+          "price": 25.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER973",
+      "customerName": "Jessica Martinez",
+      "status": "in-progress",
+      "bookingType": "booked",
+      "bookingDate": "2025-12-17",
+      "bookingTime": "11:30",
+      "total": 105.00,
+      "technician": ["Sarah Lee"],
+      "services": [
+        {
+          "name": "Dip Powder Manicure",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Pedicure",
+          "price": 50.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER974",
+      "customerName": "Amanda Taylor",
+      "status": "completed",
+      "bookingType": "booked",
+      "bookingDate": "2025-12-21",
+      "bookingTime": "14:00",
+      "total": 75.00,
+      "technician": ["Maria Garcia"],
+      "services": [
+        {
+          "name": "French Manicure",
+          "price": 40.00,
+          "quantity": 1
+        },
+        {
+          "name": "Hand Massage",
+          "price": 15.00,
+          "quantity": 1
+        },
+        {
+          "name": "Paraffin Wax Treatment",
+          "price": 20.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER975",
+      "customerName": "Michelle Brown",
+      "status": "paid",
+      "bookingType": "booked",
+      "bookingDate": "2025-12-21",
+      "bookingTime": "10:00",
+      "total": 115.00,
+      "technician": ["Lisa Wong"],
+      "services": [
+        {
+          "name": "Gel Fill",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "3D Nail Art",
+          "price": 35.00,
+          "quantity": 1
+        },
+        {
+          "name": "Foot Massage",
+          "price": 25.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER976",
+      "customerName": "Rachel Green",
+      "status": "booked",
+      "bookingType": "booked",
+      "bookingDate": "2025-12-21",
+      "bookingTime": "15:30",
+      "total": 95.00,
+      "technician": ["Anna Kim", "Sarah Lee"],
+      "services": [
+        {
+          "name": "Classic Manicure",
+          "price": 35.00,
+          "quantity": 1
+        },
+        {
+          "name": "Dip Powder Pedicure",
+          "price": 60.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER977",
+      "customerName": "Sarah Johnson",
+      "status": "waiting",
+      "bookingType": "walk-in",
+      "bookingDate": "2025-12-24",
+      "bookingTime": null,
+      "total": 85.00,
+      "technician": ["Maria Garcia"],
+      "services": [
+        {
+          "name": "Acrylic Fill",
+          "price": 45.00,
+          "quantity": 1
+        },
+        {
+          "name": "Classic Pedicure",
+          "price": 40.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER978",
+      "customerName": "Emily Chen",
+      "status": "in-progress",
+      "bookingType": "booked",
+      "bookingDate": "2025-12-24",
+      "bookingTime": "12:00",
+      "total": 125.00,
+      "technician": ["Lisa Wong"],
+      "services": [
+        {
+          "name": "Gel Overlay",
+          "price": 55.00,
+          "quantity": 1
+        },
+        {
+          "name": "Spa Pedicure",
+          "price": 55.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Strengthening Treatment",
+          "price": 25.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER979",
+      "customerName": "Jessica Martinez",
+      "status": "completed",
+      "bookingType": "booked",
+      "bookingDate": "2025-12-24",
+      "bookingTime": "09:30",
+      "total": 70.00,
+      "technician": ["Sarah Lee"],
+      "services": [
+        {
+          "name": "Classic Manicure",
+          "price": 35.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Polish",
+          "price": 20.00,
+          "quantity": 1
+        },
+        {
+          "name": "Hot Stone Massage",
+          "price": 30.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER980",
+      "customerName": "Amanda Taylor",
+      "status": "paid",
+      "bookingType": "booked",
+      "bookingDate": "2025-12-24",
+      "bookingTime": "16:00",
+      "total": 110.00,
+      "technician": ["Anna Kim"],
+      "services": [
+        {
+          "name": "Dip Powder Manicure",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Pedicure",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Wraps",
+          "price": 30.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER981",
+      "customerName": "Michelle Brown",
+      "status": "booked",
+      "bookingType": "booked",
+      "bookingDate": "2025-12-01",
+      "bookingTime": "10:30",
+      "total": 90.00,
+      "technician": ["Maria Garcia"],
+      "services": [
+        {
+          "name": "Acrylic Overlay",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Classic Pedicure",
+          "price": 40.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER982",
+      "customerName": "Rachel Green",
+      "status": "waiting",
+      "bookingType": "walk-in",
+      "bookingDate": "2025-12-03",
+      "bookingTime": null,
+      "total": 150.00,
+      "technician": ["Lisa Wong", "Anna Kim", "Sarah Lee"],
+      "services": [
+        {
+          "name": "Full Set Gel Extensions",
+          "price": 85.00,
+          "quantity": 1
+        },
+        {
+          "name": "Spa Pedicure",
+          "price": 55.00,
+          "quantity": 1
+        },
+        {
+          "name": "3D Nail Art",
+          "price": 35.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER983",
+      "customerName": "Sarah Johnson",
+      "status": "in-progress",
+      "bookingType": "booked",
+      "bookingDate": "2025-12-06",
+      "bookingTime": "13:00",
+      "total": 65.00,
+      "technician": ["Maria Garcia"],
+      "services": [
+        {
+          "name": "Gel Manicure",
+          "price": 45.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Art Design",
+          "price": 25.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER984",
+      "customerName": "Emily Chen",
+      "status": "completed",
+      "bookingType": "booked",
+      "bookingDate": "2025-12-09",
+      "bookingTime": "11:00",
+      "total": 100.00,
+      "technician": ["Lisa Wong"],
+      "services": [
+        {
+          "name": "French Manicure",
+          "price": 40.00,
+          "quantity": 1
+        },
+        {
+          "name": "Dip Powder Pedicure",
+          "price": 60.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER985",
+      "customerName": "Jessica Martinez",
+      "status": "paid",
+      "bookingType": "booked",
+      "bookingDate": "2025-12-11",
+      "bookingTime": "14:30",
+      "total": 80.00,
+      "technician": ["Sarah Lee"],
+      "services": [
+        {
+          "name": "Acrylic Fill",
+          "price": 45.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Polish",
+          "price": 20.00,
+          "quantity": 1
+        },
+        {
+          "name": "Foot Wax Treatment",
+          "price": 25.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER986",
+      "customerName": "Amanda Taylor",
+      "status": "booked",
+      "bookingType": "booked",
+      "bookingDate": "2025-12-13",
+      "bookingTime": "09:00",
+      "total": 135.00,
+      "technician": ["Maria Garcia", "Anna Kim"],
+      "services": [
+        {
+          "name": "Acrylic Full Set",
+          "price": 65.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Pedicure",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Paraffin Wax Treatment",
+          "price": 20.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER987",
+      "customerName": "Michelle Brown",
+      "status": "waiting",
+      "bookingType": "walk-in",
+      "bookingDate": "2025-12-16",
+      "bookingTime": null,
+      "total": 55.00,
+      "technician": ["Lisa Wong"],
+      "services": [
+        {
+          "name": "Spa Pedicure",
+          "price": 55.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER988",
+      "customerName": "Rachel Green",
+      "status": "in-progress",
+      "bookingType": "booked",
+      "bookingDate": "2025-12-19",
+      "bookingTime": "15:00",
+      "total": 120.00,
+      "technician": ["Sarah Lee"],
+      "services": [
+        {
+          "name": "Gel Extensions",
+          "price": 85.00,
+          "quantity": 1
+        },
+        {
+          "name": "Classic Manicure",
+          "price": 35.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER989",
+      "customerName": "Sarah Johnson",
+      "status": "completed",
+      "bookingType": "booked",
+      "bookingDate": "2025-12-23",
+      "bookingTime": "10:00",
+      "total": 105.00,
+      "technician": ["Maria Garcia"],
+      "services": [
+        {
+          "name": "Dip Powder Manicure",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Classic Pedicure",
+          "price": 40.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Art Accent",
+          "price": 5.00,
+          "quantity": 1
+        },
+        {
+          "name": "Cuticle Treatment",
+          "price": 10.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER990",
+      "customerName": "Emily Chen",
+      "status": "paid",
+      "bookingType": "booked",
+      "bookingDate": "2025-12-30",
+      "bookingTime": "12:30",
+      "total": 70.00,
+      "technician": ["Lisa Wong", "Anna Kim"],
+      "services": [
+        {
+          "name": "Gel Overlay",
+          "price": 55.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Buffing",
+          "price": 8.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Shaping",
+          "price": 10.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER991",
+      "customerName": "Jessica Martinez",
+      "status": "booked",
+      "bookingType": "booked",
+      "bookingDate": "2026-01-02",
+      "bookingTime": "09:00",
+      "total": 125.00,
+      "technician": ["Sarah Lee"],
+      "services": [
+        {
+          "name": "Acrylic Full Set",
+          "price": 65.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Pedicure",
+          "price": 50.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER992",
+      "customerName": "Amanda Taylor",
+      "status": "waiting",
+      "bookingType": "walk-in",
+      "bookingDate": "2026-01-04",
+      "bookingTime": null,
+      "total": 90.00,
+      "technician": ["Maria Garcia"],
+      "services": [
+        {
+          "name": "French Manicure",
+          "price": 40.00,
+          "quantity": 1
+        },
+        {
+          "name": "Spa Pedicure",
+          "price": 55.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER993",
+      "customerName": "Michelle Brown",
+      "status": "in-progress",
+      "bookingType": "booked",
+      "bookingDate": "2026-01-07",
+      "bookingTime": "11:30",
+      "total": 140.00,
+      "technician": ["Lisa Wong", "Anna Kim"],
+      "services": [
+        {
+          "name": "Gel Extensions",
+          "price": 85.00,
+          "quantity": 1
+        },
+        {
+          "name": "Dip Powder Pedicure",
+          "price": 60.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER994",
+      "customerName": "Rachel Green",
+      "status": "completed",
+      "bookingType": "booked",
+      "bookingDate": "2026-01-09",
+      "bookingTime": "14:00",
+      "total": 75.00,
+      "technician": ["Sarah Lee"],
+      "services": [
+        {
+          "name": "Classic Manicure",
+          "price": 35.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Polish",
+          "price": 20.00,
+          "quantity": 1
+        },
+        {
+          "name": "Hand Massage",
+          "price": 15.00,
+          "quantity": 1
+        },
+        {
+          "name": "Paraffin Wax Treatment",
+          "price": 20.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER995",
+      "customerName": "Sarah Johnson",
+      "status": "paid",
+      "bookingType": "booked",
+      "bookingDate": "2026-01-11",
+      "bookingTime": "10:30",
+      "total": 110.00,
+      "technician": ["Maria Garcia"],
+      "services": [
+        {
+          "name": "Acrylic Overlay",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Pedicure",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Art Design",
+          "price": 25.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER996",
+      "customerName": "Emily Chen",
+      "status": "booked",
+      "bookingType": "booked",
+      "bookingDate": "2026-01-14",
+      "bookingTime": "13:00",
+      "total": 95.00,
+      "technician": ["Lisa Wong"],
+      "services": [
+        {
+          "name": "Gel Fill",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Classic Pedicure",
+          "price": 40.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER997",
+      "customerName": "Jessica Martinez",
+      "status": "waiting",
+      "bookingType": "walk-in",
+      "bookingDate": "2026-01-17",
+      "bookingTime": null,
+      "total": 130.00,
+      "technician": ["Anna Kim", "Sarah Lee"],
+      "services": [
+        {
+          "name": "Acrylic Full Set",
+          "price": 65.00,
+          "quantity": 1
+        },
+        {
+          "name": "Spa Pedicure",
+          "price": 55.00,
+          "quantity": 1
+        },
+        {
+          "name": "Hot Stone Massage",
+          "price": 30.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER998",
+      "customerName": "Amanda Taylor",
+      "status": "in-progress",
+      "bookingType": "booked",
+      "bookingDate": "2026-01-19",
+      "bookingTime": "15:30",
+      "total": 60.00,
+      "technician": ["Maria Garcia"],
+      "services": [
+        {
+          "name": "Dip Powder Manicure",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Art Accent",
+          "price": 5.00,
+          "quantity": 1
+        },
+        {
+          "name": "Cuticle Treatment",
+          "price": 10.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER999",
+      "customerName": "Michelle Brown",
+      "status": "completed",
+      "bookingType": "booked",
+      "bookingDate": "2026-01-22",
+      "bookingTime": "09:30",
+      "total": 85.00,
+      "technician": ["Lisa Wong"],
+      "services": [
+        {
+          "name": "Gel Overlay",
+          "price": 55.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Polish",
+          "price": 20.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Strengthening Treatment",
+          "price": 25.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER1000",
+      "customerName": "Rachel Green",
+      "status": "paid",
+      "bookingType": "booked",
+      "bookingDate": "2026-01-26",
+      "bookingTime": "11:00",
+      "total": 100.00,
+      "technician": ["Sarah Lee"],
+      "services": [
+        {
+          "name": "French Manicure",
+          "price": 40.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Pedicure",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Foot Massage",
+          "price": 25.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER1001",
+      "customerName": "Sarah Johnson",
+      "status": "booked",
+      "bookingType": "booked",
+      "bookingDate": "2026-02-01",
+      "bookingTime": "10:00",
+      "total": 115.00,
+      "technician": ["Maria Garcia"],
+      "services": [
+        {
+          "name": "Acrylic Fill",
+          "price": 45.00,
+          "quantity": 1
+        },
+        {
+          "name": "Dip Powder Pedicure",
+          "price": 60.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER1002",
+      "customerName": "Emily Chen",
+      "status": "waiting",
+      "bookingType": "walk-in",
+      "bookingDate": "2026-02-03",
+      "bookingTime": null,
+      "total": 70.00,
+      "technician": ["Lisa Wong"],
+      "services": [
+        {
+          "name": "Classic Manicure",
+          "price": 35.00,
+          "quantity": 1
+        },
+        {
+          "name": "Classic Pedicure",
+          "price": 40.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER1003",
+      "customerName": "Jessica Martinez",
+      "status": "in-progress",
+      "bookingType": "booked",
+      "bookingDate": "2026-02-06",
+      "bookingTime": "14:00",
+      "total": 145.00,
+      "technician": ["Anna Kim", "Sarah Lee", "Maria Garcia"],
+      "services": [
+        {
+          "name": "Full Set Gel Extensions",
+          "price": 85.00,
+          "quantity": 1
+        },
+        {
+          "name": "Spa Pedicure",
+          "price": 55.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER1004",
+      "customerName": "Amanda Taylor",
+      "status": "completed",
+      "bookingType": "booked",
+      "bookingDate": "2026-02-09",
+      "bookingTime": "09:00",
+      "total": 80.00,
+      "technician": ["Lisa Wong"],
+      "services": [
+        {
+          "name": "Gel Manicure",
+          "price": 45.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Polish",
+          "price": 20.00,
+          "quantity": 1
+        },
+        {
+          "name": "Paraffin Wax Treatment",
+          "price": 20.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER1005",
+      "customerName": "Michelle Brown",
+      "status": "paid",
+      "bookingType": "booked",
+      "bookingDate": "2026-02-11",
+      "bookingTime": "12:30",
+      "total": 125.00,
+      "technician": ["Maria Garcia"],
+      "services": [
+        {
+          "name": "Acrylic Full Set",
+          "price": 65.00,
+          "quantity": 1
+        },
+        {
+          "name": "Gel Pedicure",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "3D Nail Art",
+          "price": 35.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER1006",
+      "customerName": "Rachel Green",
+      "status": "booked",
+      "bookingType": "booked",
+      "bookingDate": "2026-02-13",
+      "bookingTime": "15:00",
+      "total": 95.00,
+      "technician": ["Sarah Lee"],
+      "services": [
+        {
+          "name": "Dip Powder Manicure",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Classic Pedicure",
+          "price": 40.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER1007",
+      "customerName": "Sarah Johnson",
+      "status": "waiting",
+      "bookingType": "walk-in",
+      "bookingDate": "2026-02-16",
+      "bookingTime": null,
+      "total": 110.00,
+      "technician": ["Anna Kim", "Lisa Wong"],
+      "services": [
+        {
+          "name": "Gel Overlay",
+          "price": 55.00,
+          "quantity": 1
+        },
+        {
+          "name": "Dip Powder Pedicure",
+          "price": 60.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER1008",
+      "customerName": "Emily Chen",
+      "status": "in-progress",
+      "bookingType": "booked",
+      "bookingDate": "2026-02-19",
+      "bookingTime": "10:30",
+      "total": 65.00,
+      "technician": ["Maria Garcia"],
+      "services": [
+        {
+          "name": "French Manicure",
+          "price": 40.00,
+          "quantity": 1
+        },
+        {
+          "name": "Hand Massage",
+          "price": 15.00,
+          "quantity": 1
+        },
+        {
+          "name": "Cuticle Treatment",
+          "price": 10.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER1009",
+      "customerName": "Jessica Martinez",
+      "status": "completed",
+      "bookingType": "booked",
+      "bookingDate": "2026-02-23",
+      "bookingTime": "13:30",
+      "total": 135.00,
+      "technician": ["Sarah Lee"],
+      "services": [
+        {
+          "name": "Acrylic Full Set",
+          "price": 65.00,
+          "quantity": 1
+        },
+        {
+          "name": "Spa Pedicure",
+          "price": 55.00,
+          "quantity": 1
+        },
+        {
+          "name": "Nail Wraps",
+          "price": 30.00,
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "id": "ORDER1010",
+      "customerName": "Amanda Taylor",
+      "status": "paid",
+      "bookingType": "booked",
+      "bookingDate": "2026-02-27",
+      "bookingTime": "16:00",
+      "total": 90.00,
+      "technician": ["Lisa Wong"],
+      "services": [
+        {
+          "name": "Gel Fill",
+          "price": 50.00,
+          "quantity": 1
+        },
+        {
+          "name": "Classic Pedicure",
+          "price": 40.00,
+          "quantity": 1
+        }
+      ]
+    }
+  ]
+}
+
+
