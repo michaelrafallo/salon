@@ -8,7 +8,7 @@ include '../includes/modal.php';
 <main class="flex-1 overflow-y-auto bg-gray-50 lg:ml-0 pt-16 lg:pt-0">
     <div class="p-4 sm:p-6 lg:p-8">
         <!-- Header with Back Button -->
-        <div class="mb-6">
+        <div class="mb-1">
             <a href="tickets.php" class="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 transition">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
@@ -130,7 +130,7 @@ include '../includes/modal.php';
 
         <!-- Step 2: Checkout -->
         <div id="step2Content" class="step-content hidden">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+            <div class="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-6 items-start">
                 <!-- Left Side: Transaction Details -->
                 <div class="flex flex-col">
                     <!-- Transaction Details -->
@@ -155,8 +155,12 @@ include '../includes/modal.php';
                             
                             <div class="space-y-2 border-t border-gray-200 pt-3 mt-auto">
                                 <div class="flex justify-between text-sm">
-                                    <span class="text-gray-600">Items (<span id="checkoutItemCount">0</span>)</span>
+                                    <span class="text-gray-600">Sub Total</span>
                                     <span class="text-gray-900 font-medium" id="checkoutSubtotalDisplay">$0.00</span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">Discount</span>
+                                    <span class="text-gray-900 font-medium text-red-600" id="checkoutDiscountDisplay">$0.00</span>
                                 </div>
                                 <div class="flex justify-between text-sm">
                                     <span class="text-gray-600">Tax (5%)</span>
@@ -165,10 +169,6 @@ include '../includes/modal.php';
                                 <div class="flex justify-between text-sm">
                                     <span class="text-gray-600">Tip</span>
                                     <span class="text-gray-900 font-medium" id="checkoutTipDisplay">$0.00</span>
-                                </div>
-                                <div class="flex justify-between text-sm">
-                                    <span class="text-gray-600">Discount</span>
-                                    <span class="text-gray-900 font-medium text-red-600" id="checkoutDiscountDisplay">$0.00</span>
                                 </div>
                                 <div class="flex justify-between items-center pt-2 border-t border-gray-200">
                                     <span class="text-lg font-semibold text-gray-900">Total</span>
@@ -195,13 +195,12 @@ include '../includes/modal.php';
                     </div>
                 </div>
                 
-                <!-- Right Side: Payment Input -->
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex flex-col space-y-4">
-                    <!-- Payment Method -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Select a payment method</label>
-                        <div class="grid grid-cols-2 gap-3">
-                            <label class="relative flex items-center justify-center p-4 border-2 border-[#003047] rounded-lg cursor-pointer hover:border-[#003047] transition-all duration-200 has-[:checked]:border-[#003047] has-[:checked]:bg-[#e6f0f3]">
+                <!-- Middle: Payment Method -->
+                <div class="flex flex-col">
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 max-w-[300px] w-full">
+                        <label class="block text-sm font-medium text-gray-700 mb-4">Pay with:</label>
+                        <div class="flex flex-col gap-2">
+                            <label class="relative p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-[#003047] transition-all duration-200 has-[:checked]:border-[#003047] has-[:checked]:bg-[#e6f0f3]">
                                 <input type="radio" name="payment_method" value="cash" id="paymentMethodCash" checked class="sr-only peer" onchange="updatePaymentMethod('cash'); updatePaymentMethodStyles();">
                                 <div class="flex items-center gap-2">
                                     <div id="paymentMethodCashCircle" class="w-5 h-5 border-2 border-[#003047] rounded-full flex items-center justify-center transition-all bg-[#003047]">
@@ -210,7 +209,7 @@ include '../includes/modal.php';
                                     <span class="text-sm font-semibold text-gray-900">Cash</span>
                                 </div>
                             </label>
-                            <label class="relative flex items-center justify-center p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-[#003047] transition-all duration-200 has-[:checked]:border-[#003047] has-[:checked]:bg-[#e6f0f3]">
+                            <label class="relative p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-[#003047] transition-all duration-200 has-[:checked]:border-[#003047] has-[:checked]:bg-[#e6f0f3]">
                                 <input type="radio" name="payment_method" value="card" id="paymentMethodCard" class="sr-only peer" onchange="updatePaymentMethod('card'); updatePaymentMethodStyles();">
                                 <div class="flex items-center gap-2">
                                     <div id="paymentMethodCardCircle" class="w-5 h-5 border-2 border-gray-300 rounded-full flex items-center justify-center transition-all">
@@ -219,39 +218,36 @@ include '../includes/modal.php';
                                     <span class="text-sm font-semibold text-gray-900">Card</span>
                                 </div>
                             </label>
+                            <button type="button" onclick="openGiftCardModal()" class="p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-[#003047] transition-all duration-200 text-left">
+                                <span class="text-sm font-semibold text-gray-900">Gift Card</span>
+                            </button>
+                            <button type="button" onclick="openRedeemModal()" class="p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-[#003047] transition-all duration-200 text-left">
+                                <span class="text-sm font-semibold text-gray-900">Redeem</span>
+                            </button>
+                            <button type="button" onclick="openDiscountModal()" class="p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-[#003047] transition-all duration-200 text-left">
+                                <span class="text-sm font-semibold text-gray-900">Discount</span>
+                            </button>
                         </div>
                         <input type="hidden" id="paymentMethod" value="cash">
                     </div>
-                    
-                    <!-- Tip and Discount Section (2 columns) -->
-                    <div class="grid grid-cols-2 gap-4">
-                        <!-- Tip Section -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Tip</label>
-                            <div class="grid grid-cols-2 gap-2 mb-2">
-                                <button type="button" onclick="setTipPercentage(10)" class="px-3 py-2 text-sm font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">10%</button>
-                                <button type="button" onclick="setTipPercentage(15)" class="px-3 py-2 text-sm font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">15%</button>
-                                <button type="button" onclick="setTipPercentage(20)" class="px-3 py-2 text-sm font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">20%</button>
-                                <button type="button" onclick="setTipPercentage(25)" class="px-3 py-2 text-sm font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">25%</button>
-                            </div>
-                            <input type="number" name="tip" id="tipInput" step="0.01" min="0" value="0" oninput="updateTipFromInput()" placeholder="0.00" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" />
+                </div>
+                
+                <!-- Right Side: Payment Input -->
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex flex-col space-y-4 lg:pl-6">
+                    <!-- Tip Section -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Tip</label>
+                        <div class="grid grid-cols-4 gap-2 mb-2">
+                            <button type="button" onclick="setTipPercentage(10)" class="py-2 text-xs font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">10%</button>
+                            <button type="button" onclick="setTipPercentage(15)" class="py-2 text-xs font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">15%</button>
+                            <button type="button" onclick="setTipPercentage(20)" class="py-2 text-xs font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">20%</button>
+                            <button type="button" onclick="setTipPercentage(25)" class="py-2 text-xs font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">25%</button>
                         </div>
-                        
-                        <!-- Discount Section -->
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Discount</label>
-                            <div class="grid grid-cols-2 gap-2 mb-2">
-                                <button type="button" onclick="setDiscountPercentage(5)" class="px-3 py-2 text-sm font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">5%</button>
-                                <button type="button" onclick="setDiscountPercentage(10)" class="px-3 py-2 text-sm font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">10%</button>
-                                <button type="button" onclick="setDiscountPercentage(15)" class="px-3 py-2 text-sm font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">15%</button>
-                                <button type="button" onclick="setDiscountPercentage(20)" class="px-3 py-2 text-sm font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">20%</button>
-                            </div>
-                            <input type="number" name="discount" id="discountInput" step="0.01" min="0" value="0" oninput="updateDiscountFromInput()" placeholder="0.00" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" />
-                        </div>
+                        <input type="number" name="tip" id="tipInput" step="0.01" min="0" value="0" oninput="updateTipFromInput()" placeholder="0.00" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" />
                     </div>
                     
                     <!-- Amount Display -->
-                    <div class="bg-gray-50 rounded-lg p-6 text-center">
+                    <div class="bg-gray-50 rounded-lg p-2 text-center">
                         <div class="text-5xl font-bold text-gray-900" id="paymentAmount">$0</div>
                         <input type="hidden" id="paymentAmountValue" value="0">
                     </div>
@@ -957,10 +953,11 @@ function renderCheckoutStep() {
     
     // Calculate totals
     paymentSubtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    paymentTax = paymentSubtotal * 0.05; // 5% tax
     paymentTip = 0;
     paymentDiscount = 0;
-    const total = paymentSubtotal + paymentTax + paymentTip - paymentDiscount;
+    const discountedSubtotal = paymentSubtotal - paymentDiscount;
+    paymentTax = discountedSubtotal * 0.05; // 5% tax on discounted subtotal
+    const total = discountedSubtotal + paymentTax + paymentTip;
     
     const customerName = `${customerData.firstName} ${customerData.lastName}`;
     const customerInitial = customerName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
@@ -986,11 +983,10 @@ function renderCheckoutStep() {
     }
     
     // Update totals
-    document.getElementById('checkoutItemCount').textContent = cart.length;
     document.getElementById('checkoutSubtotalDisplay').textContent = `$${paymentSubtotal.toFixed(2)}`;
     document.getElementById('checkoutTaxDisplay').textContent = `$${paymentTax.toFixed(2)}`;
     document.getElementById('checkoutTipDisplay').textContent = `$${paymentTip.toFixed(2)}`;
-    document.getElementById('checkoutDiscountDisplay').textContent = `$${paymentDiscount.toFixed(2)}`;
+    document.getElementById('checkoutDiscountDisplay').textContent = `-$${paymentDiscount.toFixed(2)}`;
     document.getElementById('checkoutTotalDisplay').textContent = `$${total.toFixed(2)}`;
     
     // Reset payment amount
@@ -1039,18 +1035,234 @@ function updateTipFromInput() {
 function setDiscountPercentage(percentage) {
     const discountAmount = paymentSubtotal * (percentage / 100);
     paymentDiscount = discountAmount;
-    document.getElementById('discountInput').value = discountAmount.toFixed(2);
+    // Update modal input if it exists, otherwise try page input
+    const modalInput = document.getElementById('discountInputModal');
+    const pageInput = document.getElementById('discountInput');
+    if (modalInput) {
+        modalInput.value = discountAmount.toFixed(2);
+    } else if (pageInput) {
+        pageInput.value = discountAmount.toFixed(2);
+    }
     updatePaymentTotal();
 }
 
 function updateDiscountFromInput() {
     const discountInput = document.getElementById('discountInput');
-    paymentDiscount = parseFloat(discountInput.value) || 0;
-    updatePaymentTotal();
+    if (discountInput) {
+        paymentDiscount = parseFloat(discountInput.value) || 0;
+        updatePaymentTotal();
+    }
+}
+
+function updateDiscountFromInputModal() {
+    const discountInputModal = document.getElementById('discountInputModal');
+    if (discountInputModal) {
+        paymentDiscount = parseFloat(discountInputModal.value) || 0;
+        updatePaymentTotal();
+    }
+}
+
+// Open discount code modal
+// Open Gift Card modal
+function openGiftCardModal() {
+    const modalContent = `
+        <div class="p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold text-gray-900">Gift Card</h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Gift Card Number</label>
+                    <input type="text" id="giftCardNumberInput" placeholder="Enter gift card number" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">PIN (if required)</label>
+                    <input type="text" id="giftCardPinInput" placeholder="Enter PIN" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" />
+                </div>
+                <div class="flex gap-3 justify-end">
+                    <button type="button" onclick="closeModal()" class="px-6 py-3 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
+                        Cancel
+                    </button>
+                    <button type="button" onclick="applyGiftCard()" class="px-6 py-3 text-sm font-medium text-white bg-[#003047] rounded-lg hover:bg-[#002535] transition">
+                        Apply
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    openModal(modalContent, 'default', true);
+}
+
+// Open Redeem modal
+function openRedeemModal() {
+    const modalContent = `
+        <div class="p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold text-gray-900">Redeem</h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Redeem Code</label>
+                    <input type="text" id="redeemCodeInput" placeholder="Enter redeem code" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" />
+                </div>
+                <div class="flex gap-3 justify-end">
+                    <button type="button" onclick="closeModal()" class="px-6 py-3 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
+                        Cancel
+                    </button>
+                    <button type="button" onclick="applyRedeem()" class="px-6 py-3 text-sm font-medium text-white bg-[#003047] rounded-lg hover:bg-[#002535] transition">
+                        Apply
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    openModal(modalContent, 'default', true);
+}
+
+// Open Discount modal
+function openDiscountModal() {
+    const modalContent = `
+        <div class="p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold text-gray-900">Discount</h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Discount</label>
+                    <div class="grid grid-cols-5 gap-2 mb-2">
+                        <button type="button" onclick="setDiscountPercentage(5)" class="py-2 text-xs font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">5%</button>
+                        <button type="button" onclick="setDiscountPercentage(10)" class="py-2 text-xs font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">10%</button>
+                        <button type="button" onclick="setDiscountPercentage(15)" class="py-2 text-xs font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">15%</button>
+                        <button type="button" onclick="setDiscountPercentage(20)" class="py-2 text-xs font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">20%</button>
+                        <button type="button" onclick="closeModal(); openDiscountCodeModal();" class="py-2 text-xs font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">CODE</button>
+                    </div>
+                    <input type="number" name="discount" id="discountInputModal" step="0.01" min="0" value="${paymentDiscount.toFixed(2)}" oninput="updateDiscountFromInputModal()" placeholder="0.00" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" />
+                </div>
+                <div class="flex gap-3 justify-end">
+                    <button type="button" onclick="closeModal()" class="px-6 py-3 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
+                        Cancel
+                    </button>
+                    <button type="button" onclick="closeModal()" class="px-6 py-3 text-sm font-medium text-white bg-[#003047] rounded-lg hover:bg-[#002535] transition">
+                        Apply
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    openModal(modalContent, 'default', true);
+}
+
+// Open discount code modal (kept for CODE button in discount modal)
+function openDiscountCodeModal() {
+    const modalContent = `
+        <div class="p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold text-gray-900">Enter discount code</h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <form onsubmit="applyDiscountCode(event)" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Discount Code</label>
+                    <input type="text" id="discountCodeInput" placeholder="Enter code" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" />
+                </div>
+                <div class="flex gap-3 justify-end">
+                    <button type="button" onclick="closeModal()" class="px-6 py-3 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-6 py-3 text-sm font-medium text-white bg-[#003047] rounded-lg hover:bg-[#002535] transition">
+                        Apply
+                    </button>
+                </div>
+            </form>
+        </div>
+    `;
+    openModal(modalContent, 'default', true);
+}
+
+// Apply discount code
+function applyDiscountCode(event) {
+    if (event) event.preventDefault();
+    
+    const discountCodeInput = document.getElementById('discountCodeInput');
+    const code = discountCodeInput ? discountCodeInput.value.trim() : '';
+    
+    if (!code) {
+        alert('Please enter a discount code');
+        return;
+    }
+    
+    // TODO: Implement discount code validation and application
+    // For now, this is a placeholder function
+    console.log('Applying discount code:', code);
+    // You can add API call here to validate and apply the discount code
+    
+    // Close modal after applying
+    closeModal();
+}
+
+// Apply Gift Card
+function applyGiftCard() {
+    const giftCardNumberInput = document.getElementById('giftCardNumberInput');
+    const giftCardPinInput = document.getElementById('giftCardPinInput');
+    const number = giftCardNumberInput ? giftCardNumberInput.value.trim() : '';
+    const pin = giftCardPinInput ? giftCardPinInput.value.trim() : '';
+    
+    if (!number) {
+        alert('Please enter a gift card number');
+        return;
+    }
+    
+    // TODO: Implement gift card validation and application
+    // For now, this is a placeholder function
+    console.log('Applying gift card:', { number, pin });
+    // You can add API call here to validate and apply the gift card
+    
+    // Close modal after applying
+    closeModal();
+}
+
+// Apply Redeem
+function applyRedeem() {
+    const redeemCodeInput = document.getElementById('redeemCodeInput');
+    const code = redeemCodeInput ? redeemCodeInput.value.trim() : '';
+    
+    if (!code) {
+        alert('Please enter a redeem code');
+        return;
+    }
+    
+    // TODO: Implement redeem code validation and application
+    // For now, this is a placeholder function
+    console.log('Applying redeem code:', code);
+    // You can add API call here to validate and apply the redeem code
+    
+    // Close modal after applying
+    closeModal();
 }
 
 function updatePaymentTotal() {
-    const total = paymentSubtotal + paymentTax + paymentTip - paymentDiscount;
+    const discountedSubtotal = paymentSubtotal - paymentDiscount;
+    paymentTax = discountedSubtotal * 0.05; // 5% tax on discounted subtotal
+    const total = discountedSubtotal + paymentTax + paymentTip;
     
     // Update modal displays (if they exist)
     const paymentTipDisplay = document.getElementById('paymentTipDisplay');
@@ -1061,9 +1273,11 @@ function updatePaymentTotal() {
     // Update step 2 displays
     const checkoutTipDisplay = document.getElementById('checkoutTipDisplay');
     const checkoutDiscountDisplay = document.getElementById('checkoutDiscountDisplay');
+    const checkoutTaxDisplay = document.getElementById('checkoutTaxDisplay');
     const checkoutTotalDisplay = document.getElementById('checkoutTotalDisplay');
     if (checkoutTipDisplay) checkoutTipDisplay.textContent = `$${paymentTip.toFixed(2)}`;
-    if (checkoutDiscountDisplay) checkoutDiscountDisplay.textContent = `$${paymentDiscount.toFixed(2)}`;
+    if (checkoutDiscountDisplay) checkoutDiscountDisplay.textContent = `-$${paymentDiscount.toFixed(2)}`;
+    if (checkoutTaxDisplay) checkoutTaxDisplay.textContent = `$${paymentTax.toFixed(2)}`;
     if (checkoutTotalDisplay) checkoutTotalDisplay.textContent = `$${total.toFixed(2)}`;
     
     const tipAmountHidden = document.getElementById('tipAmountHidden');
@@ -1301,33 +1515,26 @@ function updatePaymentMethodStyles() {
     const cashCircle = document.getElementById('paymentMethodCashCircle');
     const cardCircle = document.getElementById('paymentMethodCardCircle');
     
-    if (cashRadio && cardRadio && cashCircle && cardCircle) {
-        // Update Cash circle
-        if (cashRadio.checked) {
-            cashCircle.classList.remove('border-gray-300');
-            cashCircle.classList.add('border-[#003047]', 'bg-[#003047]');
-            cashCircle.querySelector('div').classList.remove('opacity-0');
-            cashCircle.querySelector('div').classList.add('opacity-100');
-        } else {
-            cashCircle.classList.remove('border-[#003047]', 'bg-[#003047]');
-            cashCircle.classList.add('border-gray-300');
-            cashCircle.querySelector('div').classList.remove('opacity-100');
-            cashCircle.querySelector('div').classList.add('opacity-0');
-        }
-        
-        // Update Card circle
-        if (cardRadio.checked) {
-            cardCircle.classList.remove('border-gray-300');
-            cardCircle.classList.add('border-[#003047]', 'bg-[#003047]');
-            cardCircle.querySelector('div').classList.remove('opacity-0');
-            cardCircle.querySelector('div').classList.add('opacity-100');
-        } else {
-            cardCircle.classList.remove('border-[#003047]', 'bg-[#003047]');
-            cardCircle.classList.add('border-gray-300');
-            cardCircle.querySelector('div').classList.remove('opacity-100');
-            cardCircle.querySelector('div').classList.add('opacity-0');
+    // Helper function to update circle styles
+    function updateCircle(radio, circle) {
+        if (radio && circle) {
+            if (radio.checked) {
+                circle.classList.remove('border-gray-300');
+                circle.classList.add('border-[#003047]', 'bg-[#003047]');
+                circle.querySelector('div').classList.remove('opacity-0');
+                circle.querySelector('div').classList.add('opacity-100');
+            } else {
+                circle.classList.remove('border-[#003047]', 'bg-[#003047]');
+                circle.classList.add('border-gray-300');
+                circle.querySelector('div').classList.remove('opacity-100');
+                circle.querySelector('div').classList.add('opacity-0');
+            }
         }
     }
+    
+    // Update payment method circles (only Cash and Card are radio buttons)
+    updateCircle(cashRadio, cashCircle);
+    updateCircle(cardRadio, cardCircle);
 }
 
 function processPayment(event) {
@@ -1335,7 +1542,9 @@ function processPayment(event) {
     
     const paymentMethod = document.getElementById('paymentMethod').value;
     const paymentAmount = parseFloat(document.getElementById('paymentAmountValue').value) || 0;
-    const total = paymentSubtotal + paymentTax + paymentTip - paymentDiscount;
+    const discountedSubtotal = paymentSubtotal - paymentDiscount;
+    const calculatedTax = discountedSubtotal * 0.05; // 5% tax on discounted subtotal
+    const total = discountedSubtotal + calculatedTax + paymentTip;
     
     if (paymentAmount < total) {
         alert(`Payment amount ($${paymentAmount.toFixed(2)}) is less than total ($${total.toFixed(2)}). Please enter the correct amount.`);
