@@ -7,19 +7,20 @@ include '../includes/modal.php';
 <!-- Main Content Area -->
 <main class="flex-1 overflow-y-auto bg-gray-50 lg:ml-0 pt-16 lg:pt-0">
     <div class="p-4 sm:p-6 lg:p-8">
-        <!-- Header with Back Button -->
-        <div class="mb-1">
-            <a href="tickets.php" class="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 transition">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-                </svg>
-                <span class="text-sm font-medium">Back to Tickets</span>
-            </a>
-        </div>
 
         <!-- Customer Info and Step Tabs Header -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-3 py-2 px-4">
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6 py-2 px-4">
             <div class="flex flex-col lg:flex-row lg:items-center gap-4">
+                <!-- Back Button -->
+                <div class="flex-shrink-0">
+                    <a href="tickets.php" class="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 transition">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                        </svg>
+                        <span class="text-sm font-medium">Back</span>
+                    </a>
+                </div>
+                
                 <!-- Left: Customer Info -->
                 <div class="flex items-center gap-4 flex-1">
                     <div id="customerInfoContainer" class="flex items-center gap-3">
@@ -53,52 +54,63 @@ include '../includes/modal.php';
             </div>
         </div>
 
+        <!-- Steps Container -->
+        <div class="flex flex-col lg:flex-row gap-6">
         <!-- Step 1: Cart -->
-        <div id="step1Content" class="step-content">
+        <div id="step1Content" class="step-content flex-1">
             <!-- Two Column Layout: Services | Technicians -->
-            <div class="flex flex-col lg:flex-row gap-6 h-[calc(100vh-200px)]">
-            <!-- Left Column: Categories Sidebar + Services Grid -->
-            <div class="w-full lg:flex-1 flex gap-3 flex-shrink-0">
-                <!-- Categories Sidebar -->
-                <div class="w-64 flex-shrink-0 flex flex-col">
-                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 flex flex-col h-full">
-                        <h2 class="text-lg font-semibold text-gray-900 mb-4 flex-shrink-0">Categories</h2>
-                        <div id="categoriesList" class="space-y-2 overflow-y-auto flex-1 pr-2">
+            <div class="flex flex-col lg:flex-row gap-6 h-[calc(100vh-200px)] overflow-hidden">
+            <!-- Right Column: Technicians List -->
+            <div class="w-full lg:w-1/3 lg:order-2 flex flex-col min-w-0">
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex flex-col h-full overflow-hidden">
+                    <h2 class="text-xl font-bold text-gray-900 mb-4 flex-shrink-0">Assigned Technicians</h2>
+                    <div id="techniciansListContainer" class="flex-1 overflow-y-auto min-h-0 mb-4">
+                        <!-- Technicians will be populated by JavaScript -->
+                    </div>
+                    <!-- Next Step Button -->
+                    <button onclick="switchStep(2)" class="w-full px-6 py-4 text-lg font-semibold text-white bg-[#003047] rounded-lg hover:bg-[#002535] transition active:scale-95 flex-shrink-0">
+                        Next: Checkout
+                    </button>
+                </div>
+            </div>
+
+            <!-- Left Column: Services Grid -->
+            <div class="w-full lg:w-2/3 lg:order-1 flex flex-col min-w-0">
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex flex-col h-full overflow-hidden">
+                    <div class="mb-3 flex-shrink-0 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                        <div>
+                            <h2 class="text-xl font-bold text-gray-900 mb-1">Select Services</h2>
+                            <p class="text-sm text-gray-600">Choose services to add to your cart</p>
+                        </div>
+                        <!-- Search Input -->
+                        <div class="flex-shrink-0 w-full sm:w-auto sm:min-w-[300px]">
+                            <div class="relative">
+                                <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                </svg>
+                                <input type="text" 
+                                       id="serviceSearchInput" 
+                                       placeholder="Search services..." 
+                                       class="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent text-sm"
+                                       oninput="filterServices(this.value); updateClearButton(this.value);">
+                                <button type="button" 
+                                        id="clearSearchBtn" 
+                                        onclick="clearSearch()" 
+                                        class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 hidden transition">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Categories Horizontal List -->
+                    <div class="mb-4 flex-shrink-0">
+                        <div id="categoriesList" class="flex flex-wrap gap-2">
                             <!-- Categories will be loaded dynamically -->
                         </div>
                     </div>
-                </div>
-
-                <!-- Services Grid -->
-                <div class="flex-1 min-w-0 flex flex-col">
-                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex flex-col h-full overflow-hidden">
-                        <div class="mb-3 flex-shrink-0 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-                            <div>
-                                <h2 class="text-xl font-bold text-gray-900 mb-1">Select Services</h2>
-                                <p class="text-sm text-gray-600">Choose services to add to your cart</p>
-                            </div>
-                            <!-- Search Input -->
-                            <div class="flex-shrink-0 w-full sm:w-auto sm:min-w-[300px]">
-                                <div class="relative">
-                                    <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                                    </svg>
-                                    <input type="text" 
-                                           id="serviceSearchInput" 
-                                           placeholder="Search services..." 
-                                           class="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent text-sm"
-                                           oninput="filterServices(this.value); updateClearButton(this.value);">
-                                    <button type="button" 
-                                            id="clearSearchBtn" 
-                                            onclick="clearSearch()" 
-                                            class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 hidden transition">
-                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
                         
                         <!-- Services Section -->
                         <div class="flex flex-col flex-1 min-h-0">
@@ -111,26 +123,12 @@ include '../includes/modal.php';
                     </div>
                 </div>
             </div>
-
-            <!-- Right Column: Technicians List -->
-            <div class="w-full lg:w-1/3 flex-shrink-0 flex flex-col">
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex flex-col h-full overflow-hidden">
-                    <h2 class="text-xl font-bold text-gray-900 mb-4 flex-shrink-0">Assigned Technicians</h2>
-                    <div id="techniciansListContainer" class="flex-1 overflow-y-auto min-h-0 mb-4">
-                        <!-- Technicians will be populated by JavaScript -->
-                    </div>
-                    <!-- Next Step Button -->
-                    <button onclick="switchStep(2)" class="w-full px-6 py-4 text-lg font-semibold text-white bg-[#003047] rounded-lg hover:bg-[#002535] transition active:scale-95 flex-shrink-0">
-                        Next: Checkout
-                    </button>
-                </div>
-            </div>
         </div>
         </div>
 
         <!-- Step 2: Checkout -->
-        <div id="step2Content" class="step-content hidden">
-            <div class="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-6 items-start">
+        <div id="step2Content" class="step-content hidden flex-1">
+            <div class="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-6 items-stretch">
                 <!-- Left Side: Transaction Details -->
                 <div class="flex flex-col">
                     <!-- Transaction Details -->
@@ -181,14 +179,56 @@ include '../includes/modal.php';
                     <!-- Technicians Tip Split Section -->
                     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mt-6">
                         <h4 class="text-lg font-semibold text-gray-900 mb-4">Technicians Tip</h4>
-                        <div id="techniciansTipSection">
-                            <div id="techniciansTipList" class="space-y-3 max-h-[300px] overflow-y-auto pr-2" style="scrollbar-width: thin; scrollbar-color: #cbd5e0 #f3f4f6;">
-                                <!-- Technicians tip inputs will be populated by JavaScript -->
+                        <!-- Tabs: Percentage and Custom -->
+                        <div class="flex border-b border-gray-200 mb-4">
+                            <button type="button" id="tipPercentageTab" onclick="switchTipSplitMode('percentage')" class="flex-1 px-4 py-2 text-sm font-medium text-gray-700 border-b-2 border-[#003047] bg-transparent transition">
+                                Percentage
+                            </button>
+                            <button type="button" id="tipCustomTab" onclick="switchTipSplitMode('custom')" class="flex-1 px-4 py-2 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-gray-700 transition">
+                                Custom
+                            </button>
+                        </div>
+                        <!-- Percentage Tab Content -->
+                        <div id="percentageTabContent">
+                            <!-- Tip Section -->
+                            <div class="mb-6">
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Tip</label>
+                                <div class="grid grid-cols-4 gap-2 mb-2">
+                                    <button type="button" onclick="setTipPercentage(10)" class="py-2 text-xs font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">10%</button>
+                                    <button type="button" onclick="setTipPercentage(15)" class="py-2 text-xs font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">15%</button>
+                                    <button type="button" onclick="setTipPercentage(20)" class="py-2 text-xs font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">20%</button>
+                                    <button type="button" onclick="setTipPercentage(25)" class="py-2 text-xs font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">25%</button>
+                                </div>
+                                <div class="flex gap-2">
+                                    <input type="number" name="tip" id="tipInput" step="0.01" min="0" value="0" oninput="updateTipFromInput()" placeholder="0.00" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" />
+                                    <button type="button" onclick="splitTipEvenly()" class="px-4 py-3 text-sm font-medium text-white bg-[#003047] rounded-lg hover:bg-[#002535] transition active:scale-95 whitespace-nowrap">
+                                        Split Evenly
+                                    </button>
+                                </div>
                             </div>
-                            <div class="mt-3 pt-3 border-t border-gray-200">
-                                <div class="flex justify-between items-center">
-                                    <span class="text-sm font-medium text-gray-700">Total Split:</span>
-                                    <span class="text-sm font-bold text-gray-900" id="totalTipSplitDisplay">$0.00</span>
+                            <div id="techniciansTipSection">
+                                <div id="techniciansTipList" class="space-y-3 max-h-[300px] overflow-y-auto pr-2" style="scrollbar-width: thin; scrollbar-color: #cbd5e0 #f3f4f6;">
+                                    <!-- Technicians tip inputs will be populated by JavaScript -->
+                                </div>
+                                <div class="mt-3 pt-3 border-t border-gray-200">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-sm font-medium text-gray-700">Total Split:</span>
+                                        <span class="text-sm font-bold text-gray-900" id="totalTipSplitDisplay">$0.00</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Custom Tab Content -->
+                        <div id="customTabContent" class="hidden">
+                            <div id="techniciansTipSectionCustom">
+                                <div id="techniciansTipListCustom" class="space-y-3 max-h-[300px] overflow-y-auto pr-2" style="scrollbar-width: thin; scrollbar-color: #cbd5e0 #f3f4f6;">
+                                    <!-- Technicians tip inputs will be populated by JavaScript -->
+                                </div>
+                                <div class="mt-3 pt-3 border-t border-gray-200">
+                                    <div class="flex justify-between items-center">
+                                        <span class="text-sm font-medium text-gray-700">Total Split:</span>
+                                        <span class="text-sm font-bold text-gray-900" id="totalTipSplitDisplayCustom">$0.00</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -196,35 +236,40 @@ include '../includes/modal.php';
                 </div>
                 
                 <!-- Middle: Payment Method -->
-                <div class="flex flex-col">
-                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 max-w-[300px] w-full">
+                <div class="flex flex-col h-full">
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 max-w-[300px] w-full h-full flex flex-col">
                         <label class="block text-sm font-medium text-gray-700 mb-4">Pay with:</label>
                         <div class="flex flex-col gap-2">
-                            <label class="relative p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-[#003047] transition-all duration-200 has-[:checked]:border-[#003047] has-[:checked]:bg-[#e6f0f3]">
-                                <input type="radio" name="payment_method" value="cash" id="paymentMethodCash" checked class="sr-only peer" onchange="updatePaymentMethod('cash'); updatePaymentMethodStyles();">
-                                <div class="flex items-center gap-2">
-                                    <div id="paymentMethodCashCircle" class="w-5 h-5 border-2 border-[#003047] rounded-full flex items-center justify-center transition-all bg-[#003047]">
-                                        <div class="w-2 h-2 bg-white rounded-full transition-opacity"></div>
-                                    </div>
-                                    <span class="text-sm font-semibold text-gray-900">Cash</span>
-                                </div>
-                            </label>
-                            <label class="relative p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-[#003047] transition-all duration-200 has-[:checked]:border-[#003047] has-[:checked]:bg-[#e6f0f3]">
-                                <input type="radio" name="payment_method" value="card" id="paymentMethodCard" class="sr-only peer" onchange="updatePaymentMethod('card'); updatePaymentMethodStyles();">
-                                <div class="flex items-center gap-2">
-                                    <div id="paymentMethodCardCircle" class="w-5 h-5 border-2 border-gray-300 rounded-full flex items-center justify-center transition-all">
-                                        <div class="w-2 h-2 bg-white rounded-full opacity-0 transition-opacity"></div>
-                                    </div>
-                                    <span class="text-sm font-semibold text-gray-900">Card</span>
-                                </div>
-                            </label>
-                            <button type="button" onclick="openGiftCardModal()" class="p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-[#003047] transition-all duration-200 text-left">
+                            <input type="radio" name="payment_method" value="cash" id="paymentMethodCash" checked class="sr-only">
+                            <button type="button" id="paymentMethodCashBtn" onclick="selectPaymentMethod('cash')" class="p-4 border-2 border-[#003047] bg-[#e6f0f3] rounded-lg cursor-pointer hover:border-[#003047] transition-all duration-200 text-left flex items-center gap-3">
+                                <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                                <span class="text-sm font-semibold text-gray-900">Cash</span>
+                            </button>
+                            <input type="radio" name="payment_method" value="card" id="paymentMethodCard" class="sr-only">
+                            <button type="button" id="paymentMethodCardBtn" onclick="selectPaymentMethod('card')" class="p-4 border-2 border-gray-200 bg-white rounded-lg cursor-pointer hover:border-[#003047] transition-all duration-200 text-left flex items-center gap-3">
+                                <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
+                                </svg>
+                                <span class="text-sm font-semibold text-gray-900">Card</span>
+                            </button>
+                            <button type="button" onclick="openGiftCardModal()" class="p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-[#003047] transition-all duration-200 text-left flex items-center gap-3">
+                                <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"></path>
+                                </svg>
                                 <span class="text-sm font-semibold text-gray-900">Gift Card</span>
                             </button>
-                            <button type="button" onclick="openRedeemModal()" class="p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-[#003047] transition-all duration-200 text-left">
+                            <button type="button" onclick="openRedeemModal()" class="p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-[#003047] transition-all duration-200 text-left flex items-center gap-3">
+                                <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"></path>
+                                </svg>
                                 <span class="text-sm font-semibold text-gray-900">Redeem</span>
                             </button>
-                            <button type="button" onclick="openDiscountModal()" class="p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-[#003047] transition-all duration-200 text-left">
+                            <button type="button" onclick="openDiscountModal()" class="p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-[#003047] transition-all duration-200 text-left flex items-center gap-3">
+                                <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+                                </svg>
                                 <span class="text-sm font-semibold text-gray-900">Discount</span>
                             </button>
                         </div>
@@ -233,19 +278,7 @@ include '../includes/modal.php';
                 </div>
                 
                 <!-- Right Side: Payment Input -->
-                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex flex-col space-y-4 lg:pl-6">
-                    <!-- Tip Section -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Tip</label>
-                        <div class="grid grid-cols-4 gap-2 mb-2">
-                            <button type="button" onclick="setTipPercentage(10)" class="py-2 text-xs font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">10%</button>
-                            <button type="button" onclick="setTipPercentage(15)" class="py-2 text-xs font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">15%</button>
-                            <button type="button" onclick="setTipPercentage(20)" class="py-2 text-xs font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">20%</button>
-                            <button type="button" onclick="setTipPercentage(25)" class="py-2 text-xs font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">25%</button>
-                        </div>
-                        <input type="number" name="tip" id="tipInput" step="0.01" min="0" value="0" oninput="updateTipFromInput()" placeholder="0.00" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" />
-                    </div>
-                    
+                <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex flex-col space-y-4 lg:pl-6 h-full">
                     <!-- Amount Display -->
                     <div class="bg-gray-50 rounded-lg p-2 text-center">
                         <div class="text-5xl font-bold text-gray-900" id="paymentAmount">$0</div>
@@ -291,6 +324,7 @@ include '../includes/modal.php';
                 </div>
             </div>
         </div>
+        </div>
     </div>
 </main>
 
@@ -317,6 +351,7 @@ let paymentDiscount = 0;
 let paymentAmountStr = '';
 let currentStep = 1; // Track current step
 let technicianTips = {}; // { technicianId: { percentage: number, amount: number } }
+let tipSplitMode = 'percentage'; // 'percentage' or 'custom'
 
 // Fetch appointment and customer data
 async function loadPaymentData() {
@@ -462,14 +497,9 @@ function initializeCategoriesList() {
     let categoriesHTML = `
         <button type="button" 
                 onclick="filterByCategory(null)" 
-                class="category-card w-full text-left p-3 bg-[#003047] rounded-lg hover:bg-[#002535] transition-all duration-200 font-medium text-sm shadow-sm active:scale-95" 
+                class="category-card px-4 py-2 bg-[#e6f0f3] border border-[#003047] text-[#003047] rounded-lg hover:bg-[#e6f0f3] hover:text-[#003047] transition-all duration-200 font-medium text-sm shadow-sm active:scale-95 whitespace-nowrap" 
                 data-category-key="all">
-            <div class="flex items-center justify-between">
-                <span class="text-white">All Categories</span>
-                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>
-                </svg>
-            </div>
+            All Categories
         </button>
     `;
     
@@ -479,14 +509,9 @@ function initializeCategoriesList() {
         categoriesHTML += `
             <button type="button" 
                     onclick="filterByCategory('${key}')" 
-                    class="category-card w-full text-left p-3 bg-white border border-gray-200 rounded-lg hover:border-[#003047] hover:bg-[#e6f0f3] transition-all duration-200 font-medium text-sm active:scale-95" 
+                    class="category-card px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:border-[#003047] hover:bg-[#e6f0f3] hover:text-[#003047] transition-all duration-200 font-medium text-sm active:scale-95 whitespace-nowrap" 
                     data-category-key="${key}">
-                <div class="flex items-center justify-between">
-                    <span class="text-gray-700">${displayName}</span>
-                    <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
-                    </svg>
-                </div>
+                ${displayName}
             </button>
         `;
     });
@@ -501,45 +526,19 @@ function filterByCategory(categoryKey) {
     // Update category card styles
     document.querySelectorAll('.category-card').forEach(card => {
         const cardKey = card.getAttribute('data-category-key');
-        const span = card.querySelector('span');
-        const svg = card.querySelector('svg');
         
         if (categoryKey === null && cardKey === 'all') {
             // Active state
-            card.classList.remove('bg-white', 'border-gray-200');
-            card.classList.add('bg-[#003047]', 'hover:bg-[#002535]');
-            if (span) {
-                span.classList.remove('text-gray-700');
-                span.classList.add('text-white');
-            }
-            if (svg) {
-                svg.classList.remove('text-gray-400');
-                svg.classList.add('text-white');
-            }
+            card.classList.remove('bg-white', 'border-gray-200', 'text-gray-700');
+            card.classList.add('bg-[#e6f0f3]', 'border-[#003047]', 'text-[#003047]', 'hover:bg-[#e6f0f3]', 'hover:text-[#003047]');
         } else if (categoryKey === cardKey) {
             // Active state
-            card.classList.remove('bg-white', 'border-gray-200');
-            card.classList.add('bg-[#003047]', 'hover:bg-[#002535]');
-            if (span) {
-                span.classList.remove('text-gray-700');
-                span.classList.add('text-white');
-            }
-            if (svg) {
-                svg.classList.remove('text-gray-400');
-                svg.classList.add('text-white');
-            }
+            card.classList.remove('bg-white', 'border-gray-200', 'text-gray-700');
+            card.classList.add('bg-[#e6f0f3]', 'border-[#003047]', 'text-[#003047]', 'hover:bg-[#e6f0f3]', 'hover:text-[#003047]');
         } else {
             // Inactive state
-            card.classList.remove('bg-[#003047]', 'hover:bg-[#002535]');
-            card.classList.add('bg-white', 'border-gray-200');
-            if (span) {
-                span.classList.remove('text-white');
-                span.classList.add('text-gray-700');
-            }
-            if (svg) {
-                svg.classList.remove('text-white');
-                svg.classList.add('text-gray-400');
-            }
+            card.classList.remove('bg-[#e6f0f3]', 'border-[#003047]', 'text-[#003047]', 'hover:bg-[#e6f0f3]', 'hover:text-[#003047]');
+            card.classList.add('bg-white', 'border-gray-200', 'text-gray-700', 'hover:text-[#003047]');
         }
     });
     
@@ -982,24 +981,25 @@ function renderCheckoutStep() {
         `).join('');
     }
     
-    // Update totals
+    // Update totals (initial display, will be updated by updatePaymentTotal after technicians are rendered)
     document.getElementById('checkoutSubtotalDisplay').textContent = `$${paymentSubtotal.toFixed(2)}`;
     document.getElementById('checkoutTaxDisplay').textContent = `$${paymentTax.toFixed(2)}`;
-    document.getElementById('checkoutTipDisplay').textContent = `$${paymentTip.toFixed(2)}`;
     document.getElementById('checkoutDiscountDisplay').textContent = `-$${paymentDiscount.toFixed(2)}`;
-    document.getElementById('checkoutTotalDisplay').textContent = `$${total.toFixed(2)}`;
     
     // Reset payment amount
     paymentAmountStr = '';
     updatePaymentDisplay();
-    updatePaymentTotal();
     
-    // Render technicians tip split section
+    // Render technicians tip split section first
     renderTechniciansTipSplit();
     
-    // Initialize payment method styles
+    // Then update payment total to use the total split amount
+    updatePaymentTotal();
+    
+    // Initialize payment method styles and tip split mode
     setTimeout(() => {
         updatePaymentMethodStyles();
+        switchTipSplitMode(tipSplitMode);
     }, 100);
 }
 
@@ -1028,6 +1028,32 @@ function updateTipFromInput() {
     paymentTip = parseFloat(tipInput.value) || 0;
     updatePaymentTotal();
     // Update technicians tip split when tip amount changes
+    renderTechniciansTipSplit();
+}
+
+// Split tip evenly among all technicians
+function splitTipEvenly() {
+    if (!assignedTechnicianIds || assignedTechnicianIds.length === 0) return;
+    
+    const assignedTechnicians = techniciansData.filter(technician => {
+        const technicianIdStr = technician.id.toString();
+        return assignedTechnicianIds.includes(technicianIdStr);
+    });
+    
+    if (assignedTechnicians.length === 0) return;
+    
+    const evenPercentage = 100 / assignedTechnicians.length;
+    const evenAmount = paymentTip / assignedTechnicians.length;
+    
+    assignedTechnicians.forEach(technician => {
+        const technicianIdStr = technician.id.toString();
+        technicianTips[technicianIdStr] = {
+            percentage: evenPercentage,
+            amount: evenAmount
+        };
+    });
+    
+    // Re-render the technicians tip list
     renderTechniciansTipSplit();
 }
 
@@ -1063,6 +1089,41 @@ function updateDiscountFromInputModal() {
 }
 
 // Open discount code modal
+// Open Card modal
+function openCardModal() {
+    const modalContent = `
+        <div class="p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold text-gray-900">Card Payment</h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Card Number</label>
+                    <input type="text" id="cardNumberInput" placeholder="4242 4242 4242 4242" maxlength="19" oninput="formatCardNumber(this)" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Approved Code</label>
+                    <input type="text" id="approvedCodeInput" placeholder="Enter approved code" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" />
+                </div>
+                <div class="flex gap-3 justify-end">
+                    <button type="button" onclick="closeModal()" class="px-6 py-3 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
+                        Cancel
+                    </button>
+                    <button type="button" onclick="applyCard()" class="px-6 py-3 text-sm font-medium text-white bg-[#003047] rounded-lg hover:bg-[#002535] transition">
+                        Apply
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    openModal(modalContent, 'default', false);
+}
+
 // Open Gift Card modal
 function openGiftCardModal() {
     const modalContent = `
@@ -1095,7 +1156,7 @@ function openGiftCardModal() {
             </div>
         </div>
     `;
-    openModal(modalContent, 'default', true);
+    openModal(modalContent, 'default', false);
 }
 
 // Open Redeem modal
@@ -1126,7 +1187,7 @@ function openRedeemModal() {
             </div>
         </div>
     `;
-    openModal(modalContent, 'default', true);
+    openModal(modalContent, 'default', false);
 }
 
 // Open Discount modal
@@ -1145,13 +1206,19 @@ function openDiscountModal() {
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">Discount</label>
                     <div class="grid grid-cols-5 gap-2 mb-2">
-                        <button type="button" onclick="setDiscountPercentage(5)" class="py-2 text-xs font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">5%</button>
-                        <button type="button" onclick="setDiscountPercentage(10)" class="py-2 text-xs font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">10%</button>
-                        <button type="button" onclick="setDiscountPercentage(15)" class="py-2 text-xs font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">15%</button>
-                        <button type="button" onclick="setDiscountPercentage(20)" class="py-2 text-xs font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">20%</button>
-                        <button type="button" onclick="closeModal(); openDiscountCodeModal();" class="py-2 text-xs font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">CODE</button>
+                        <button type="button" onclick="setDiscountPercentage(5); switchToDiscountAmountView();" class="py-2 text-xs font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">5%</button>
+                        <button type="button" onclick="setDiscountPercentage(10); switchToDiscountAmountView();" class="py-2 text-xs font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">10%</button>
+                        <button type="button" onclick="setDiscountPercentage(15); switchToDiscountAmountView();" class="py-2 text-xs font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">15%</button>
+                        <button type="button" onclick="setDiscountPercentage(20); switchToDiscountAmountView();" class="py-2 text-xs font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">20%</button>
+                        <button type="button" onclick="switchToDiscountCodeView();" class="py-2 text-xs font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">CODE</button>
                     </div>
-                    <input type="number" name="discount" id="discountInputModal" step="0.01" min="0" value="${paymentDiscount.toFixed(2)}" oninput="updateDiscountFromInputModal()" placeholder="0.00" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" />
+                    <div id="discountAmountView">
+                        <input type="number" name="discount" id="discountInputModal" step="0.01" min="0" value="${paymentDiscount.toFixed(2)}" oninput="updateDiscountFromInputModal()" placeholder="0.00" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" />
+                    </div>
+                    <div id="discountCodeView" class="hidden">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Enter Discount Code</label>
+                        <input type="text" id="discountCodeInputModal" placeholder="Enter Discount Code" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" />
+                    </div>
                 </div>
                 <div class="flex gap-3 justify-end">
                     <button type="button" onclick="closeModal()" class="px-6 py-3 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
@@ -1164,7 +1231,29 @@ function openDiscountModal() {
             </div>
         </div>
     `;
-    openModal(modalContent, 'default', true);
+    openModal(modalContent, 'default', false);
+}
+
+// Switch discount modal to code view
+function switchToDiscountCodeView() {
+    const amountView = document.getElementById('discountAmountView');
+    const codeView = document.getElementById('discountCodeView');
+    
+    if (amountView && codeView) {
+        amountView.classList.add('hidden');
+        codeView.classList.remove('hidden');
+    }
+}
+
+// Switch discount modal to amount view
+function switchToDiscountAmountView() {
+    const amountView = document.getElementById('discountAmountView');
+    const codeView = document.getElementById('discountCodeView');
+    
+    if (amountView && codeView) {
+        amountView.classList.remove('hidden');
+        codeView.classList.add('hidden');
+    }
 }
 
 // Open discount code modal (kept for CODE button in discount modal)
@@ -1195,7 +1284,7 @@ function openDiscountCodeModal() {
             </form>
         </div>
     `;
-    openModal(modalContent, 'default', true);
+    openModal(modalContent, 'default', false);
 }
 
 // Apply discount code
@@ -1259,10 +1348,66 @@ function applyRedeem() {
     closeModal();
 }
 
+// Format card number input
+function formatCardNumber(input) {
+    // Remove all non-digit characters
+    let value = input.value.replace(/\D/g, '');
+    
+    // Limit to 16 digits
+    if (value.length > 16) {
+        value = value.substring(0, 16);
+    }
+    
+    // Add spaces every 4 digits
+    let formattedValue = '';
+    for (let i = 0; i < value.length; i++) {
+        if (i > 0 && i % 4 === 0) {
+            formattedValue += ' ';
+        }
+        formattedValue += value[i];
+    }
+    
+    // Update the input value
+    input.value = formattedValue;
+}
+
+// Apply Card
+function applyCard() {
+    const cardNumberInput = document.getElementById('cardNumberInput');
+    const approvedCodeInput = document.getElementById('approvedCodeInput');
+    // Get card number without spaces for processing
+    const cardNumber = cardNumberInput ? cardNumberInput.value.replace(/\s+/g, '').trim() : '';
+    const approvedCode = approvedCodeInput ? approvedCodeInput.value.trim() : '';
+    
+    if (!cardNumber) {
+        alert('Please enter a card number');
+        return;
+    }
+    
+    if (!approvedCode) {
+        alert('Please enter an approved code');
+        return;
+    }
+    
+    // TODO: Implement card validation and processing
+    // For now, this is a placeholder function
+    console.log('Applying card payment:', { cardNumber, approvedCode });
+    // You can add API call here to validate and process the card payment
+    
+    // Close modal after applying
+    closeModal();
+    
+    // Update button styles to show card is selected
+    updatePaymentMethodStyles();
+}
+
 function updatePaymentTotal() {
     const discountedSubtotal = paymentSubtotal - paymentDiscount;
     paymentTax = discountedSubtotal * 0.05; // 5% tax on discounted subtotal
-    const total = discountedSubtotal + paymentTax + paymentTip;
+    
+    // Get the total tip split amount instead of using paymentTip
+    const totalTipSplitAmount = calculateTotalTipSplit();
+    const total = discountedSubtotal + paymentTax + totalTipSplitAmount;
     
     // Update modal displays (if they exist)
     const paymentTipDisplay = document.getElementById('paymentTipDisplay');
@@ -1275,28 +1420,73 @@ function updatePaymentTotal() {
     const checkoutDiscountDisplay = document.getElementById('checkoutDiscountDisplay');
     const checkoutTaxDisplay = document.getElementById('checkoutTaxDisplay');
     const checkoutTotalDisplay = document.getElementById('checkoutTotalDisplay');
-    if (checkoutTipDisplay) checkoutTipDisplay.textContent = `$${paymentTip.toFixed(2)}`;
+    if (checkoutTipDisplay) checkoutTipDisplay.textContent = `$${totalTipSplitAmount.toFixed(2)}`;
     if (checkoutDiscountDisplay) checkoutDiscountDisplay.textContent = `-$${paymentDiscount.toFixed(2)}`;
     if (checkoutTaxDisplay) checkoutTaxDisplay.textContent = `$${paymentTax.toFixed(2)}`;
     if (checkoutTotalDisplay) checkoutTotalDisplay.textContent = `$${total.toFixed(2)}`;
     
     const tipAmountHidden = document.getElementById('tipAmountHidden');
-    if (tipAmountHidden) tipAmountHidden.value = paymentTip.toFixed(2);
+    if (tipAmountHidden) tipAmountHidden.value = totalTipSplitAmount.toFixed(2);
     
     const discountAmountHidden = document.getElementById('discountAmountHidden');
     if (discountAmountHidden) discountAmountHidden.value = paymentDiscount.toFixed(2);
+}
+
+// Switch tip split mode (percentage or custom)
+function switchTipSplitMode(mode) {
+    tipSplitMode = mode;
+    
+    // Update tab styles
+    const percentageTab = document.getElementById('tipPercentageTab');
+    const customTab = document.getElementById('tipCustomTab');
+    const percentageContent = document.getElementById('percentageTabContent');
+    const customContent = document.getElementById('customTabContent');
+    
+    if (mode === 'percentage') {
+        if (percentageTab) {
+            percentageTab.classList.remove('text-gray-500', 'border-transparent');
+            percentageTab.classList.add('text-gray-700', 'border-[#003047]');
+        }
+        if (customTab) {
+            customTab.classList.remove('text-gray-700', 'border-[#003047]');
+            customTab.classList.add('text-gray-500', 'border-transparent');
+        }
+        // Show percentage content, hide custom content
+        if (percentageContent) percentageContent.classList.remove('hidden');
+        if (customContent) customContent.classList.add('hidden');
+    } else {
+        if (customTab) {
+            customTab.classList.remove('text-gray-500', 'border-transparent');
+            customTab.classList.add('text-gray-700', 'border-[#003047]');
+        }
+        if (percentageTab) {
+            percentageTab.classList.remove('text-gray-700', 'border-[#003047]');
+            percentageTab.classList.add('text-gray-500', 'border-transparent');
+        }
+        // Show custom content, hide percentage content
+        if (customContent) customContent.classList.remove('hidden');
+        if (percentageContent) percentageContent.classList.add('hidden');
+    }
+    
+    // Re-render the technicians tip list
+    renderTechniciansTipSplit();
 }
 
 // Render technicians tip split section
 function renderTechniciansTipSplit() {
     if (!assignedTechnicianIds || assignedTechnicianIds.length === 0) {
         const tipSection = document.getElementById('techniciansTipSection');
+        const tipSectionCustom = document.getElementById('techniciansTipSectionCustom');
         if (tipSection) tipSection.classList.add('hidden');
+        if (tipSectionCustom) tipSectionCustom.classList.add('hidden');
         return;
     }
     
+    // Handle visibility for both tab sections
     const tipSection = document.getElementById('techniciansTipSection');
+    const tipSectionCustom = document.getElementById('techniciansTipSectionCustom');
     if (tipSection) tipSection.classList.remove('hidden');
+    if (tipSectionCustom) tipSectionCustom.classList.remove('hidden');
     
     // Get assigned technicians
     const assignedTechnicians = techniciansData.filter(technician => {
@@ -1306,6 +1496,7 @@ function renderTechniciansTipSplit() {
     
     if (assignedTechnicians.length === 0) {
         if (tipSection) tipSection.classList.add('hidden');
+        if (tipSectionCustom) tipSectionCustom.classList.add('hidden');
         return;
     }
     
@@ -1321,10 +1512,13 @@ function renderTechniciansTipSplit() {
         });
     }
     
-    const techniciansTipList = document.getElementById('techniciansTipList');
+    // Get the correct container based on active tab
+    const techniciansTipList = tipSplitMode === 'percentage' 
+        ? document.getElementById('techniciansTipList')
+        : document.getElementById('techniciansTipListCustom');
     if (!techniciansTipList) return;
     
-    techniciansTipList.innerHTML = assignedTechnicians.map(technician => {
+    const tipListHTML = assignedTechnicians.map(technician => {
         const technicianIdStr = technician.id.toString();
         const initials = technician.initials || (technician.firstName?.[0] || '') + (technician.lastName?.[0] || '');
         const fullName = `${technician.firstName} ${technician.lastName}`;
@@ -1351,6 +1545,7 @@ function renderTechniciansTipSplit() {
                 <div class="flex-1 min-w-0">
                     <p class="text-sm font-medium text-gray-900 truncate">${fullName}</p>
                 </div>
+                ${tipSplitMode === 'percentage' ? `
                 <div class="flex gap-2 flex-1">
                     <div class="flex-1">
                         <div class="flex items-center border border-gray-300 rounded-lg">
@@ -1372,15 +1567,31 @@ function renderTechniciansTipSplit() {
                                  value="${calculatedAmount.toFixed(2)}" 
                                  step="0.01" 
                                  min="0" 
-                                 oninput="updateTechnicianTipAmount('${technicianIdStr}', this.value)"
-                                 class="flex-1 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent rounded-l-lg border-0">
+                                 readonly tabindex="-1"
+                                 class="flex-1 px-3 py-2 text-sm bg-gray-100 cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent rounded-l-lg border-0">
                             <span class="px-3 py-2 text-sm text-gray-500 bg-gray-50 border-l border-gray-300 rounded-r-lg">$</span>
                         </div>
                     </div>
                 </div>
+                ` : `
+                <div>
+                    <div class="flex items-center border border-gray-300 rounded-lg">
+                        <input type="number" 
+                             id="tip-amount-${technicianIdStr}" 
+                             value="${calculatedAmount.toFixed(2)}" 
+                             step="0.01" 
+                             min="0" 
+                             oninput="updateTechnicianTipAmount('${technicianIdStr}', this.value)"
+                             class="flex-1 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent rounded-l-lg border-0">
+                        <span class="px-3 py-2 text-sm text-gray-500 bg-gray-50 border-l border-gray-300 rounded-r-lg">$</span>
+                    </div>
+                </div>
+                `}
             </div>
         `;
     }).join('');
+    
+    techniciansTipList.innerHTML = tipListHTML;
     
     updateTotalTipSplit();
 }
@@ -1433,8 +1644,8 @@ function updateTechnicianTipAmount(technicianId, value) {
     updateTotalTipSplit();
 }
 
-// Update total tip split display
-function updateTotalTipSplit() {
+// Calculate total tip split amount
+function calculateTotalTipSplit() {
     const assignedTechnicians = techniciansData.filter(technician => {
         const technicianIdStr = technician.id.toString();
         return assignedTechnicianIds.includes(technicianIdStr);
@@ -1450,10 +1661,25 @@ function updateTotalTipSplit() {
         totalSplit += amount;
     });
     
+    return totalSplit;
+}
+
+// Update total tip split display
+function updateTotalTipSplit() {
+    const totalSplit = calculateTotalTipSplit();
+    
     const totalTipSplitDisplay = document.getElementById('totalTipSplitDisplay');
+    const totalTipSplitDisplayCustom = document.getElementById('totalTipSplitDisplayCustom');
+    
     if (totalTipSplitDisplay) {
         totalTipSplitDisplay.textContent = `$${totalSplit.toFixed(2)}`;
     }
+    if (totalTipSplitDisplayCustom) {
+        totalTipSplitDisplayCustom.textContent = `$${totalSplit.toFixed(2)}`;
+    }
+    
+    // Update payment total to reflect the new total split in Transaction Details
+    updatePaymentTotal();
 }
 
 function addPaymentAmount(amount) {
@@ -1500,6 +1726,41 @@ function updatePaymentDisplay() {
     }
 }
 
+// Select payment method (for button clicks)
+function selectPaymentMethod(method) {
+    const cashRadio = document.getElementById('paymentMethodCash');
+    const cardRadio = document.getElementById('paymentMethodCard');
+    const cashBtn = document.getElementById('paymentMethodCashBtn');
+    const cardBtn = document.getElementById('paymentMethodCardBtn');
+    const hiddenInput = document.getElementById('paymentMethod');
+    
+    // Update radio buttons
+    if (method === 'cash') {
+        if (cashRadio) cashRadio.checked = true;
+        if (cardRadio) cardRadio.checked = false;
+    } else if (method === 'card') {
+        if (cashRadio) cashRadio.checked = false;
+        if (cardRadio) cardRadio.checked = true;
+        // Update hidden input
+        if (hiddenInput) {
+            hiddenInput.value = method;
+        }
+        // Update button styles to show card is selected
+        updatePaymentMethodStyles();
+        // Open card modal when card is selected
+        openCardModal();
+        return;
+    }
+    
+    // Update hidden input
+    if (hiddenInput) {
+        hiddenInput.value = method;
+    }
+    
+    // Update button styles
+    updatePaymentMethodStyles();
+}
+
 // Update payment method
 function updatePaymentMethod(method) {
     const hiddenInput = document.getElementById('paymentMethod');
@@ -1508,33 +1769,34 @@ function updatePaymentMethod(method) {
     }
 }
 
-// Update payment method circle styles
+// Update payment method button styles
 function updatePaymentMethodStyles() {
     const cashRadio = document.getElementById('paymentMethodCash');
     const cardRadio = document.getElementById('paymentMethodCard');
-    const cashCircle = document.getElementById('paymentMethodCashCircle');
-    const cardCircle = document.getElementById('paymentMethodCardCircle');
+    const cashBtn = document.getElementById('paymentMethodCashBtn');
+    const cardBtn = document.getElementById('paymentMethodCardBtn');
     
-    // Helper function to update circle styles
-    function updateCircle(radio, circle) {
-        if (radio && circle) {
-            if (radio.checked) {
-                circle.classList.remove('border-gray-300');
-                circle.classList.add('border-[#003047]', 'bg-[#003047]');
-                circle.querySelector('div').classList.remove('opacity-0');
-                circle.querySelector('div').classList.add('opacity-100');
-            } else {
-                circle.classList.remove('border-[#003047]', 'bg-[#003047]');
-                circle.classList.add('border-gray-300');
-                circle.querySelector('div').classList.remove('opacity-100');
-                circle.querySelector('div').classList.add('opacity-0');
-            }
+    // Update Cash button
+    if (cashBtn && cashRadio) {
+        if (cashRadio.checked) {
+            cashBtn.classList.remove('border-gray-200', 'bg-white');
+            cashBtn.classList.add('border-[#003047]', 'bg-[#e6f0f3]');
+        } else {
+            cashBtn.classList.remove('border-[#003047]', 'bg-[#e6f0f3]');
+            cashBtn.classList.add('border-gray-200', 'bg-white');
         }
     }
     
-    // Update payment method circles (only Cash and Card are radio buttons)
-    updateCircle(cashRadio, cashCircle);
-    updateCircle(cardRadio, cardCircle);
+    // Update Card button
+    if (cardBtn && cardRadio) {
+        if (cardRadio.checked) {
+            cardBtn.classList.remove('border-gray-200', 'bg-white');
+            cardBtn.classList.add('border-[#003047]', 'bg-[#e6f0f3]');
+        } else {
+            cardBtn.classList.remove('border-[#003047]', 'bg-[#e6f0f3]');
+            cardBtn.classList.add('border-gray-200', 'bg-white');
+        }
+    }
 }
 
 function processPayment(event) {

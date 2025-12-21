@@ -97,6 +97,11 @@ let customersData = [];
 let techniciansData = [];
 let selectedListViewDate = new Date(); // Default to today
 let noShowStatus = {}; // Track no show status for appointments { appointmentId: true/false }
+let selectedTechnicianIds = []; // Selected technician IDs for appointment
+let currentAppointmentId = null; // Current appointment ID being edited
+let technicianSearchTerm = ''; // Search term for technician search
+let currentEvent = null; // Current FullCalendar event being edited
+let currentEventModalElement = null; // Reference to the technician display element in the event modal
 
 // Fetch customers to match phone numbers
 async function fetchCustomers() {
@@ -372,119 +377,26 @@ document.addEventListener('DOMContentLoaded', async function() {
             const event = info.event;
             const extendedProps = event.extendedProps;
             
-            const statusColors = {
-                'In Booking': 'bg-blue-50 text-blue-700 border-blue-200',
-                'In Progress': 'bg-[#e6f0f3] text-[#003047] border-[#003047]',
-                'Booked': 'bg-amber-50 text-amber-700 border-amber-200',
-                'Completed': 'bg-green-50 text-green-700 border-green-200'
+            // Store event reference for technician selection
+            currentEvent = event;
+            
+            // Find the actual appointment to get full data
+            const appointment = bookingsData.find(a => a.id.toString() === event.id.toString());
+            
+            // Build appointment data object from event
+            const appointmentData = {
+                id: event.id,
+                customer: extendedProps.customer,
+                technician: extendedProps.technician,
+                phone: extendedProps.phone,
+                status: extendedProps.status,
+                date: event.start,
+                isNoShow: extendedProps.isNoShow || noShowStatus[event.id] || false,
+                assigned_technician: appointment ? appointment.assigned_technician : null
             };
             
-            // Create modern modal content
-            const modalContent = `
-                <div class="p-6">
-                    <div class="flex items-start justify-between mb-6">
-                        <div>
-                            <h3 class="text-2xl font-bold text-gray-900 mb-1">${extendedProps.customer}</h3>
-                        </div>
-                        <span class="px-3 py-1.5 rounded-lg text-xs font-semibold border ${statusColors[extendedProps.status] || 'bg-gray-50 text-gray-700 border-gray-200'}">
-                            ${extendedProps.status}
-                        </span>
-                    </div>
-                    
-                    <div class="space-y-4 mb-6">
-                        <div class="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
-                            <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                                <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-                                </svg>
-                            </div>
-                            <div class="flex-1">
-                                <p class="text-xs text-gray-500 mb-0.5">Technician</p>
-                                <p class="font-semibold text-gray-900">${extendedProps.technician}</p>
-                            </div>
-                        </div>
-                        
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="p-4 bg-gray-50 rounded-xl">
-                                <p class="text-xs text-gray-500 mb-1">Date</p>
-                                <p class="font-semibold text-gray-900">${event.start.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</p>
-                            </div>
-                            <div class="p-4 bg-gray-50 rounded-xl">
-                                <p class="text-xs text-gray-500 mb-1">Time</p>
-                                <p class="font-semibold text-gray-900">${event.start.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</p>
-                            </div>
-                        </div>
-                        
-                        ${extendedProps.phone ? `
-                        <div class="p-4 bg-gray-50 rounded-xl">
-                            <div class="flex items-center gap-3 mb-4">
-                            <div class="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                                <svg class="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
-                                </svg>
-                            </div>
-                            <div class="flex-1">
-                                <p class="text-xs text-gray-500 mb-0.5">Contact</p>
-                                <p class="font-semibold text-gray-900">${extendedProps.phone}</p>
-                                </div>
-                            </div>
-                            <div class="space-y-4 pt-4 border-t border-gray-200">
-                                <div>
-                                    <label class="flex items-center justify-between cursor-pointer mb-2">
-                                        <div class="flex items-center gap-2">
-                                            <input type="checkbox" id="noShowToggle" class="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500" ${extendedProps.isNoShow ? 'checked' : ''} onchange="toggleNoShow(${event.id}, this.checked)">
-                                            <span class="text-sm font-medium text-gray-700">No Show</span>
-                                        </div>
-                                    </label>
-                                    <p class="text-xs text-gray-500 ml-6">Mark this appointment as a no-show if the customer did not arrive for their scheduled appointment.</p>
-                                </div>
-                                <div>
-                                    <div class="flex items-center justify-between mb-2">
-                                        <label class="flex items-center gap-2 cursor-pointer">
-                                            <input type="checkbox" id="smsNotificationToggle" class="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500" onchange="toggleSMSNotificationCheckbox(${event.id}, this.checked)">
-                                            <span class="text-sm font-medium text-gray-700">Send SMS Notification</span>
-                                        </label>
-                                        <button id="sendSMSBtn_${event.id}" onclick="sendSMSNotification(${event.id})" disabled class="px-4 py-2 bg-gray-300 text-gray-500 rounded-lg hover:bg-gray-400 transition-all font-medium text-sm flex items-center gap-2 cursor-not-allowed">
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
-                                            </svg>
-                                            Send
-                                        </button>
-                                    </div>
-                                    <p class="text-xs text-gray-500 ml-6">Send an SMS notification to the customer about this appointment.</p>
-                                </div>
-                            </div>
-                        </div>
-                        ` : ''}
-                    </div>
-                    
-                    <div class="flex items-center justify-end pt-4 border-t border-gray-200">
-                        <div class="flex gap-3">
-                            <button onclick="closeModal()" class="px-4 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all font-medium flex items-center justify-center gap-2">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                            </svg>
-                            Close
-                        </button>
-                        ${!isTechnician ? `
-                            <button onclick="editBooking('${event.id}')" class="px-4 py-3 bg-[#003047] text-white rounded-xl hover:bg-[#002535] transition-all font-medium flex items-center justify-center gap-2 shadow-md hover:shadow-lg">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                            </svg>
-                            Edit Booking
-                        </button>
-                        ` : ''}
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            // Show modal
-            if (typeof openModal === 'function') {
-                openModal(modalContent, 'default');
-            } else {
-                alert(`Customer: ${extendedProps.customer}\nService: ${extendedProps.service}\nTechnician: ${extendedProps.technician}\nPrice: ${extendedProps.price}\nStatus: ${extendedProps.status}`);
-            }
+            // Use shared modal function
+            showAppointmentModal(appointmentData);
         },
         eventMouseEnter: function(info) {
             info.el.style.cursor = 'pointer';
@@ -1877,30 +1789,21 @@ async function handleSlotDrop(event, technicianId, timeSlot) {
     draggedAppointmentElement = null;
 }
 
-// View appointment details (reuse modal from calendar)
-function viewAppointment(bookingId) {
-    const appointment = bookingsData.find(apt => apt.id.toString() === bookingId.toString());
-    if (!appointment) return;
+// Shared function to show appointment modal (used by both calendar and list views)
+function showAppointmentModal(appointmentData) {
+    const appointmentId = appointmentData.id;
+    const customerName = appointmentData.customer;
+    const technicians = appointmentData.technician || 'Not Assigned';
+    const customerPhone = appointmentData.phone;
+    const status = appointmentData.status;
+    const appointmentDate = appointmentData.date;
+    const isNoShow = appointmentData.isNoShow || noShowStatus[appointmentId] || false;
     
-    const customer = customersData.find(c => c.id.toString() === appointment.customer_id.toString());
-    const customerName = customer ? `${customer.firstName} ${customer.lastName}` : `Customer #${appointment.customer_id}`;
-    const customerPhone = customer ? (customer.phone || 'No phone') : 'No phone';
-    
-    const aptDateTime = appointment.appointment_datetime || appointment.created_at;
-    const aptDate = new Date(aptDateTime);
-    const serviceCount = appointment.services ? appointment.services.length : 1;
-    const durationHours = Math.max(1, Math.min(3, 1 + (serviceCount - 1) * 0.5));
-    const aptEnd = new Date(aptDate);
-    aptEnd.setHours(aptEnd.getHours() + Math.floor(durationHours));
-    aptEnd.setMinutes(aptEnd.getMinutes() + ((durationHours % 1) * 60));
-    
-    const statusMap = {
-        'waiting': 'In Booking',
-        'in-progress': 'In Progress',
-        'completed': 'Completed',
-        'paid': 'Paid'
-    };
-    const status = statusMap[appointment.status] || 'Booked';
+    // Find event if it exists (for calendar view)
+    if (calendarInstance && !currentEvent) {
+        const events = calendarInstance.getEvents();
+        currentEvent = events.find(e => e.id && e.id.toString() === appointmentId.toString());
+    }
     
     const statusColors = {
         'In Booking': 'bg-blue-50 text-blue-700 border-blue-200',
@@ -1909,20 +1812,7 @@ function viewAppointment(bookingId) {
         'Completed': 'bg-green-50 text-green-700 border-green-200'
     };
     
-    let technicians = 'Not Assigned';
-    if (appointment.assigned_technician && Array.isArray(appointment.assigned_technician) && appointment.assigned_technician.length > 0) {
-        const technicianNames = appointment.assigned_technician.map(techId => {
-            const tech = techniciansData.find(t => t.id.toString() === techId.toString());
-            return tech ? `${tech.firstName} ${tech.lastName}` : `Technician #${techId}`;
-        });
-        technicians = technicianNames.join(', ');
-    }
-    
-    let services = 'No services';
-    if (appointment.services && Array.isArray(appointment.services) && appointment.services.length > 0) {
-        services = appointment.services.map(s => s.service || 'Service').join(', ');
-    }
-    
+    // Create modal content
     const modalContent = `
         <div class="p-6">
             <div class="flex items-start justify-between mb-6">
@@ -1943,18 +1833,28 @@ function viewAppointment(bookingId) {
                     </div>
                     <div class="flex-1">
                         <p class="text-xs text-gray-500 mb-0.5">Technician</p>
-                        <p class="font-semibold text-gray-900">${technicians}</p>
+                        <div id="technicianDisplay_${appointmentId}">
+                            <p class="font-semibold text-gray-900">${technicians}</p>
+                        </div>
                     </div>
+                    ${!isTechnician ? `
+                    <button onclick="openTechnicianSelectionModalWithEvent('${appointmentId}', '${customerName}')" class="px-4 py-2 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition-all font-medium text-sm flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Select
+                    </button>
+                    ` : ''}
                 </div>
                 
                 <div class="grid grid-cols-2 gap-4">
                     <div class="p-4 bg-gray-50 rounded-xl">
                         <p class="text-xs text-gray-500 mb-1">Date</p>
-                        <p class="font-semibold text-gray-900">${aptDate.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</p>
+                        <p class="font-semibold text-gray-900">${appointmentDate.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}</p>
                     </div>
                     <div class="p-4 bg-gray-50 rounded-xl">
                         <p class="text-xs text-gray-500 mb-1">Time</p>
-                        <p class="font-semibold text-gray-900">${aptDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</p>
+                        <p class="font-semibold text-gray-900">${appointmentDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</p>
                     </div>
                 </div>
                 
@@ -1975,7 +1875,7 @@ function viewAppointment(bookingId) {
                         <div>
                             <label class="flex items-center justify-between cursor-pointer mb-2">
                                 <div class="flex items-center gap-2">
-                                    <input type="checkbox" id="noShowToggle" class="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500" ${noShowStatus[appointment.id] ? 'checked' : ''} onchange="toggleNoShow(${appointment.id}, this.checked)">
+                                    <input type="checkbox" id="noShowToggle" class="w-4 h-4 text-red-600 border-gray-300 rounded focus:ring-red-500" ${isNoShow ? 'checked' : ''} onchange="toggleNoShow(${appointmentId}, this.checked)">
                                     <span class="text-sm font-medium text-gray-700">No Show</span>
                                 </div>
                             </label>
@@ -1984,10 +1884,10 @@ function viewAppointment(bookingId) {
                         <div>
                             <div class="flex items-center justify-between mb-2">
                                 <label class="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" id="smsNotificationToggle" class="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500" onchange="toggleSMSNotificationCheckbox(${appointment.id}, this.checked)">
+                                    <input type="checkbox" id="smsNotificationToggle" class="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500" onchange="toggleSMSNotificationCheckbox(${appointmentId}, this.checked)">
                                     <span class="text-sm font-medium text-gray-700">Send SMS Notification</span>
                                 </label>
-                                <button id="sendSMSBtn_${appointment.id}" onclick="sendSMSNotification(${appointment.id})" disabled class="px-4 py-2 bg-gray-300 text-gray-500 rounded-lg hover:bg-gray-400 transition-all font-medium text-sm flex items-center gap-2 cursor-not-allowed">
+                                <button id="sendSMSBtn_${appointmentId}" onclick="sendSMSNotification(${appointmentId})" disabled class="px-4 py-2 bg-gray-300 text-gray-500 rounded-lg hover:bg-gray-400 transition-all font-medium text-sm flex items-center gap-2 cursor-not-allowed">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
                                     </svg>
@@ -2010,13 +1910,7 @@ function viewAppointment(bookingId) {
                     Close
                 </button>
                 ${!isTechnician ? `
-                    <button onclick="assignAppointment(${appointment.id})" class="px-4 py-3 bg-[#10b981] text-white rounded-xl hover:bg-[#059669] transition-all font-medium flex items-center justify-center gap-2 shadow-md hover:shadow-lg">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
-                    </svg>
-                    Assign
-                </button>
-                    <button onclick="editBooking(${appointment.id})" class="px-4 py-3 bg-[#003047] text-white rounded-xl hover:bg-[#002535] transition-all font-medium flex items-center justify-center gap-2 shadow-md hover:shadow-lg">
+                    <button onclick="editBooking(${appointmentId})" class="px-4 py-3 bg-[#003047] text-white rounded-xl hover:bg-[#002535] transition-all font-medium flex items-center justify-center gap-2 shadow-md hover:shadow-lg">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                     </svg>
@@ -2030,7 +1924,60 @@ function viewAppointment(bookingId) {
     
     if (typeof openModal === 'function') {
         openModal(modalContent, 'default');
+        
+        // Set references for technician selection updates
+        currentAppointmentId = appointmentId;
+        // Store reference to the technician display element
+        setTimeout(() => {
+            currentEventModalElement = document.getElementById(`technicianDisplay_${appointmentId}`);
+        }, 100);
     }
+}
+
+// View appointment details from list view (now uses shared modal)
+function viewAppointment(bookingId) {
+    const appointment = bookingsData.find(apt => apt.id.toString() === bookingId.toString());
+    if (!appointment) return;
+    
+    const customer = customersData.find(c => c.id.toString() === appointment.customer_id.toString());
+    const customerName = customer ? `${customer.firstName} ${customer.lastName}` : `Customer #${appointment.customer_id}`;
+    const customerPhone = customer ? (customer.phone || null) : null;
+    
+    const aptDateTime = appointment.appointment_datetime || appointment.created_at;
+    const aptDate = new Date(aptDateTime);
+    
+    const statusMap = {
+        'waiting': 'In Booking',
+        'in-progress': 'In Progress',
+        'completed': 'Completed',
+        'paid': 'Paid'
+    };
+    const status = statusMap[appointment.status] || 'Booked';
+    
+    // Get technician names
+    let technicians = 'Not Assigned';
+    if (appointment.assigned_technician && Array.isArray(appointment.assigned_technician) && appointment.assigned_technician.length > 0) {
+        const technicianNames = appointment.assigned_technician.map(techId => {
+            const tech = techniciansData.find(t => t.id.toString() === techId.toString());
+            return tech ? `${tech.firstName} ${tech.lastName}` : `Technician #${techId}`;
+        });
+        technicians = technicianNames.join(', ');
+    }
+    
+    // Build appointment data object
+    const appointmentData = {
+        id: appointment.id,
+        customer: customerName,
+        technician: technicians,
+        phone: customerPhone,
+        status: status,
+        date: aptDate,
+        isNoShow: noShowStatus[appointment.id] || false,
+        assigned_technician: appointment.assigned_technician
+    };
+    
+    // Use shared modal function
+    showAppointmentModal(appointmentData);
 }
 
 function openNewBookingModal() {
@@ -2463,6 +2410,412 @@ function grayOutPastDays() {
         }
     });
 }
+
+// Open technician selection modal with event reference
+function openTechnicianSelectionModalWithEvent(appointmentId, customerName) {
+    // Find the FullCalendar event from the calendar instance
+    if (calendarInstance) {
+        const events = calendarInstance.getEvents();
+        currentEvent = events.find(e => e.id && e.id.toString() === appointmentId.toString());
+    }
+    
+    openTechnicianSelectionModal(appointmentId, customerName);
+}
+
+// Open technician selection modal
+function openTechnicianSelectionModal(appointmentId, customerName) {
+    currentAppointmentId = appointmentId;
+    selectedTechnicianIds = [];
+    technicianSearchTerm = '';
+    
+    // Store reference to the technician display element
+    currentEventModalElement = document.getElementById(`technicianDisplay_${appointmentId}`);
+    
+    // Get current assigned technicians from the appointment
+    const appointment = bookingsData.find(apt => apt.id.toString() === appointmentId.toString());
+    if (appointment && appointment.assigned_technician) {
+        if (Array.isArray(appointment.assigned_technician)) {
+            selectedTechnicianIds = appointment.assigned_technician.map(id => id.toString());
+        } else {
+            selectedTechnicianIds = [appointment.assigned_technician.toString()];
+        }
+    }
+    
+    const modalContent = `
+        <div class="p-4 max-w-6xl">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold text-gray-900">Select Technicians</h3>
+                <button onclick="closeNestedModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+                <!-- Available Technicians Section -->
+                <div class="border-r border-gray-200 pr-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="text-sm font-semibold text-gray-900">Available Technicians</h4>
+                        <span id="availableCount" class="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">${techniciansData.length}</span>
+                    </div>
+                    <p class="text-xs text-gray-500 mb-2">Click to assign technicians to services</p>
+                    <!-- Search Bar -->
+                    <div class="mb-3">
+                        <div class="relative">
+                            <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                            <input type="text" id="technicianSearchInput" placeholder="Search technicians..." oninput="searchTechnicians(this.value)" class="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent text-sm">
+                            <button id="clearTechnicianSearchBtn" onclick="clearTechnicianSearch()" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 hidden">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="availableTechniciansContainer" class="space-y-2 min-h-[300px] max-h-[60vh] overflow-y-auto">
+                        <!-- Technicians will be loaded here -->
+                    </div>
+                </div>
+                
+                <!-- Assigned Technicians Section -->
+                <div class="pl-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="text-sm font-semibold text-gray-900">Assigned Technicians</h4>
+                        <span id="assignedCount" class="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">${selectedTechnicianIds.length}</span>
+                    </div>
+                    <p class="text-xs text-gray-500 mb-3">Click to remove assigned technicians</p>
+                    <div id="assignedTechniciansContainer" class="space-y-2 min-h-[300px] max-h-[60vh] overflow-y-auto">
+                        <!-- Assigned technicians will be loaded here -->
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Action Buttons -->
+            <div class="flex justify-end gap-3 mt-4 pt-4 border-t border-gray-200">
+                <button onclick="closeNestedModal()" class="px-5 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium active:scale-95">
+                    Cancel
+                </button>
+                <button onclick="confirmTechnicianSelection()" class="px-5 py-2 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">
+                    Confirm
+                </button>
+            </div>
+        </div>
+    `;
+    
+    openNestedModal(modalContent, 'large', false);
+    renderAvailableTechnicians();
+    renderAssignedTechnicians();
+}
+
+// Search technicians
+function searchTechnicians(searchTerm) {
+    technicianSearchTerm = searchTerm.toLowerCase().trim();
+    
+    const clearBtn = document.getElementById('clearTechnicianSearchBtn');
+    if (clearBtn) {
+        if (searchTerm.trim() !== '') {
+            clearBtn.classList.remove('hidden');
+        } else {
+            clearBtn.classList.add('hidden');
+        }
+    }
+    
+    renderAvailableTechnicians();
+}
+
+// Clear technician search
+function clearTechnicianSearch() {
+    const searchInput = document.getElementById('technicianSearchInput');
+    const clearBtn = document.getElementById('clearTechnicianSearchBtn');
+    
+    if (searchInput) {
+        searchInput.value = '';
+        technicianSearchTerm = '';
+        searchInput.focus();
+    }
+    
+    if (clearBtn) {
+        clearBtn.classList.add('hidden');
+    }
+    
+    renderAvailableTechnicians();
+}
+
+// Render available technicians
+function renderAvailableTechnicians() {
+    const container = document.getElementById('availableTechniciansContainer');
+    if (!container) return;
+    
+    if (techniciansData.length === 0) {
+        container.innerHTML = `
+            <div class="flex items-center justify-center h-full min-h-[300px]">
+                <p class="text-sm text-gray-400">No technicians available</p>
+            </div>
+        `;
+        return;
+    }
+    
+    let filteredTechnicians = techniciansData;
+    if (technicianSearchTerm !== '') {
+        filteredTechnicians = techniciansData.filter(technician => {
+            const fullName = `${technician.firstName} ${technician.lastName}`.toLowerCase();
+            const initials = (technician.initials || (technician.firstName?.[0] || '') + (technician.lastName?.[0] || '')).toLowerCase();
+            const searchText = fullName + ' ' + initials;
+            return searchText.includes(technicianSearchTerm);
+        });
+    }
+    
+    if (filteredTechnicians.length === 0) {
+        container.innerHTML = `
+            <div class="flex items-center justify-center h-full min-h-[300px]">
+                <p class="text-sm text-gray-400">No technicians found</p>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    filteredTechnicians.forEach(technician => {
+        const technicianIdStr = technician.id.toString();
+        const isAssigned = selectedTechnicianIds.includes(technicianIdStr);
+        const initials = technician.initials || (technician.firstName?.[0] || '') + (technician.lastName?.[0] || '');
+        const fullName = `${technician.firstName} ${technician.lastName}`;
+        
+        const containerClasses = isAssigned 
+            ? "flex items-center gap-3 p-2 rounded-lg transition-colors opacity-50 grayscale cursor-pointer group hover:bg-gray-100"
+            : "flex items-center gap-3 cursor-pointer group hover:bg-gray-50 p-2 rounded-lg transition-colors";
+        
+        const avatarClasses = isAssigned
+            ? "w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center"
+            : "w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center";
+        
+        const initialClasses = isAssigned
+            ? "text-sm font-bold text-gray-500"
+            : "text-sm font-bold text-gray-600";
+        
+        const nameClasses = isAssigned
+            ? "text-base font-medium text-gray-400"
+            : "text-base font-medium text-gray-900";
+        
+        const badgeClasses = isAssigned
+            ? "absolute -bottom-1 -right-1 w-5 h-5 bg-gray-400 text-white rounded-full flex items-center justify-center text-xs font-bold border-2 border-white"
+            : "absolute -bottom-1 -right-1 w-5 h-5 bg-[#003047] text-white rounded-full flex items-center justify-center text-xs font-bold border-2 border-white";
+        
+        html += `
+            <div onclick="${isAssigned ? 'removeAssignedTechnician(' + technician.id + ')' : 'assignTechnician(' + technician.id + ')'}" class="${containerClasses}">
+                <div class="relative flex-shrink-0">
+                    <div class="${avatarClasses}">
+                        <span class="${initialClasses}">${initials}</span>
+                    </div>
+                    <div class="${badgeClasses}">
+                        0
+                    </div>
+                </div>
+                <div class="flex-1">
+                    <p class="${nameClasses}">${fullName}</p>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+    updateCounts();
+}
+
+// Render assigned technicians
+function renderAssignedTechnicians() {
+    const container = document.getElementById('assignedTechniciansContainer');
+    if (!container) return;
+    
+    if (selectedTechnicianIds.length === 0) {
+        container.innerHTML = `
+            <div class="flex items-center justify-center h-full min-h-[300px]">
+                <p class="text-sm text-gray-400">No technicians assigned</p>
+            </div>
+        `;
+        updateCounts();
+        return;
+    }
+    
+    let html = '';
+    selectedTechnicianIds.forEach(technicianIdStr => {
+        const technician = techniciansData.find(t => t.id.toString() === technicianIdStr);
+        if (!technician) return;
+        
+        const initials = technician.initials || (technician.firstName?.[0] || '') + (technician.lastName?.[0] || '');
+        const fullName = `${technician.firstName} ${technician.lastName}`;
+        
+        html += `
+            <div onclick="removeAssignedTechnician(${technician.id})" class="flex items-center gap-3 cursor-pointer group hover:bg-gray-50 p-2 rounded-lg transition-colors">
+                <div class="relative flex-shrink-0">
+                    <div class="w-12 h-12 bg-[#003047] rounded-full flex items-center justify-center">
+                        <span class="text-sm font-bold text-white">${initials}</span>
+                    </div>
+                    <div class="absolute -bottom-1 -right-1 w-5 h-5 bg-[#003047] text-white rounded-full flex items-center justify-center text-xs font-bold border-2 border-white">
+                        0
+                    </div>
+                </div>
+                <div class="flex-1">
+                    <p class="text-base font-medium text-gray-900">${fullName}</p>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+    updateCounts();
+}
+
+// Assign technician
+function assignTechnician(technicianId) {
+    const technicianIdStr = technicianId.toString();
+    if (!selectedTechnicianIds.includes(technicianIdStr)) {
+        selectedTechnicianIds.push(technicianIdStr);
+        renderAvailableTechnicians();
+        renderAssignedTechnicians();
+    }
+}
+
+// Remove assigned technician
+function removeAssignedTechnician(technicianId) {
+    const technicianIdStr = technicianId.toString();
+    selectedTechnicianIds = selectedTechnicianIds.filter(id => id !== technicianIdStr);
+    renderAvailableTechnicians();
+    renderAssignedTechnicians();
+}
+
+// Update counts
+function updateCounts() {
+    const availableCountEl = document.getElementById('availableCount');
+    const assignedCountEl = document.getElementById('assignedCount');
+    
+    if (availableCountEl) {
+        let filteredCount = techniciansData.length;
+        if (technicianSearchTerm !== '') {
+            filteredCount = techniciansData.filter(technician => {
+                const fullName = `${technician.firstName} ${technician.lastName}`.toLowerCase();
+                const initials = (technician.initials || (technician.firstName?.[0] || '') + (technician.lastName?.[0] || '')).toLowerCase();
+                const searchText = fullName + ' ' + initials;
+                return searchText.includes(technicianSearchTerm);
+            }).length;
+        }
+        availableCountEl.textContent = filteredCount;
+    }
+    
+    if (assignedCountEl) {
+        assignedCountEl.textContent = selectedTechnicianIds.length;
+    }
+}
+
+// Confirm technician selection
+function confirmTechnicianSelection() {
+    if (!currentAppointmentId) return;
+    
+    // Find the appointment in bookingsData
+    const appointmentIndex = bookingsData.findIndex(apt => apt.id.toString() === currentAppointmentId.toString());
+    if (appointmentIndex === -1) return;
+    
+    // Update the appointment with selected technicians
+    const technicianIds = selectedTechnicianIds.map(id => parseInt(id));
+    bookingsData[appointmentIndex].assigned_technician = technicianIds.length > 0 ? technicianIds : null;
+    
+    // TODO: Save to backend/JSON file
+    console.log('Updated appointment technicians:', bookingsData[appointmentIndex]);
+    
+    // Update the technician display in the event modal
+    updateEventModalTechnicianDisplay();
+    
+    // Update the calendar event display
+    updateCalendarEventDisplay();
+    
+    // Update list view if it's currently visible
+    const listViewContainer = document.getElementById('listViewContainer');
+    if (listViewContainer && !listViewContainer.classList.contains('hidden')) {
+        if (typeof renderTechnicianListView === 'function') {
+            renderTechnicianListView();
+        }
+    }
+    
+    // Close the technician selection modal (not the event modal)
+    closeNestedModal();
+}
+
+// Update technician display in the event modal
+function updateEventModalTechnicianDisplay() {
+    if (!currentEventModalElement || !currentAppointmentId) return;
+    
+    // Get updated technician names
+    let techniciansText = 'Not Assigned';
+    if (selectedTechnicianIds.length > 0) {
+        const technicianNames = selectedTechnicianIds.map(techIdStr => {
+            const tech = techniciansData.find(t => t.id.toString() === techIdStr);
+            return tech ? `${tech.firstName} ${tech.lastName}` : `Technician #${techIdStr}`;
+        });
+        techniciansText = technicianNames.join(', ');
+    }
+    
+    // Update the display
+    currentEventModalElement.innerHTML = `<p class="font-semibold text-gray-900">${techniciansText}</p>`;
+}
+
+// Update calendar event display
+function updateCalendarEventDisplay() {
+    if (!currentEvent || !currentAppointmentId) return;
+    
+    // Find the appointment
+    const appointment = bookingsData.find(apt => apt.id.toString() === currentAppointmentId.toString());
+    if (!appointment) return;
+    
+    // Get updated technician names
+    let techniciansText = 'Not Assigned';
+    const hasTechnician = appointment.assigned_technician && 
+                          Array.isArray(appointment.assigned_technician) && 
+                          appointment.assigned_technician.length > 0;
+    
+    if (hasTechnician) {
+        const technicianNames = appointment.assigned_technician.map(techId => {
+            const tech = techniciansData.find(t => t.id.toString() === techId.toString());
+            return tech ? `${tech.firstName} ${tech.lastName}` : `Technician #${techId}`;
+        });
+        techniciansText = technicianNames.join(', ');
+    }
+    
+    // Update event extended props
+    currentEvent.setExtendedProp('technician', techniciansText);
+    
+    // Update event styling based on technician assignment
+    const isNoShow = noShowStatus[appointment.id] === true;
+    let eventBgColor = hasTechnician ? '#003047' : 'transparent';
+    let eventBorderColor = '#003047';
+    let eventTextColor = hasTechnician ? '#ffffff' : '#003047';
+    
+    if (isNoShow) {
+        eventBgColor = '#9ca3af';
+        eventBorderColor = '#6b7280';
+        eventTextColor = '#003047';
+    }
+    
+    // Update event colors
+    currentEvent.setProp('backgroundColor', eventBgColor);
+    currentEvent.setProp('borderColor', eventBorderColor);
+    currentEvent.setProp('textColor', eventTextColor);
+    
+    // Update class names - preserve existing status class and update technician/no-show classes
+    const existingClassNames = currentEvent.classNames || [];
+    const statusClass = existingClassNames.find(cn => cn.startsWith('event-status-') || ['event-booked', 'event-in-booking', 'event-completed', 'event-in-progress'].includes(cn));
+    const classNames = [];
+    if (statusClass) classNames.push(statusClass);
+    if (hasTechnician) {
+        classNames.push('event-has-technician');
+    }
+    if (isNoShow) {
+        classNames.push('event-no-show');
+    }
+    currentEvent.setProp('classNames', classNames);
+}
+
 </script>
 
 <style>
