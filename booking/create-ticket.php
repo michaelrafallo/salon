@@ -1,5 +1,5 @@
 <?php
-$pageTitle = 'Payment';
+$pageTitle = 'Create Ticket';
 include '../includes/header.php';
 include '../includes/modal.php';
 ?>
@@ -8,7 +8,7 @@ include '../includes/modal.php';
 <main class="flex-1 overflow-y-auto bg-gray-50 lg:ml-0 pt-16 lg:pt-0">
     <div class="p-4 sm:p-6 lg:p-8">
 
-        <!-- Customer Info and Step Tabs Header -->
+        <!-- Step Tabs Header -->
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6 py-2 px-4">
             <div class="flex flex-col lg:flex-row lg:items-center gap-4">
                 <!-- Back Button -->
@@ -21,15 +21,8 @@ include '../includes/modal.php';
             </a>
         </div>
 
-                <!-- Left: Customer Info -->
-                <div class="flex items-center gap-4 flex-1">
-                    <div id="customerInfoContainer" class="flex items-center gap-3">
-                        <!-- Customer info will be populated by JavaScript -->
-                    </div>
-                </div>
-                
-                <!-- Right: Step Tabs -->
-                <div class="flex-shrink-0">
+                <!-- Step Tabs -->
+                <div class="flex-shrink-0 ml-auto">
                     <div class="flex border-b border-gray-200">
                         <button onclick="switchStep(1)" id="step1Tab" class="flex-1 lg:flex-initial px-6 py-3 text-left border-b-2 border-[#003047] transition">
                             <div class="flex items-center gap-3">
@@ -63,7 +56,15 @@ include '../includes/modal.php';
             <!-- Right Column: Technicians List -->
             <div class="w-full lg:w-1/3 lg:order-2 flex flex-col min-w-0">
                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex flex-col h-full overflow-hidden">
-                    <h2 class="text-xl font-bold text-gray-900 mb-4 flex-shrink-0">Assigned Technicians</h2>
+                    <div class="flex items-center justify-between mb-4 flex-shrink-0">
+                        <h2 class="text-xl font-bold text-gray-900">Assigned Technicians</h2>
+                        <button onclick="openTechnicianSelectionModal()" class="px-4 py-2 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium text-sm active:scale-95 flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            Select Technician
+                        </button>
+                    </div>
                     <div id="techniciansListContainer" class="flex-1 overflow-y-auto min-h-0 mb-4">
                         <!-- Technicians will be populated by JavaScript -->
                         </div>
@@ -109,8 +110,8 @@ include '../includes/modal.php';
                     <div class="mb-4 flex-shrink-0">
                         <div id="categoriesList" class="flex flex-wrap gap-2">
                             <!-- Categories will be loaded dynamically -->
-                            </div>
                         </div>
+                    </div>
                         
                         <!-- Services Section -->
                         <div class="flex flex-col flex-1 min-h-0">
@@ -279,7 +280,7 @@ include '../includes/modal.php';
                                 <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path>
                                 </svg>
-                                    <span class="text-sm font-semibold text-gray-900">Card</span>
+                                <span class="text-sm font-semibold text-gray-900">Card</span>
                             </button>
                             <button type="button" onclick="openGiftCardModal()" class="p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-[#003047] transition-all duration-200 text-left flex items-center gap-3">
                                 <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -314,33 +315,33 @@ include '../includes/modal.php';
                     
                     <!-- Cash Payment Content (Calculator) -->
                     <div id="cashPaymentContent" class="flex flex-col space-y-4 flex-1">
-                    <!-- Quick Cash Buttons -->
+                        <!-- Quick Cash Buttons -->
                         <div class="grid grid-cols-5 gap-2">
-                        <button type="button" onclick="addPaymentAmount(5)" class="px-4 py-3 text-sm font-medium text-gray-700 bg-teal-50 rounded-lg hover:bg-teal-100 transition active:scale-95 border border-teal-200">$5</button>
-                        <button type="button" onclick="addPaymentAmount(10)" class="px-4 py-3 text-sm font-medium text-gray-700 bg-teal-50 rounded-lg hover:bg-teal-100 transition active:scale-95 border border-teal-200">$10</button>
-                        <button type="button" onclick="addPaymentAmount(20)" class="px-4 py-3 text-sm font-medium text-gray-700 bg-teal-50 rounded-lg hover:bg-teal-100 transition active:scale-95 border border-teal-200">$20</button>
-                        <button type="button" onclick="addPaymentAmount(50)" class="px-4 py-3 text-sm font-medium text-gray-700 bg-teal-50 rounded-lg hover:bg-teal-100 transition active:scale-95 border border-teal-200">$50</button>
+                            <button type="button" onclick="addPaymentAmount(5)" class="px-4 py-3 text-sm font-medium text-gray-700 bg-teal-50 rounded-lg hover:bg-teal-100 transition active:scale-95 border border-teal-200">$5</button>
+                            <button type="button" onclick="addPaymentAmount(10)" class="px-4 py-3 text-sm font-medium text-gray-700 bg-teal-50 rounded-lg hover:bg-teal-100 transition active:scale-95 border border-teal-200">$10</button>
+                            <button type="button" onclick="addPaymentAmount(20)" class="px-4 py-3 text-sm font-medium text-gray-700 bg-teal-50 rounded-lg hover:bg-teal-100 transition active:scale-95 border border-teal-200">$20</button>
+                            <button type="button" onclick="addPaymentAmount(50)" class="px-4 py-3 text-sm font-medium text-gray-700 bg-teal-50 rounded-lg hover:bg-teal-100 transition active:scale-95 border border-teal-200">$50</button>
                             <button type="button" onclick="addPaymentAmount(100)" class="px-4 py-3 text-sm font-medium text-gray-700 bg-teal-50 rounded-lg hover:bg-teal-100 transition active:scale-95 border border-teal-200">$100</button>
-                    </div>
-                    
-                    <!-- Numeric Keypad -->
-                    <div class="grid grid-cols-3 gap-2">
-                        <button type="button" onclick="addPaymentDigit('1')" class="px-4 py-4 text-lg font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition active:scale-95">1</button>
-                        <button type="button" onclick="addPaymentDigit('2')" class="px-4 py-4 text-lg font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition active:scale-95">2</button>
-                        <button type="button" onclick="addPaymentDigit('3')" class="px-4 py-4 text-lg font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition active:scale-95">3</button>
-                        <button type="button" onclick="addPaymentDigit('4')" class="px-4 py-4 text-lg font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition active:scale-95">4</button>
-                        <button type="button" onclick="addPaymentDigit('5')" class="px-4 py-4 text-lg font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition active:scale-95">5</button>
-                        <button type="button" onclick="addPaymentDigit('6')" class="px-4 py-4 text-lg font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition active:scale-95">6</button>
-                        <button type="button" onclick="addPaymentDigit('7')" class="px-4 py-4 text-lg font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition active:scale-95">7</button>
-                        <button type="button" onclick="addPaymentDigit('8')" class="px-4 py-4 text-lg font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition active:scale-95">8</button>
-                        <button type="button" onclick="addPaymentDigit('9')" class="px-4 py-4 text-lg font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition active:scale-95">9</button>
-                        <button type="button" onclick="addPaymentDigit('.')" class="px-4 py-4 text-lg font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition active:scale-95">.</button>
-                        <button type="button" onclick="addPaymentDigit('0')" class="px-4 py-4 text-lg font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition active:scale-95">0</button>
-                        <button type="button" onclick="removePaymentDigit()" class="px-4 py-4 text-lg font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition active:scale-95">
-                            <svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 12l6.414 6.414a2 2 0 001.414.586H19a2 2 0 002-2V7a2 2 0 00-2-2h-8.172a2 2 0 00-1.414.586L3 12z"></path>
-                            </svg>
-                        </button>
+                        </div>
+                        
+                        <!-- Numeric Keypad -->
+                        <div class="grid grid-cols-3 gap-2">
+                            <button type="button" onclick="addPaymentDigit('1')" class="px-4 py-4 text-lg font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition active:scale-95">1</button>
+                            <button type="button" onclick="addPaymentDigit('2')" class="px-4 py-4 text-lg font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition active:scale-95">2</button>
+                            <button type="button" onclick="addPaymentDigit('3')" class="px-4 py-4 text-lg font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition active:scale-95">3</button>
+                            <button type="button" onclick="addPaymentDigit('4')" class="px-4 py-4 text-lg font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition active:scale-95">4</button>
+                            <button type="button" onclick="addPaymentDigit('5')" class="px-4 py-4 text-lg font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition active:scale-95">5</button>
+                            <button type="button" onclick="addPaymentDigit('6')" class="px-4 py-4 text-lg font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition active:scale-95">6</button>
+                            <button type="button" onclick="addPaymentDigit('7')" class="px-4 py-4 text-lg font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition active:scale-95">7</button>
+                            <button type="button" onclick="addPaymentDigit('8')" class="px-4 py-4 text-lg font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition active:scale-95">8</button>
+                            <button type="button" onclick="addPaymentDigit('9')" class="px-4 py-4 text-lg font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition active:scale-95">9</button>
+                            <button type="button" onclick="addPaymentDigit('.')" class="px-4 py-4 text-lg font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition active:scale-95">.</button>
+                            <button type="button" onclick="addPaymentDigit('0')" class="px-4 py-4 text-lg font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition active:scale-95">0</button>
+                            <button type="button" onclick="removePaymentDigit()" class="px-4 py-4 text-lg font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition active:scale-95">
+                                <svg class="w-6 h-6 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 12l6.414 6.414a2 2 0 001.414.586H19a2 2 0 002-2V7a2 2 0 00-2-2h-8.172a2 2 0 00-1.414.586L3 12z"></path>
+                                </svg>
+                            </button>
                         </div>
                     </div>
                     
@@ -374,13 +375,9 @@ include '../includes/modal.php';
 </main>
 
 <script>
-// Get appointment ID from URL
-const urlParams = new URLSearchParams(window.location.search);
-const appointmentId = urlParams.get('id');
+// No appointment ID needed for creating new ticket
 
 // Global variables
-let appointmentData = null;
-let customerData = null;
 let allServicesData = [];
 let servicesData = [];
 let categoriesMap = {};
@@ -398,83 +395,384 @@ let currentStep = 1; // Track current step
 let technicianTips = {}; // { technicianId: { percentage: number, amount: number } }
 let tipSplitMode = 'percentage'; // 'percentage', 'even', or 'custom'
 
-// Fetch appointment and customer data
-async function loadPaymentData() {
-    if (!appointmentId) {
-        showError('No appointment ID provided');
+// Technician selection modal variables
+let availableTechnicians = [];
+let originalTechnicianOrder = [];
+let technicianSearchTerm = '';
+
+// Open technician selection modal on page load
+function openTechnicianSelectionModal() {
+    technicianSearchTerm = '';
+    // Don't reset assignedTechnicianIds - keep existing selections
+    // assignedTechnicianIds is already populated from previous selections
+    
+    const modalContent = `
+        <div class="p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-bold text-gray-900">Select Technicians</h3>
+                <button onclick="cancelTechnicianSelection()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-6">
+                <!-- Available Technicians Section -->
+                <div class="border border-gray-200 rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="text-sm font-semibold text-gray-900">Available Technicians</h4>
+                        <span id="availableCount" class="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">0</span>
+                    </div>
+                    <p class="text-xs text-gray-500 mb-2">Click to assign technicians to services</p>
+                    <!-- Search Bar -->
+                    <div class="mb-4">
+                        <div class="relative">
+                            <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                            </svg>
+                            <input type="text" id="technicianSearchInput" placeholder="Search technicians..." oninput="searchTechnicians(this.value)" class="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent text-sm">
+                            <button id="clearTechnicianSearchBtn" onclick="clearTechnicianSearch()" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 hidden">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="availableTechniciansContainer" class="space-y-3 min-h-[500px] max-h-[500px] overflow-y-auto">
+                        <!-- Technicians will be loaded here -->
+                    </div>
+                </div>
+                
+                <!-- Assigned Technicians Section -->
+                <div class="border border-gray-200 rounded-lg p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <h4 class="text-sm font-semibold text-gray-900">Assigned Technicians</h4>
+                        <span id="assignedCount" class="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">0</span>
+                    </div>
+                    <p class="text-xs text-gray-500 mb-4">Click to remove assigned technicians</p>
+                    <div id="assignedTechniciansContainer" class="space-y-3 min-h-[500px] max-h-[500px] overflow-y-auto">
+                        <div class="flex items-center justify-center h-full min-h-[500px]">
+                            <p class="text-sm text-gray-400">No technicians assigned</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="pt-6 mt-6 border-t border-gray-200">
+                <div class="flex items-center justify-end">
+                    <div class="flex gap-3">
+                        <button onclick="cancelTechnicianSelection()" class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium active:scale-95">
+                            Cancel
+                        </button>
+                        <button onclick="confirmTechnicianSelection()" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">
+                            Save Changes
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    openModal(modalContent, 'large', false);
+    
+    // Increase modal height
+    setTimeout(() => {
+        const modalContainer = document.getElementById('modalContainer');
+        if (modalContainer) {
+            modalContainer.style.maxHeight = '95vh';
+        }
+    }, 50);
+    
+    // Load technicians
+    loadTechniciansForSelection();
+    
+    // Initialize clear button visibility
+    setTimeout(() => {
+        const searchInput = document.getElementById('technicianSearchInput');
+        const clearBtn = document.getElementById('clearTechnicianSearchBtn');
+        if (searchInput && clearBtn) {
+            clearBtn.classList.add('hidden');
+        }
+    }, 100);
+}
+
+// Load technicians for selection modal
+function loadTechniciansForSelection() {
+    fetch('../json/users.json')
+        .then(response => response.json())
+        .then(data => {
+            availableTechnicians = data.users.filter(user => (user.role === 'technician' || user.userlevel === 'technician') && user.status === 'active');
+            originalTechnicianOrder = availableTechnicians.map(t => t.id);
+            renderAvailableTechnicians();
+            renderAssignedTechnicians();
+            updateTechnicianCounts();
+        })
+        .catch(error => {
+            console.error('Error loading technicians:', error);
+            const container = document.getElementById('availableTechniciansContainer');
+            if (container) {
+                container.innerHTML = `
+                    <div class="text-center py-12">
+                        <p class="text-sm text-gray-400">Error loading technicians</p>
+                    </div>
+                `;
+            }
+        });
+}
+
+// Search technicians
+function searchTechnicians(searchTerm) {
+    technicianSearchTerm = searchTerm.toLowerCase().trim();
+    
+    const clearBtn = document.getElementById('clearTechnicianSearchBtn');
+    if (clearBtn) {
+        if (searchTerm.trim() !== '') {
+            clearBtn.classList.remove('hidden');
+        } else {
+            clearBtn.classList.add('hidden');
+        }
+    }
+    
+    renderAvailableTechnicians();
+}
+
+// Clear technician search
+function clearTechnicianSearch() {
+    const searchInput = document.getElementById('technicianSearchInput');
+    const clearBtn = document.getElementById('clearTechnicianSearchBtn');
+    
+    if (searchInput) {
+        searchInput.value = '';
+        technicianSearchTerm = '';
+        searchInput.focus();
+    }
+    
+    if (clearBtn) {
+        clearBtn.classList.add('hidden');
+    }
+    
+    renderAvailableTechnicians();
+}
+
+// Render available technicians
+function renderAvailableTechnicians() {
+    const container = document.getElementById('availableTechniciansContainer');
+    if (!container) return;
+    
+    if (availableTechnicians.length === 0) {
+        container.innerHTML = `
+            <div class="flex items-center justify-center h-full min-h-[500px]">
+                <p class="text-sm text-gray-400">No technicians available</p>
+            </div>
+        `;
         return;
     }
-
-    try {
-        // Fetch appointments
-        const appointmentsResponse = await fetch('../json/appointments.json');
-        const appointmentsData = await appointmentsResponse.json();
-        appointmentData = appointmentsData.appointments.find(apt => apt.id.toString() === appointmentId || apt.id === parseInt(appointmentId));
+    
+    // Filter technicians based on search term
+    let filteredTechnicians = availableTechnicians;
+    if (technicianSearchTerm !== '') {
+        filteredTechnicians = availableTechnicians.filter(technician => {
+            const fullName = `${technician.firstName} ${technician.lastName}`.toLowerCase();
+            const initials = (technician.initials || (technician.firstName?.[0] || '') + (technician.lastName?.[0] || '')).toLowerCase();
+            const searchText = fullName + ' ' + initials;
+            return searchText.includes(technicianSearchTerm);
+        });
+    }
+    
+    if (filteredTechnicians.length === 0) {
+        container.innerHTML = `
+            <div class="flex items-center justify-center h-full min-h-[500px]">
+                <p class="text-sm text-gray-400">No technicians found</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Sort technicians: non-assigned first, assigned last
+    filteredTechnicians.sort((a, b) => {
+        const aIdStr = a.id.toString();
+        const bIdStr = b.id.toString();
+        const aIsAssigned = assignedTechnicianIds.includes(aIdStr);
+        const bIsAssigned = assignedTechnicianIds.includes(bIdStr);
         
-        if (!appointmentData) {
-            showError('Appointment not found');
-            return;
-        }
-
-        // Fetch customers
-        const customersResponse = await fetch('../json/customers.json');
-        const customersData = await customersResponse.json();
-        customerData = customersData.customers.find(c => c.id === appointmentData.customer_id);
+        if (aIsAssigned && !bIsAssigned) return 1;
+        if (!aIsAssigned && bIsAssigned) return -1;
         
-        if (!customerData) {
-            showError('Customer not found');
-            return;
-        }
-
-        // Load assigned technicians
-        if (appointmentData.assigned_technician && Array.isArray(appointmentData.assigned_technician)) {
-            assignedTechnicianIds = appointmentData.assigned_technician.map(id => id.toString());
-            // Set first assigned technician as selected by default
-            if (assignedTechnicianIds.length > 0) {
-                selectedTechnicianId = assignedTechnicianIds[0];
-            }
-        }
-
-        // Load categories and services
-        await fetchCategoriesAndServices();
+        const aIndex = originalTechnicianOrder.indexOf(a.id);
+        const bIndex = originalTechnicianOrder.indexOf(b.id);
+        return aIndex - bIndex;
+    });
+    
+    let html = '';
+    filteredTechnicians.forEach(technician => {
+        const technicianIdStr = technician.id.toString();
+        const isAssigned = assignedTechnicianIds.includes(technicianIdStr);
+        const initials = technician.initials || (technician.firstName?.[0] || '') + (technician.lastName?.[0] || '');
+        const fullName = `${technician.firstName} ${technician.lastName}`;
         
-        // Load technicians
-        await fetchTechnicians();
+        const containerClasses = isAssigned 
+            ? "flex items-center gap-3 p-2 rounded-lg transition-colors opacity-50 grayscale cursor-pointer group hover:bg-gray-100"
+            : "flex items-center gap-3 cursor-pointer group hover:bg-gray-50 p-2 rounded-lg transition-colors";
         
-        // Update customer info in header
-        updateCustomerInfoHeader();
-    } catch (error) {
-        console.error('Error loading payment data:', error);
-        showError('Failed to load payment details');
+        const avatarClasses = isAssigned
+            ? "w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center"
+            : "w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center";
+    
+        const initialClasses = isAssigned
+            ? "text-sm font-bold text-gray-500"
+            : "text-sm font-bold text-gray-600";
+        
+        const nameClasses = isAssigned
+            ? "text-base font-medium text-gray-400"
+            : "text-base font-medium text-gray-900";
+        
+        const badgeClasses = isAssigned
+            ? "absolute -bottom-1 -right-1 w-5 h-5 bg-gray-400 text-white rounded-full flex items-center justify-center text-xs font-bold border-2 border-white"
+            : "absolute -bottom-1 -right-1 w-5 h-5 bg-[#003047] text-white rounded-full flex items-center justify-center text-xs font-bold border-2 border-white";
+        
+        html += `
+            <div onclick="${isAssigned ? 'removeAssignedTechnician(' + technician.id + ')' : 'assignTechnician(' + technician.id + ')'}" class="${containerClasses}">
+                <div class="relative flex-shrink-0">
+                    <div class="${avatarClasses}">
+                        <span class="${initialClasses}">${initials}</span>
+                    </div>
+                    <div class="${badgeClasses}">
+                        0
+                    </div>
+            </div>
+            <div class="flex-1">
+                    <p class="${nameClasses}">${fullName}</p>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+// Render assigned technicians
+function renderAssignedTechnicians() {
+    const container = document.getElementById('assignedTechniciansContainer');
+    if (!container) return;
+    
+    if (assignedTechnicianIds.length === 0) {
+        container.innerHTML = `
+            <div class="flex items-center justify-center h-full min-h-[500px]">
+                <p class="text-sm text-gray-400">No technicians assigned</p>
+            </div>
+        `;
+        return;
+    }
+    
+    let html = '';
+    assignedTechnicianIds.forEach(technicianIdStr => {
+        const technician = availableTechnicians.find(t => t.id.toString() === technicianIdStr);
+        if (!technician) return;
+        
+        const initials = technician.initials || (technician.firstName?.[0] || '') + (technician.lastName?.[0] || '');
+        const fullName = `${technician.firstName} ${technician.lastName}`;
+        
+        html += `
+            <div onclick="removeAssignedTechnician(${technician.id})" class="flex items-center gap-3 cursor-pointer group hover:bg-gray-50 p-2 rounded-lg transition-colors">
+                <div class="relative flex-shrink-0">
+                    <div class="w-12 h-12 bg-[#003047] rounded-full flex items-center justify-center">
+                        <span class="text-sm font-bold text-white">${initials}</span>
+                    </div>
+                    <div class="absolute -bottom-1 -right-1 w-5 h-5 bg-[#003047] text-white rounded-full flex items-center justify-center text-xs font-bold border-2 border-white">
+                        0
+                    </div>
+                </div>
+                <div class="flex-1">
+                    <p class="text-base font-medium text-gray-900">${fullName}</p>
+                </div>
+            </div>
+        `;
+    });
+    
+    container.innerHTML = html;
+}
+
+// Assign technician
+function assignTechnician(technicianId) {
+    const technicianIdStr = technicianId.toString();
+    if (!assignedTechnicianIds.includes(technicianIdStr)) {
+        assignedTechnicianIds.push(technicianIdStr);
+        renderAvailableTechnicians();
+        renderAssignedTechnicians();
+        updateTechnicianCounts();
     }
 }
 
-// Update customer info in header
-function updateCustomerInfoHeader() {
-    if (!customerData || !appointmentData) return;
+// Remove assigned technician
+function removeAssignedTechnician(technicianId) {
+    const technicianIdStr = technicianId.toString();
+    assignedTechnicianIds = assignedTechnicianIds.filter(id => id !== technicianIdStr);
+    renderAvailableTechnicians();
+    renderAssignedTechnicians();
+    updateTechnicianCounts();
+}
+
+// Update technician counts
+function updateTechnicianCounts() {
+    const availableCountEl = document.getElementById('availableCount');
+    const assignedCountEl = document.getElementById('assignedCount');
     
-    const customerName = `${customerData.firstName} ${customerData.lastName}`;
-    const customerInitial = customerName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-    const orderId = `ORDER${appointmentData.id.toString().padStart(3, '0')}`;
-    const appointmentType = appointmentData.appointment === 'walk-in' ? 'Walk-In' : 'Booked';
+    if (availableCountEl) {
+        availableCountEl.textContent = availableTechnicians.length;
+    }
     
-    // Format date
-    const date = new Date(appointmentData.created_at);
-    const dateStr = date.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'long', day: 'numeric' });
-    const timeStr = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+    if (assignedCountEl) {
+        assignedCountEl.textContent = assignedTechnicianIds.length;
+    }
+}
+
+// Cancel technician selection
+function cancelTechnicianSelection() {
+    // If no technicians are selected, redirect to tickets page
+    if (!assignedTechnicianIds || assignedTechnicianIds.length === 0) {
+        window.location.href = 'tickets.php';
+        return;
+    }
     
-    const customerInfoContainer = document.getElementById('customerInfoContainer');
-    if (customerInfoContainer) {
-        customerInfoContainer.innerHTML = `
-            <div class="w-12 h-12 bg-[#e6f0f3] rounded-lg flex items-center justify-center flex-shrink-0">
-                <span class="text-lg font-semibold text-[#003047]">${customerInitial}</span>
-            </div>
-            <div class="flex-1">
-                <h2 class="text-xl font-bold text-gray-900">${customerName}</h2>
-                <p class="text-sm text-gray-600">${orderId} / ${appointmentType}</p>
-                <p class="text-xs text-gray-500">${dateStr} ${timeStr}</p>
-            </div>
-        `;
+    // If technicians are selected, just close the modal
+    closeModal();
+}
+
+// Confirm technician selection and proceed
+function confirmTechnicianSelection() {
+    // Set first assigned technician as selected by default
+    if (assignedTechnicianIds.length > 0) {
+        selectedTechnicianId = assignedTechnicianIds[0];
+    }
+    
+    // Close modal
+    closeModal();
+    
+    // Update technicians list display if technicians are already loaded
+    if (techniciansData && techniciansData.length > 0) {
+        renderTechniciansList();
+    } else {
+        // Initialize the rest of the page if not already done
+        initializeTicketCreation();
+    }
+}
+
+// Initialize ticket creation
+async function initializeTicketCreation() {
+    try {
+        // Load categories and services
+        await fetchCategoriesAndServices();
+        
+        // Load technicians (for the technicians list display)
+        await fetchTechnicians();
+        
+        // Render technicians list if any are assigned
+        if (assignedTechnicianIds.length > 0) {
+            renderTechniciansList();
+        }
+    } catch (error) {
+        console.error('Error initializing ticket creation:', error);
+        showError('Failed to initialize ticket creation');
     }
 }
 
@@ -1021,8 +1319,6 @@ function switchStep(step) {
 
 // Render checkout step content
 function renderCheckoutStep() {
-    if (!customerData || !appointmentData) return;
-    
     // Calculate totals
     paymentSubtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
     paymentTip = 0;
@@ -1030,11 +1326,6 @@ function renderCheckoutStep() {
     const discountedSubtotal = paymentSubtotal - paymentDiscount;
     paymentTax = discountedSubtotal * 0.05; // 5% tax on discounted subtotal
     const total = discountedSubtotal + paymentTax + paymentTip;
-    
-    const customerName = `${customerData.firstName} ${customerData.lastName}`;
-    const customerInitial = customerName.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-    const orderId = `ORDER${appointmentData.id.toString().padStart(3, '0')}`;
-    const appointmentType = appointmentData.appointment === 'walk-in' ? 'Walk-In' : 'Booked';
     
     // Update items list
     const itemsListContainer = document.getElementById('checkoutItemsList');
@@ -1690,16 +1981,16 @@ function renderTechniciansTipSplit() {
         }
     } else {
         // For Custom tab, initialize if not set
-    if (Object.keys(technicianTips).length === 0) {
-        assignedTechnicians.forEach(technician => {
-            const technicianIdStr = technician.id.toString();
+        if (Object.keys(technicianTips).length === 0) {
+            assignedTechnicians.forEach(technician => {
+                const technicianIdStr = technician.id.toString();
                 const technicianServiceTotal = technicianTotals[technicianIdStr] || 0;
                 if (technicianServiceTotal > 0) {
-            const defaultPercentage = 100 / assignedTechnicians.length;
-            technicianTips[technicianIdStr] = {
-                percentage: defaultPercentage,
-                amount: 0
-            };
+                    const defaultPercentage = 100 / assignedTechnicians.length;
+                    technicianTips[technicianIdStr] = {
+                        percentage: defaultPercentage,
+                        amount: 0
+                    };
                 } else {
                     // Technician with no services gets 0%
                     technicianTips[technicianIdStr] = {
@@ -1707,8 +1998,8 @@ function renderTechniciansTipSplit() {
                         amount: 0
                     };
                 }
-        });
-    }
+            });
+        }
     }
     
     // Handle visibility for tab sections based on active mode
@@ -1749,7 +2040,7 @@ function renderTechniciansTipSplit() {
         } else {
             tipData = technicianTips[technicianIdStr] || { percentage: 100 / assignedTechnicians.length, amount: 0 };
             currentPercentage = tipData.percentage || (100 / assignedTechnicians.length);
-        
+            
             // For Percentage tab, always calculate from percentage (which is based on service amounts)
             // For Even tab, calculate from percentage (even split)
             // For Custom tab, use the amount from tipData if manually set
@@ -1757,8 +2048,8 @@ function renderTechniciansTipSplit() {
                 calculatedAmount = (paymentTip * currentPercentage) / 100;
             } else {
                 calculatedAmount = tipData.amount > 0 && tipData.amount !== (paymentTip * currentPercentage / 100) 
-            ? tipData.amount 
-            : (paymentTip * currentPercentage / 100);
+                    ? tipData.amount 
+                    : (paymentTip * currentPercentage / 100);
             }
         }
         
@@ -2096,8 +2387,6 @@ function processPayment(event) {
     
     // Here you would process the payment and save to backend/JSON
     console.log('Processing payment:', {
-        appointmentId: appointmentId,
-        customerId: customerData.id,
         services: cart,
         technicians: assignedTechnicianIds,
         subtotal: paymentSubtotal,
@@ -2127,7 +2416,8 @@ function showSuccessMessage(message) {
 
 // Load data on page load
 document.addEventListener('DOMContentLoaded', function() {
-    loadPaymentData();
+    // Open technician selection modal first
+    openTechnicianSelectionModal();
 });
 </script>
 

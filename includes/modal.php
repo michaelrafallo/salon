@@ -127,7 +127,7 @@ document.addEventListener('keydown', function(e) {
         if (nestedOverlay && !nestedOverlay.classList.contains('hidden')) {
             closeNestedModal();
         } else {
-            closeModal();
+        closeModal();
         }
     }
 });

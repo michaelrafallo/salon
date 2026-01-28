@@ -1834,8 +1834,8 @@ function showAppointmentModal(appointmentData) {
                     <div class="flex-1">
                         <p class="text-xs text-gray-500 mb-0.5">Technician</p>
                         <div id="technicianDisplay_${appointmentId}">
-                            <p class="font-semibold text-gray-900">${technicians}</p>
-                        </div>
+                        <p class="font-semibold text-gray-900">${technicians}</p>
+                    </div>
                     </div>
                     ${!isTechnician ? `
                     <button onclick="openTechnicianSelectionModalWithEvent('${appointmentId}', '${customerName}')" class="px-4 py-2 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition-all font-medium text-sm flex items-center gap-2">

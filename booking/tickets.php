@@ -25,6 +25,13 @@ include '../includes/modal.php';
                         </svg>
                     </button>
                 </div>
+                <!-- Create Ticket Button -->
+                <button onclick="openCreateTicketModal()" class="px-4 py-2 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium text-sm sm:text-base active:scale-95 flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    Create Ticket
+                </button>
             </div>
         </div>
 
@@ -580,6 +587,11 @@ function getActionButtons(customer, fullName, isGrid = false) {
 }
 
 // View appointment details modal for paid, cancelled, and refunded appointments
+// Open create ticket page
+function openCreateTicketModal() {
+    window.location.href = 'create-ticket.php';
+}
+
 function viewAppointmentDetails(appointmentId, customerName) {
     // Find the appointment - try multiple ways to match
     const appointment = allMergedData.find(apt => {

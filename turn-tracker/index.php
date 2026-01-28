@@ -72,6 +72,9 @@ async function loadData() {
         // Calculate service counts for each technician
         calculateServiceCounts();
         
+        // Load saved service counts from localStorage (overrides calculated counts)
+        loadServiceCounts();
+        
         // Render technicians (order is handled in calculateServiceCounts)
         renderTechnicians();
     } catch (error) {
@@ -221,7 +224,21 @@ function renderTechnicians() {
                 <!-- Technician Info -->
                 <div class="flex-1 min-w-0">
                     <p class="font-semibold text-gray-900 text-sm truncate">${technician.fullName}</p>
-                    <p class="text-xs text-gray-600">Services: <span class="font-semibold text-[#003047]">${technician.serviceCount}</span></p>
+                </div>
+                
+                <!-- Services Count (Editable) -->
+                <div class="flex-shrink-0 flex items-center gap-2" onclick="event.stopPropagation()" onmousedown="event.stopPropagation()">
+                    <span class="text-xs text-gray-600">Services:</span>
+                    <input type="number" 
+                           value="${technician.serviceCount}" 
+                           min="0"
+                           class="w-20 px-2 py-1 text-sm font-semibold text-[#003047] border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"
+                           onchange="updateServiceCount(${technician.id}, this.value)"
+                           onblur="saveServiceCount(${technician.id}); enableDragForItem(event);"
+                           onclick="event.stopPropagation()"
+                           onmousedown="event.stopPropagation()"
+                           onfocus="disableDragForItem(event)"
+                           data-technician-id="${technician.id}">
                 </div>
             </div>
         `;
@@ -230,8 +247,32 @@ function renderTechnicians() {
     container.innerHTML = html;
 }
 
+// Disable drag when editing input
+function disableDragForItem(event) {
+    const technicianItem = event.target.closest('.technician-item');
+    if (technicianItem) {
+        technicianItem.draggable = false;
+        technicianItem.classList.add('cursor-text');
+    }
+}
+
+// Enable drag when done editing input
+function enableDragForItem(event) {
+    const technicianItem = event.target.closest('.technician-item');
+    if (technicianItem) {
+        technicianItem.draggable = true;
+        technicianItem.classList.remove('cursor-text');
+    }
+}
+
 // Drag and Drop Handlers
 function handleDragStart(event, index) {
+    // Prevent drag if user is interacting with input field
+    if (event.target.tagName === 'INPUT' || event.target.closest('input')) {
+        event.preventDefault();
+        return false;
+    }
+    
     draggedIndex = index;
     draggedElement = event.currentTarget;
     event.currentTarget.classList.add('opacity-50', 'border-[#003047]', 'bg-[#e6f0f3]');
@@ -270,6 +311,9 @@ function handleDrop(event, dropIndex) {
     
     // Reorder array
     const draggedTech = techniciansData[draggedIndex];
+    const oldPosition = draggedIndex + 1;
+    const newPosition = dropIndex + 1;
+    
     techniciansData.splice(draggedIndex, 1);
     techniciansData.splice(dropIndex, 0, draggedTech);
     
@@ -278,6 +322,9 @@ function handleDrop(event, dropIndex) {
     
     // Re-render
     renderTechnicians();
+    
+    // Show toast notification
+    showReorderToast(draggedTech.fullName, oldPosition, newPosition);
     
     // Highlight the dropped item after re-render
     setTimeout(() => {
@@ -305,6 +352,147 @@ function handleDragEnd(event) {
     
     draggedElement = null;
     draggedIndex = null;
+}
+
+// Update service count
+function updateServiceCount(technicianId, newCount, showToast = false) {
+    const technician = techniciansData.find(tech => tech.id === technicianId);
+    if (technician) {
+        technician.serviceCount = parseInt(newCount) || 0;
+        // Save to localStorage
+        saveServiceCounts();
+        // Show toast notification if requested
+        if (showToast) {
+            showServiceCountToast(technician.fullName, technician.serviceCount);
+        }
+    }
+}
+
+// Show toast notification for service count update
+function showServiceCountToast(technicianName, serviceCount) {
+    // Remove existing toast if any
+    const existingToast = document.getElementById('serviceCountToast');
+    if (existingToast) {
+        existingToast.remove();
+    }
+    
+    const toastDiv = document.createElement('div');
+    toastDiv.id = 'serviceCountToast';
+    toastDiv.className = 'fixed bottom-4 left-4 bg-[#003047] text-white px-4 py-3 rounded-lg shadow-lg z-50 transition-all duration-300';
+    toastDiv.style.opacity = '0';
+    toastDiv.style.transform = 'translateX(-100px)';
+    toastDiv.innerHTML = `
+        <div class="flex items-center gap-3">
+            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+            </svg>
+            <div>
+                <p class="font-semibold text-sm">Service count updated</p>
+                <p class="text-xs opacity-90">${technicianName}: ${serviceCount} ${serviceCount === 1 ? 'service' : 'services'}</p>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(toastDiv);
+    
+    // Animate in
+    setTimeout(() => {
+        toastDiv.style.opacity = '1';
+        toastDiv.style.transform = 'translateX(0)';
+    }, 10);
+    
+    // Animate out and remove after 3 seconds
+    setTimeout(() => {
+        toastDiv.style.opacity = '0';
+        toastDiv.style.transform = 'translateX(-100px)';
+        setTimeout(() => {
+            if (toastDiv.parentNode) {
+                toastDiv.remove();
+            }
+        }, 300);
+    }, 3000);
+}
+
+// Show toast notification for technician reorder
+function showReorderToast(technicianName, oldPosition, newPosition) {
+    // Remove existing toast if any
+    const existingToast = document.getElementById('reorderToast');
+    if (existingToast) {
+        existingToast.remove();
+    }
+    
+    const toastDiv = document.createElement('div');
+    toastDiv.id = 'reorderToast';
+    toastDiv.className = 'fixed bottom-4 left-4 bg-[#003047] text-white px-4 py-3 rounded-lg shadow-lg z-50 transition-all duration-300';
+    toastDiv.style.opacity = '0';
+    toastDiv.style.transform = 'translateX(-100px)';
+    
+    const positionText = `Position ${oldPosition} → ${newPosition}`;
+    
+    toastDiv.innerHTML = `
+        <div class="flex items-center gap-3">
+            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path>
+            </svg>
+            <div>
+                <p class="font-semibold text-sm">Order updated</p>
+                <p class="text-xs opacity-90">${technicianName}: ${positionText}</p>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(toastDiv);
+    
+    // Animate in
+    setTimeout(() => {
+        toastDiv.style.opacity = '1';
+        toastDiv.style.transform = 'translateX(0)';
+    }, 10);
+    
+    // Animate out and remove after 3 seconds
+    setTimeout(() => {
+        toastDiv.style.opacity = '0';
+        toastDiv.style.transform = 'translateX(-100px)';
+        setTimeout(() => {
+            if (toastDiv.parentNode) {
+                toastDiv.remove();
+            }
+        }, 300);
+    }, 3000);
+}
+
+// Save service counts to localStorage
+function saveServiceCounts() {
+    const counts = {};
+    techniciansData.forEach(tech => {
+        counts[tech.id] = tech.serviceCount;
+    });
+    localStorage.setItem('turnTrackerServiceCounts', JSON.stringify(counts));
+}
+
+// Load service counts from localStorage
+function loadServiceCounts() {
+    const savedCounts = localStorage.getItem('turnTrackerServiceCounts');
+    if (savedCounts) {
+        try {
+            const counts = JSON.parse(savedCounts);
+            techniciansData.forEach(tech => {
+                if (counts.hasOwnProperty(tech.id)) {
+                    tech.serviceCount = counts[tech.id];
+                }
+            });
+        } catch (error) {
+            console.error('Error loading saved service counts:', error);
+        }
+    }
+}
+
+// Save service count for a specific technician
+function saveServiceCount(technicianId) {
+    const input = document.querySelector(`input[data-technician-id="${technicianId}"]`);
+    if (input) {
+        const newCount = parseInt(input.value) || 0;
+        // Show toast when saving on blur
+        updateServiceCount(technicianId, newCount, true);
+    }
 }
 
 // Initialize on page load

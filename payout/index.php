@@ -31,9 +31,9 @@ include '../includes/modal.php';
             </div>
             <button onclick="printPayoutReport()" class="flex items-center gap-2 px-4 py-2 bg-[#003047] text-white rounded-lg hover:bg-[#004060] transition-colors font-medium">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h10a2 2 0 002-2V6a2 2 0 00-2-2H9a2 2 0 00-2 2v16a2 2 0 002 2z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
                 </svg>
-                Print
+                Open                
             </button>
         </div>
 
@@ -816,10 +816,7 @@ function renderPayouts() {
                 <td class="py-3 px-4 text-sm font-semibold text-gray-900 text-right">$${daily.totalTipCommission.toFixed(2)}</td>
                 <td class="py-3 px-4">
                     <button onclick="viewPayoutDetails('${dateKey}')" class="px-3 py-1.5 bg-gray-500 text-white text-xs font-medium rounded hover:bg-gray-600 transition active:scale-95 flex items-center gap-1 ml-auto">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
-                        </svg>
-                        Print
+                        Open
                     </button>
                 </td>
             </tr>

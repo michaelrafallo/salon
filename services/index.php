@@ -99,6 +99,10 @@ include '../includes/modal.php';
 </main>
 
 <script>
+// Check if user is admin (can be set from PHP session or localStorage)
+// For now, checking localStorage, can be replaced with PHP variable
+let isAdmin = localStorage.getItem('isAdmin') === 'true' || false;
+
 // Services data
 let servicesData = [];
 let allServices = []; // Keep original unfiltered data
@@ -108,6 +112,10 @@ let currentSearchTerm = '';
 let PAGE_SIZE = 15; // Can be changed by user
 let currentPage = 1;
 let totalPages = 1;
+
+// Password for non-admin users
+const SERVICE_PASSWORD = '54321';
+let pendingAction = null; // Store the action to perform after password verification
 
 // Fetch categories mapping
 async function fetchCategories() {
@@ -586,7 +594,96 @@ function showErrorMessage(message) {
     setTimeout(() => errorDiv.remove(), 5000);
 }
 
+// Open password modal for non-admin users
+function openPasswordModal(action) {
+    pendingAction = action;
+    const modalContent = `
+        <div class="p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold text-gray-900">Enter Password</h3>
+                <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                    <input type="password" id="servicePasswordInput" placeholder="Enter password" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" autofocus>
+                    <p id="passwordError" class="mt-2 text-sm text-red-600 hidden">Incorrect password. Please try again.</p>
+                </div>
+                <div class="flex justify-end gap-3 pt-4">
+                    <button type="button" onclick="closeModal()" class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium active:scale-95">
+                        Cancel
+                    </button>
+                    <button type="button" onclick="verifyServicePassword()" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">
+                        Verify
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    openModal(modalContent, 'default', false);
+    
+    // Focus on password input and allow Enter key
+    setTimeout(() => {
+        const passwordInput = document.getElementById('servicePasswordInput');
+        if (passwordInput) {
+            passwordInput.focus();
+            passwordInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    verifyServicePassword();
+                }
+            });
+        }
+    }, 100);
+}
+
+// Verify password for service add/edit
+function verifyServicePassword() {
+    const passwordInput = document.getElementById('servicePasswordInput');
+    const passwordError = document.getElementById('passwordError');
+    const enteredPassword = passwordInput ? passwordInput.value : '';
+    
+    if (enteredPassword === SERVICE_PASSWORD) {
+        // Password correct, close modal and execute pending action
+        closeModal();
+        // Small delay to ensure modal is fully closed before opening next one
+        setTimeout(() => {
+            if (pendingAction && typeof pendingAction === 'function') {
+                pendingAction();
+            }
+            pendingAction = null;
+        }, 200);
+    } else {
+        // Password incorrect, show error
+        if (passwordError) {
+            passwordError.classList.remove('hidden');
+        }
+        if (passwordInput) {
+            passwordInput.value = '';
+            passwordInput.focus();
+        }
+    }
+}
+
 function openAddServiceModal() {
+    // Check if user is admin
+    if (!isAdmin) {
+        // Non-admin: show password modal first
+        openPasswordModal(() => {
+            openAddServiceModalContent();
+        });
+        return;
+    }
+    
+    // Admin: open modal directly
+    openAddServiceModalContent();
+}
+
+// Actual function to open add service modal content
+function openAddServiceModalContent() {
     // Generate category checkboxes dynamically from categoriesMap
     let categoryCheckboxes = '';
     if (Object.keys(categoriesMap).length > 0) {
@@ -653,6 +750,21 @@ function openAddServiceModal() {
 }
 
 function openServiceModal(serviceName, description, price, active, categories = []) {
+    // Check if user is admin
+    if (!isAdmin) {
+        // Non-admin: show password modal first
+        openPasswordModal(() => {
+            openServiceModalContent(serviceName, description, price, active, categories);
+        });
+        return;
+    }
+    
+    // Admin: open modal directly
+    openServiceModalContent(serviceName, description, price, active, categories);
+}
+
+// Actual function to open edit service modal content
+function openServiceModalContent(serviceName, description, price, active, categories = []) {
     // Helper function to check if category is selected (by key)
     const isCategoryChecked = (categoryKey) => {
         return categories && categories.includes(categoryKey) ? 'checked' : '';
