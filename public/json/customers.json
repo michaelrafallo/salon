@@ -1,0 +1,368 @@
+{
+  "customers": [
+    {
+      "id": 1,
+      "firstName": "Sarah",
+      "lastName": "Johnson",
+      "phone": "(555) 123-4567",
+      "email": "sarah.j@email.com",
+      "createdAt": "2025-01-15",
+      "totalBookings": 5,
+      "totalSpent": 275.00
+    },
+    {
+      "id": 2,
+      "firstName": "Emily",
+      "lastName": "Chen",
+      "phone": "(555) 234-5678",
+      "email": "emily.c@email.com",
+      "createdAt": "2025-02-20",
+      "totalBookings": 3,
+      "totalSpent": 450.00
+    },
+    {
+      "id": 3,
+      "firstName": "Jessica",
+      "lastName": "Martinez",
+      "phone": "(555) 345-6789",
+      "email": "jessica.m@email.com",
+      "createdAt": "2025-03-10",
+      "totalBookings": 8,
+      "totalSpent": 600.00
+    },
+    {
+      "id": 4,
+      "firstName": "Amanda",
+      "lastName": "Taylor",
+      "phone": "(555) 456-7890",
+      "email": "amanda.t@email.com",
+      "createdAt": "2025-04-05",
+      "totalBookings": 2,
+      "totalSpent": 170.00
+    },
+    {
+      "id": 5,
+      "firstName": "Michelle",
+      "lastName": "Brown",
+      "phone": "(555) 567-8901",
+      "email": "michelle.b@email.com",
+      "createdAt": "2025-05-12",
+      "totalBookings": 4,
+      "totalSpent": 540.00
+    },
+    {
+      "id": 6,
+      "firstName": "Rachel",
+      "lastName": "Green",
+      "phone": "(555) 678-9012",
+      "email": "rachel.g@email.com",
+      "createdAt": "2025-06-18",
+      "totalBookings": 1,
+      "totalSpent": 45.00
+    },
+    {
+      "id": 7,
+      "firstName": "Olivia",
+      "lastName": "Anderson",
+      "phone": "(555) 789-0123",
+      "email": "olivia.a@email.com",
+      "createdAt": "2025-07-01",
+      "totalBookings": 6,
+      "totalSpent": 320.00
+    },
+    {
+      "id": 8,
+      "firstName": "Sophia",
+      "lastName": "White",
+      "phone": "(555) 890-1234",
+      "email": "sophia.w@email.com",
+      "createdAt": "2025-07-10",
+      "totalBookings": 4,
+      "totalSpent": 280.00
+    },
+    {
+      "id": 9,
+      "firstName": "Isabella",
+      "lastName": "Harris",
+      "phone": "(555) 901-2345",
+      "email": "isabella.h@email.com",
+      "createdAt": "2025-07-15",
+      "totalBookings": 3,
+      "totalSpent": 195.00
+    },
+    {
+      "id": 10,
+      "firstName": "Mia",
+      "lastName": "Clark",
+      "phone": "(555) 012-3456",
+      "email": "mia.c@email.com",
+      "createdAt": "2025-07-20",
+      "totalBookings": 5,
+      "totalSpent": 350.00
+    },
+    {
+      "id": 11,
+      "firstName": "Charlotte",
+      "lastName": "Lewis",
+      "phone": "(555) 123-4568",
+      "email": "charlotte.l@email.com",
+      "createdAt": "2025-08-05",
+      "totalBookings": 2,
+      "totalSpent": 130.00
+    },
+    {
+      "id": 12,
+      "firstName": "Amelia",
+      "lastName": "Walker",
+      "phone": "(555) 234-5679",
+      "email": "amelia.w@email.com",
+      "createdAt": "2025-08-12",
+      "totalBookings": 7,
+      "totalSpent": 490.00
+    },
+    {
+      "id": 13,
+      "firstName": "Harper",
+      "lastName": "Hall",
+      "phone": "(555) 345-6780",
+      "email": "harper.h@email.com",
+      "createdAt": "2025-08-18",
+      "totalBookings": 4,
+      "totalSpent": 260.00
+    },
+    {
+      "id": 14,
+      "firstName": "Evelyn",
+      "lastName": "Allen",
+      "phone": "(555) 456-7891",
+      "email": "evelyn.a@email.com",
+      "createdAt": "2025-08-25",
+      "totalBookings": 3,
+      "totalSpent": 210.00
+    },
+    {
+      "id": 15,
+      "firstName": "Abigail",
+      "lastName": "Young",
+      "phone": "(555) 567-8902",
+      "email": "abigail.y@email.com",
+      "createdAt": "2025-09-01",
+      "totalBookings": 5,
+      "totalSpent": 325.00
+    },
+    {
+      "id": 16,
+      "firstName": "Emma",
+      "lastName": "King",
+      "phone": "(555) 678-9013",
+      "email": "emma.k@email.com",
+      "createdAt": "2025-09-08",
+      "totalBookings": 6,
+      "totalSpent": 420.00
+    },
+    {
+      "id": 17,
+      "firstName": "Luna",
+      "lastName": "Wright",
+      "phone": "(555) 789-0124",
+      "email": "luna.w@email.com",
+      "createdAt": "2025-09-15",
+      "totalBookings": 2,
+      "totalSpent": 140.00
+    },
+    {
+      "id": 18,
+      "firstName": "Layla",
+      "lastName": "Lopez",
+      "phone": "(555) 890-1235",
+      "email": "layla.l@email.com",
+      "createdAt": "2025-09-22",
+      "totalBookings": 4,
+      "totalSpent": 290.00
+    },
+    {
+      "id": 19,
+      "firstName": "Zoe",
+      "lastName": "Hill",
+      "phone": "(555) 901-2346",
+      "email": "zoe.h@email.com",
+      "createdAt": "2025-09-30",
+      "totalBookings": 3,
+      "totalSpent": 225.00
+    },
+    {
+      "id": 20,
+      "firstName": "Avery",
+      "lastName": "Scott",
+      "phone": "(555) 012-3457",
+      "email": "avery.s@email.com",
+      "createdAt": "2025-10-05",
+      "totalBookings": 5,
+      "totalSpent": 375.00
+    },
+    {
+      "id": 21,
+      "firstName": "Ella",
+      "lastName": "Green",
+      "phone": "(555) 123-4569",
+      "email": "ella.g@email.com",
+      "createdAt": "2025-10-10",
+      "totalBookings": 4,
+      "totalSpent": 300.00
+    },
+    {
+      "id": 22,
+      "firstName": "Scarlett",
+      "lastName": "Adams",
+      "phone": "(555) 234-5680",
+      "email": "scarlett.a@email.com",
+      "createdAt": "2025-10-15",
+      "totalBookings": 6,
+      "totalSpent": 450.00
+    },
+    {
+      "id": 23,
+      "firstName": "Nora",
+      "lastName": "Baker",
+      "phone": "(555) 345-6791",
+      "email": "nora.b@email.com",
+      "createdAt": "2025-10-20",
+      "totalBookings": 3,
+      "totalSpent": 240.00
+    },
+    {
+      "id": 24,
+      "firstName": "Chloe",
+      "lastName": "Nelson",
+      "phone": "(555) 456-7902",
+      "email": "chloe.n@email.com",
+      "createdAt": "2025-10-25",
+      "totalBookings": 5,
+      "totalSpent": 340.00
+    },
+    {
+      "id": 25,
+      "firstName": "Aubrey",
+      "lastName": "Carter",
+      "phone": "(555) 567-8013",
+      "email": "aubrey.c@email.com",
+      "createdAt": "2025-11-01",
+      "totalBookings": 2,
+      "totalSpent": 150.00
+    },
+    {
+      "id": 26,
+      "firstName": "Grace",
+      "lastName": "Mitchell",
+      "phone": "(555) 678-9124",
+      "email": "grace.m@email.com",
+      "createdAt": "2025-11-05",
+      "totalBookings": 7,
+      "totalSpent": 525.00
+    },
+    {
+      "id": 27,
+      "firstName": "Lily",
+      "lastName": "Perez",
+      "phone": "(555) 789-0235",
+      "email": "lily.p@email.com",
+      "createdAt": "2025-11-08",
+      "totalBookings": 4,
+      "totalSpent": 310.00
+    },
+    {
+      "id": 28,
+      "firstName": "Aria",
+      "lastName": "Roberts",
+      "phone": "(555) 890-1346",
+      "email": "aria.r@email.com",
+      "createdAt": "2025-11-10",
+      "totalBookings": 3,
+      "totalSpent": 230.00
+    },
+    {
+      "id": 29,
+      "firstName": "Victoria",
+      "lastName": "Turner",
+      "phone": "(555) 901-2457",
+      "email": "victoria.t@email.com",
+      "createdAt": "2025-11-12",
+      "totalBookings": 6,
+      "totalSpent": 440.00
+    },
+    {
+      "id": 30,
+      "firstName": "Madison",
+      "lastName": "Phillips",
+      "phone": "(555) 012-3568",
+      "email": "madison.p@email.com",
+      "createdAt": "2025-11-14",
+      "totalBookings": 5,
+      "totalSpent": 365.00
+    },
+    {
+      "id": 31,
+      "firstName": "Riley",
+      "lastName": "Campbell",
+      "phone": "(555) 123-4679",
+      "email": "riley.c@email.com",
+      "createdAt": "2025-11-16",
+      "totalBookings": 2,
+      "totalSpent": 160.00
+    },
+    {
+      "id": 32,
+      "firstName": "Hannah",
+      "lastName": "Parker",
+      "phone": "(555) 234-5780",
+      "email": "hannah.p@email.com",
+      "createdAt": "2025-11-18",
+      "totalBookings": 4,
+      "totalSpent": 295.00
+    },
+    {
+      "id": 33,
+      "firstName": "Aria",
+      "lastName": "Evans",
+      "phone": "(555) 345-6891",
+      "email": "aria.e@email.com",
+      "createdAt": "2025-11-20",
+      "totalBookings": 3,
+      "totalSpent": 220.00
+    },
+    {
+      "id": 34,
+      "firstName": "Addison",
+      "lastName": "Edwards",
+      "phone": "(555) 456-7902",
+      "email": "addison.e@email.com",
+      "createdAt": "2025-11-22",
+      "totalBookings": 6,
+      "totalSpent": 430.00
+    },
+    {
+      "id": 35,
+      "firstName": "Eleanor",
+      "lastName": "Collins",
+      "phone": "(555) 567-8013",
+      "email": "eleanor.c@email.com",
+      "createdAt": "2025-11-23",
+      "totalBookings": 5,
+      "totalSpent": 355.00
+    },
+    {
+      "id": 36,
+      "firstName": "Natalie",
+      "lastName": "Stewart",
+      "phone": "(555) 678-9124",
+      "email": "natalie.s@email.com",
+      "createdAt": "2025-11-24",
+      "totalBookings": 4,
+      "totalSpent": 305.00
+    }
+  ]
+}
+
+
+
+

@@ -1,0 +1,1645 @@
+{
+  "appointments": [
+    {
+      "id": 1,
+      "customer_id": 1,
+      "appointment": "walk-in",
+      "status": "refunded",
+      "created_at": "2026-02-15T10:30:00",
+      "appointment_datetime": "2026-01-01T10:30:00",
+      "assigned_technician": [
+        3,
+        4
+      ],
+      "services": [
+        {
+          "service": "nail-art",
+          "technician_id": 3
+        },
+        {
+          "service": "manicure",
+          "technician_id": 4
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "customer_id": 2,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-20T14:00:00",
+      "appointment_datetime": "2026-01-01T14:00:00",
+      "assigned_technician": [
+        4
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 4
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "customer_id": 3,
+      "appointment": "walk-in",
+      "status": "unpaid",
+      "created_at": "2026-02-25T09:15:00",
+      "appointment_datetime": "2026-01-02T09:15:00",
+      "assigned_technician": [
+        5
+      ],
+      "services": [
+        {
+          "service": "nail-art",
+          "technician_id": "5"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "customer_id": 4,
+      "appointment": "walk-in",
+      "status": "waiting",
+      "created_at": "2026-02-26T08:00:00",
+      "appointment_datetime": "2026-01-02T08:00:00",
+      "assigned_technician": [
+        3
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 3
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "customer_id": 5,
+      "appointment": "booked",
+      "status": "waiting",
+      "created_at": "2026-02-26T09:30:00",
+      "appointment_datetime": "2026-01-02T09:30:00",
+      "assigned_technician": [
+        4
+      ],
+      "services": [
+        {
+          "service": "pedicure",
+          "technician_id": 4
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "customer_id": 6,
+      "appointment": "walk-in",
+      "status": "waiting",
+      "created_at": "2026-02-26T10:00:00",
+      "appointment_datetime": "2026-01-03T10:00:00",
+      "assigned_technician": [
+        5
+      ],
+      "services": [
+        {
+          "service": "nail-art",
+          "technician_id": 5
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "customer_id": 7,
+      "appointment": "walk-in",
+      "status": "waiting",
+      "created_at": "2026-02-26T11:15:00",
+      "appointment_datetime": "2026-01-03T11:15:00",
+      "assigned_technician": [
+        3
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 3
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "customer_id": 8,
+      "appointment": "booked",
+      "status": "waiting",
+      "created_at": "2026-02-26T12:00:00",
+      "appointment_datetime": "2026-01-03T12:00:00",
+      "assigned_technician": [
+        4,
+        5
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 4
+        },
+        {
+          "service": "pedicure",
+          "technician_id": 5
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "customer_id": 9,
+      "appointment": "walk-in",
+      "status": "waiting",
+      "created_at": "2026-02-26T13:30:00",
+      "appointment_datetime": "2026-01-04T13:30:00",
+      "assigned_technician": [
+        3
+      ],
+      "services": [
+        {
+          "service": "nail-art",
+          "technician_id": 3
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "customer_id": 10,
+      "appointment": "booked",
+      "status": "waiting",
+      "created_at": "2026-02-26T14:00:00",
+      "appointment_datetime": "2026-01-04T14:00:00",
+      "assigned_technician": [
+        4
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 4
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "customer_id": 11,
+      "appointment": "walk-in",
+      "status": "waiting",
+      "created_at": "2026-02-26T14:30:00",
+      "appointment_datetime": "2026-01-04T14:30:00",
+      "assigned_technician": [
+        5
+      ],
+      "services": [
+        {
+          "service": "pedicure",
+          "technician_id": 5
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "customer_id": 12,
+      "appointment": "booked",
+      "status": "waiting",
+      "created_at": "2026-02-26T15:00:00",
+      "appointment_datetime": "2026-01-05T15:00:00",
+      "assigned_technician": [
+        3
+      ],
+      "services": [
+        {
+          "service": "nail-art",
+          "technician_id": 3
+        }
+      ]
+    },
+    {
+      "id": 13,
+      "customer_id": 13,
+      "appointment": "walk-in",
+      "status": "waiting",
+      "created_at": "2026-02-26T15:30:00",
+      "appointment_datetime": "2026-01-05T15:30:00",
+      "assigned_technician": [
+        4
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 4
+        }
+      ]
+    },
+    {
+      "id": 14,
+      "customer_id": 14,
+      "appointment": "booked",
+      "status": "waiting",
+      "created_at": "2026-02-26T16:00:00",
+      "appointment_datetime": "2026-01-05T16:00:00",
+      "assigned_technician": [
+        3,
+        4
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 3
+        },
+        {
+          "service": "pedicure",
+          "technician_id": 4
+        }
+      ]
+    },
+    {
+      "id": 15,
+      "customer_id": 15,
+      "appointment": "walk-in",
+      "status": "waiting",
+      "created_at": "2026-02-26T16:30:00",
+      "appointment_datetime": "2026-01-06T16:30:00",
+      "assigned_technician": [
+        5
+      ],
+      "services": [
+        {
+          "service": "nail-art",
+          "technician_id": 5
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "customer_id": 16,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-25T10:00:00",
+      "appointment_datetime": "2026-01-06T10:00:00",
+      "assigned_technician": [
+        3
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 3
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "customer_id": 17,
+      "appointment": "walk-in",
+      "status": "unpaid",
+      "created_at": "2026-02-25T11:00:00",
+      "appointment_datetime": "2026-01-07T11:00:00",
+      "assigned_technician": [
+        4
+      ],
+      "services": [
+        {
+          "service": "pedicure",
+          "technician_id": 4
+        }
+      ]
+    },
+    {
+      "id": 18,
+      "customer_id": 18,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-25T13:00:00",
+      "appointment_datetime": "2026-01-07T13:00:00",
+      "assigned_technician": [
+        5
+      ],
+      "services": [
+        {
+          "service": "nail-art",
+          "technician_id": 5
+        }
+      ]
+    },
+    {
+      "id": 19,
+      "customer_id": 19,
+      "appointment": "walk-in",
+      "status": "unpaid",
+      "created_at": "2026-02-25T14:00:00",
+      "appointment_datetime": "2026-01-07T14:00:00",
+      "assigned_technician": [
+        3,
+        4
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 3
+        },
+        {
+          "service": "pedicure",
+          "technician_id": 4
+        }
+      ]
+    },
+    {
+      "id": 20,
+      "customer_id": 20,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-24T09:00:00",
+      "appointment_datetime": "2026-01-08T09:00:00",
+      "assigned_technician": [
+        3
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 3
+        }
+      ]
+    },
+    {
+      "id": 21,
+      "customer_id": 21,
+      "appointment": "walk-in",
+      "status": "unpaid",
+      "created_at": "2026-02-24T10:00:00",
+      "appointment_datetime": "2026-01-08T10:00:00",
+      "assigned_technician": [
+        4
+      ],
+      "services": [
+        {
+          "service": "pedicure",
+          "technician_id": 4
+        }
+      ]
+    },
+    {
+      "id": 22,
+      "customer_id": 22,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-24T11:00:00",
+      "appointment_datetime": "2026-01-09T11:00:00",
+      "assigned_technician": [
+        5
+      ],
+      "services": [
+        {
+          "service": "nail-art",
+          "technician_id": 5
+        }
+      ]
+    },
+    {
+      "id": 23,
+      "customer_id": 23,
+      "appointment": "walk-in",
+      "status": "unpaid",
+      "created_at": "2026-02-24T13:00:00",
+      "appointment_datetime": "2026-01-09T13:00:00",
+      "assigned_technician": [
+        3,
+        4
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 3
+        },
+        {
+          "service": "pedicure",
+          "technician_id": 4
+        }
+      ]
+    },
+    {
+      "id": 24,
+      "customer_id": 24,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-24T14:00:00",
+      "appointment_datetime": "2026-01-09T14:00:00",
+      "assigned_technician": [
+        3
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 3
+        }
+      ]
+    },
+    {
+      "id": 25,
+      "customer_id": 25,
+      "appointment": "walk-in",
+      "status": "unpaid",
+      "created_at": "2026-02-23T09:00:00",
+      "appointment_datetime": "2026-01-10T09:00:00",
+      "assigned_technician": [
+        4
+      ],
+      "services": [
+        {
+          "service": "pedicure",
+          "technician_id": 4
+        }
+      ]
+    },
+    {
+      "id": 26,
+      "customer_id": 26,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-23T10:00:00",
+      "appointment_datetime": "2026-01-10T10:00:00",
+      "assigned_technician": [
+        5
+      ],
+      "services": [
+        {
+          "service": "nail-art",
+          "technician_id": 5
+        }
+      ]
+    },
+    {
+      "id": 27,
+      "customer_id": 27,
+      "appointment": "walk-in",
+      "status": "unpaid",
+      "created_at": "2026-02-23T11:00:00",
+      "appointment_datetime": "2026-01-11T11:00:00",
+      "assigned_technician": [
+        3
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 3
+        }
+      ]
+    },
+    {
+      "id": 28,
+      "customer_id": 28,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-23T13:00:00",
+      "appointment_datetime": "2026-01-11T13:00:00",
+      "assigned_technician": [
+        4
+      ],
+      "services": [
+        {
+          "service": "pedicure",
+          "technician_id": 4
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "customer_id": 29,
+      "appointment": "walk-in",
+      "status": "unpaid",
+      "created_at": "2026-02-22T09:00:00",
+      "appointment_datetime": "2026-01-12T09:00:00",
+      "assigned_technician": [
+        3,
+        5
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 3
+        },
+        {
+          "service": "nail-art",
+          "technician_id": 5
+        }
+      ]
+    },
+    {
+      "id": 30,
+      "customer_id": 30,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-22T10:00:00",
+      "appointment_datetime": "2026-01-12T10:00:00",
+      "assigned_technician": [
+        4
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 4
+        }
+      ]
+    },
+    {
+      "id": 31,
+      "customer_id": 31,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-27T08:00:00",
+      "appointment_datetime": "2026-01-13T08:00:00",
+      "assigned_technician": [
+        3
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 3
+        }
+      ]
+    },
+    {
+      "id": 32,
+      "customer_id": 32,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-27T08:30:00",
+      "appointment_datetime": "2026-01-13T09:00:00",
+      "assigned_technician": [
+        4
+      ],
+      "services": [
+        {
+          "service": "pedicure",
+          "technician_id": 4
+        }
+      ]
+    },
+    {
+      "id": 33,
+      "customer_id": 33,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-27T09:00:00",
+      "appointment_datetime": "2026-01-13T10:00:00",
+      "assigned_technician": [
+        5
+      ],
+      "services": [
+        {
+          "service": "nail-art",
+          "technician_id": 5
+        }
+      ]
+    },
+    {
+      "id": 34,
+      "customer_id": 34,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-27T09:30:00",
+      "appointment_datetime": "2026-01-13T11:00:00",
+      "assigned_technician": [
+        3,
+        4
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 3
+        },
+        {
+          "service": "pedicure",
+          "technician_id": 4
+        }
+      ]
+    },
+    {
+      "id": 35,
+      "customer_id": 35,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-27T10:00:00",
+      "appointment_datetime": "2026-01-13T13:00:00",
+      "assigned_technician": [
+        4
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 4
+        }
+      ]
+    },
+    {
+      "id": 36,
+      "customer_id": 36,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-27T10:30:00",
+      "appointment_datetime": "2026-01-13T14:00:00",
+      "assigned_technician": [
+        5
+      ],
+      "services": [
+        {
+          "service": "nail-art",
+          "technician_id": 5
+        }
+      ]
+    },
+    {
+      "id": 37,
+      "customer_id": 1,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-27T11:00:00",
+      "appointment_datetime": "2026-01-13T15:00:00",
+      "assigned_technician": [
+        3
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 3
+        }
+      ]
+    },
+    {
+      "id": 38,
+      "customer_id": 2,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-27T11:30:00",
+      "appointment_datetime": "2026-01-13T16:00:00",
+      "assigned_technician": [
+        4
+      ],
+      "services": [
+        {
+          "service": "pedicure",
+          "technician_id": 4
+        }
+      ]
+    },
+    {
+      "id": 39,
+      "customer_id": 3,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-27T12:00:00",
+      "appointment_datetime": "2026-01-14T09:00:00",
+      "assigned_technician": [
+        3
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 3
+        }
+      ]
+    },
+    {
+      "id": 40,
+      "customer_id": 4,
+      "appointment": "booked",
+      "status": "paid",
+      "created_at": "2026-02-27T12:30:00",
+      "appointment_datetime": "2026-01-14T10:00:00",
+      "assigned_technician": [
+        4,
+        5
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 4
+        },
+        {
+          "service": "nail-art",
+          "technician_id": 5
+        }
+      ]
+    },
+    {
+      "id": 41,
+      "customer_id": 5,
+      "appointment": "booked",
+      "status": "paid",
+      "created_at": "2026-02-27T13:00:00",
+      "appointment_datetime": "2026-01-14T11:00:00",
+      "assigned_technician": [
+        5
+      ],
+      "services": [
+        {
+          "service": "nail-art",
+          "technician_id": 5
+        }
+      ]
+    },
+    {
+      "id": 42,
+      "customer_id": 6,
+      "appointment": "booked",
+      "status": "paid",
+      "created_at": "2026-02-27T13:30:00",
+      "appointment_datetime": "2026-01-14T13:00:00",
+      "assigned_technician": [
+        3
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 3
+        }
+      ]
+    },
+    {
+      "id": 43,
+      "customer_id": 7,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-27T14:00:00",
+      "appointment_datetime": "2026-01-14T14:00:00",
+      "assigned_technician": [
+        4
+      ],
+      "services": [
+        {
+          "service": "pedicure",
+          "technician_id": 4
+        }
+      ]
+    },
+    {
+      "id": 44,
+      "customer_id": 8,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-27T14:30:00",
+      "appointment_datetime": "2026-01-14T15:00:00",
+      "assigned_technician": [
+        3,
+        4
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 3
+        },
+        {
+          "service": "pedicure",
+          "technician_id": 4
+        }
+      ]
+    },
+    {
+      "id": 45,
+      "customer_id": 9,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-27T15:00:00",
+      "appointment_datetime": "2026-01-15T09:00:00",
+      "assigned_technician": [
+        5
+      ],
+      "services": [
+        {
+          "service": "nail-art",
+          "technician_id": 5
+        }
+      ]
+    },
+    {
+      "id": 46,
+      "customer_id": 10,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-27T15:30:00",
+      "appointment_datetime": "2026-01-15T10:00:00",
+      "assigned_technician": [
+        3
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 3
+        }
+      ]
+    },
+    {
+      "id": 47,
+      "customer_id": 11,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-27T16:00:00",
+      "appointment_datetime": "2026-01-15T11:00:00",
+      "assigned_technician": [
+        4
+      ],
+      "services": [
+        {
+          "service": "pedicure",
+          "technician_id": 4
+        }
+      ]
+    },
+    {
+      "id": 48,
+      "customer_id": 12,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-27T16:30:00",
+      "appointment_datetime": "2026-01-15T13:00:00",
+      "assigned_technician": [
+        3,
+        5
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 3
+        },
+        {
+          "service": "nail-art",
+          "technician_id": 5
+        }
+      ]
+    },
+    {
+      "id": 49,
+      "customer_id": 13,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-28T08:00:00",
+      "appointment_datetime": "2026-01-15T14:00:00",
+      "assigned_technician": [
+        4
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 4
+        }
+      ]
+    },
+    {
+      "id": 50,
+      "customer_id": 14,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-28T08:30:00",
+      "appointment_datetime": "2026-01-15T15:00:00",
+      "assigned_technician": [
+        5
+      ],
+      "services": [
+        {
+          "service": "nail-art",
+          "technician_id": 5
+        }
+      ]
+    },
+    {
+      "id": 51,
+      "customer_id": 15,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-28T09:00:00",
+      "appointment_datetime": "2026-01-16T09:00:00",
+      "assigned_technician": [
+        3
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 3
+        }
+      ]
+    },
+    {
+      "id": 52,
+      "customer_id": 16,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-28T09:30:00",
+      "appointment_datetime": "2026-01-16T10:00:00",
+      "assigned_technician": [
+        4
+      ],
+      "services": [
+        {
+          "service": "pedicure",
+          "technician_id": 4
+        }
+      ]
+    },
+    {
+      "id": 53,
+      "customer_id": 17,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-28T10:00:00",
+      "appointment_datetime": "2026-01-16T11:00:00",
+      "assigned_technician": [
+        3,
+        4
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 3
+        },
+        {
+          "service": "pedicure",
+          "technician_id": 4
+        }
+      ]
+    },
+    {
+      "id": 54,
+      "customer_id": 18,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-28T10:30:00",
+      "appointment_datetime": "2026-01-16T13:00:00",
+      "assigned_technician": [
+        5
+      ],
+      "services": [
+        {
+          "service": "nail-art",
+          "technician_id": 5
+        }
+      ]
+    },
+    {
+      "id": 55,
+      "customer_id": 19,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-28T11:00:00",
+      "appointment_datetime": "2026-01-16T14:00:00",
+      "assigned_technician": [
+        3
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 3
+        }
+      ]
+    },
+    {
+      "id": 56,
+      "customer_id": 20,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-28T11:30:00",
+      "appointment_datetime": "2026-01-16T15:00:00",
+      "assigned_technician": [
+        4
+      ],
+      "services": [
+        {
+          "service": "pedicure",
+          "technician_id": 4
+        }
+      ]
+    },
+    {
+      "id": 57,
+      "customer_id": 21,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-28T12:00:00",
+      "appointment_datetime": "2026-01-17T09:00:00",
+      "assigned_technician": [
+        5
+      ],
+      "services": [
+        {
+          "service": "nail-art",
+          "technician_id": 5
+        }
+      ]
+    },
+    {
+      "id": 58,
+      "customer_id": 22,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-28T12:30:00",
+      "appointment_datetime": "2026-01-17T10:00:00",
+      "assigned_technician": [
+        3
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 3
+        }
+      ]
+    },
+    {
+      "id": 59,
+      "customer_id": 23,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-28T13:00:00",
+      "appointment_datetime": "2026-01-17T11:00:00",
+      "assigned_technician": [
+        4,
+        5
+      ],
+      "services": [
+        {
+          "service": "pedicure",
+          "technician_id": 4
+        },
+        {
+          "service": "nail-art",
+          "technician_id": 5
+        }
+      ]
+    },
+    {
+      "id": 60,
+      "customer_id": 24,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-28T13:30:00",
+      "appointment_datetime": "2026-01-17T13:00:00",
+      "assigned_technician": [
+        3
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 3
+        }
+      ]
+    },
+    {
+      "id": 61,
+      "customer_id": 25,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-28T14:00:00",
+      "appointment_datetime": "2026-01-17T14:00:00",
+      "assigned_technician": [
+        4
+      ],
+      "services": [
+        {
+          "service": "pedicure",
+          "technician_id": 4
+        }
+      ]
+    },
+    {
+      "id": 62,
+      "customer_id": 26,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-28T14:30:00",
+      "appointment_datetime": "2026-01-17T15:00:00",
+      "assigned_technician": [
+        5
+      ],
+      "services": [
+        {
+          "service": "nail-art",
+          "technician_id": 5
+        }
+      ]
+    },
+    {
+      "id": 63,
+      "customer_id": 27,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-28T15:00:00",
+      "appointment_datetime": "2026-01-18T09:00:00",
+      "assigned_technician": [
+        3,
+        4
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 3
+        },
+        {
+          "service": "pedicure",
+          "technician_id": 4
+        }
+      ]
+    },
+    {
+      "id": 64,
+      "customer_id": 28,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-28T15:30:00",
+      "appointment_datetime": "2026-01-18T10:00:00",
+      "assigned_technician": [
+        4
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 4
+        }
+      ]
+    },
+    {
+      "id": 65,
+      "customer_id": 29,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-28T16:00:00",
+      "appointment_datetime": "2026-01-18T11:00:00",
+      "assigned_technician": [
+        5
+      ],
+      "services": [
+        {
+          "service": "nail-art",
+          "technician_id": 5
+        }
+      ]
+    },
+    {
+      "id": 66,
+      "customer_id": 30,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-29T08:00:00",
+      "appointment_datetime": "2026-01-18T13:00:00",
+      "assigned_technician": [
+        3
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 3
+        }
+      ]
+    },
+    {
+      "id": 67,
+      "customer_id": 31,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-29T08:30:00",
+      "appointment_datetime": "2026-01-18T14:00:00",
+      "assigned_technician": [
+        4
+      ],
+      "services": [
+        {
+          "service": "pedicure",
+          "technician_id": 4
+        }
+      ]
+    },
+    {
+      "id": 68,
+      "customer_id": 32,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-29T09:00:00",
+      "appointment_datetime": "2026-01-18T15:00:00",
+      "assigned_technician": [
+        3,
+        5
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 3
+        },
+        {
+          "service": "nail-art",
+          "technician_id": 5
+        }
+      ]
+    },
+    {
+      "id": 69,
+      "customer_id": 33,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-29T09:30:00",
+      "appointment_datetime": "2026-01-19T09:00:00",
+      "assigned_technician": [
+        4
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 4
+        }
+      ]
+    },
+    {
+      "id": 70,
+      "customer_id": 34,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-29T10:00:00",
+      "appointment_datetime": "2026-01-19T10:00:00",
+      "assigned_technician": [
+        5
+      ],
+      "services": [
+        {
+          "service": "nail-art",
+          "technician_id": 5
+        }
+      ]
+    },
+    {
+      "id": 71,
+      "customer_id": 35,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-29T10:30:00",
+      "appointment_datetime": "2026-01-19T11:00:00",
+      "assigned_technician": [
+        3
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 3
+        }
+      ]
+    },
+    {
+      "id": 72,
+      "customer_id": 36,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-29T11:00:00",
+      "appointment_datetime": "2026-01-19T13:00:00",
+      "assigned_technician": [
+        4
+      ],
+      "services": [
+        {
+          "service": "pedicure",
+          "technician_id": 4
+        }
+      ]
+    },
+    {
+      "id": 73,
+      "customer_id": 1,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-29T11:30:00",
+      "appointment_datetime": "2026-01-19T14:00:00",
+      "assigned_technician": [
+        3,
+        4
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 3
+        },
+        {
+          "service": "pedicure",
+          "technician_id": 4
+        }
+      ]
+    },
+    {
+      "id": 74,
+      "customer_id": 2,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-29T12:00:00",
+      "appointment_datetime": "2026-01-19T15:00:00",
+      "assigned_technician": [
+        5
+      ],
+      "services": [
+        {
+          "service": "nail-art",
+          "technician_id": 5
+        }
+      ]
+    },
+    {
+      "id": 75,
+      "customer_id": 3,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-29T12:30:00",
+      "appointment_datetime": "2026-01-20T09:00:00",
+      "assigned_technician": [
+        3
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 3
+        }
+      ]
+    },
+    {
+      "id": 76,
+      "customer_id": 4,
+      "appointment": "booked",
+      "status": "paid",
+      "created_at": "2026-02-29T13:00:00",
+      "appointment_datetime": "2026-01-20T10:00:00",
+      "assigned_technician": [
+        4
+      ],
+      "services": [
+        {
+          "service": "pedicure",
+          "technician_id": 4
+        }
+      ]
+    },
+    {
+      "id": 77,
+      "customer_id": 5,
+      "appointment": "booked",
+      "status": "paid",
+      "created_at": "2026-02-29T13:30:00",
+      "appointment_datetime": "2026-01-20T11:00:00",
+      "assigned_technician": [
+        4,
+        5
+      ],
+      "services": [
+        {
+          "service": "pedicure",
+          "technician_id": 4
+        },
+        {
+          "service": "nail-art",
+          "technician_id": 5
+        }
+      ]
+    },
+    {
+      "id": 78,
+      "customer_id": 6,
+      "appointment": "booked",
+      "status": "paid",
+      "created_at": "2026-02-29T14:00:00",
+      "appointment_datetime": "2026-01-20T13:00:00",
+      "assigned_technician": [
+        3
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 3
+        }
+      ]
+    },
+    {
+      "id": 79,
+      "customer_id": 7,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-29T14:30:00",
+      "appointment_datetime": "2026-01-20T14:00:00",
+      "assigned_technician": [
+        5
+      ],
+      "services": [
+        {
+          "service": "nail-art",
+          "technician_id": 5
+        }
+      ]
+    },
+    {
+      "id": 80,
+      "customer_id": 8,
+      "appointment": "booked",
+      "status": "unpaid",
+      "created_at": "2026-02-29T15:00:00",
+      "appointment_datetime": "2026-01-20T15:00:00",
+      "assigned_technician": [
+        3,
+        4
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 3
+        },
+        {
+          "service": "pedicure",
+          "technician_id": 4
+        }
+      ]
+    },
+    {
+      "id": 81,
+      "customer_id": 1,
+      "appointment": "booked",
+      "status": "refunded",
+      "created_at": "2026-02-10T09:00:00",
+      "appointment_datetime": "2026-02-25T10:00:00",
+      "assigned_technician": [
+        3
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 3
+        }
+      ]
+    },
+    {
+      "id": 82,
+      "customer_id": 2,
+      "appointment": "booked",
+      "status": "refunded",
+      "created_at": "2026-02-12T11:00:00",
+      "appointment_datetime": "2026-02-28T14:00:00",
+      "assigned_technician": [
+        4
+      ],
+      "services": [
+        {
+          "service": "pedicure",
+          "technician_id": 4
+        },
+        {
+          "service": "nail-art",
+          "technician_id": 4
+        }
+      ]
+    },
+    {
+      "id": 83,
+      "customer_id": 3,
+      "appointment": "walk-in",
+      "status": "refunded",
+      "created_at": "2026-02-14T13:00:00",
+      "appointment_datetime": "2026-02-30T09:00:00",
+      "assigned_technician": [
+        5
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 5
+        }
+      ]
+    },
+    {
+      "id": 84,
+      "customer_id": 4,
+      "appointment": "booked",
+      "status": "refunded",
+      "created_at": "2026-02-16T10:30:00",
+      "appointment_datetime": "2026-01-02T11:00:00",
+      "assigned_technician": [
+        3,
+        4
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 3
+        },
+        {
+          "service": "pedicure",
+          "technician_id": 4
+        }
+      ]
+    },
+    {
+      "id": 85,
+      "customer_id": 5,
+      "appointment": "booked",
+      "status": "refunded",
+      "created_at": "2026-02-18T15:00:00",
+      "appointment_datetime": "2026-01-05T15:00:00",
+      "assigned_technician": [
+        5
+      ],
+      "services": [
+        {
+          "service": "nail-art",
+          "technician_id": 5
+        }
+      ]
+    },
+    {
+      "id": 86,
+      "customer_id": 6,
+      "appointment": "booked",
+      "status": "refunded",
+      "created_at": "2026-02-05T08:00:00",
+      "appointment_datetime": "2026-02-20T10:00:00",
+      "assigned_technician": [
+        3
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 3
+        },
+        {
+          "service": "pedicure",
+          "technician_id": 3
+        }
+      ]
+    },
+    {
+      "id": 87,
+      "customer_id": 7,
+      "appointment": "booked",
+      "status": "cancelled",
+      "created_at": "2026-02-07T09:30:00",
+      "appointment_datetime": "2026-02-22T13:00:00",
+      "assigned_technician": [
+        4
+      ],
+      "services": [
+        {
+          "service": "nail-art",
+          "technician_id": 4
+        }
+      ]
+    },
+    {
+      "id": 88,
+      "customer_id": 8,
+      "appointment": "walk-in",
+      "status": "cancelled",
+      "created_at": "2026-02-09T11:00:00",
+      "appointment_datetime": "2026-02-25T14:00:00",
+      "assigned_technician": [
+        5
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 5
+        },
+        {
+          "service": "pedicure",
+          "technician_id": 5
+        },
+        {
+          "service": "nail-art",
+          "technician_id": 5
+        }
+      ]
+    },
+    {
+      "id": 89,
+      "customer_id": 9,
+      "appointment": "booked",
+      "status": "cancelled",
+      "created_at": "2026-02-11T12:00:00",
+      "appointment_datetime": "2026-02-27T09:00:00",
+      "assigned_technician": [
+        3,
+        4
+      ],
+      "services": [
+        {
+          "service": "manicure",
+          "technician_id": 3
+        },
+        {
+          "service": "pedicure",
+          "technician_id": 4
+        }
+      ]
+    },
+    {
+      "id": 90,
+      "customer_id": 10,
+      "appointment": "booked",
+      "status": "cancelled",
+      "created_at": "2026-02-13T14:00:00",
+      "appointment_datetime": "2026-02-29T16:00:00",
+      "assigned_technician": [
+        4
+      ],
+      "services": [
+        {
+          "service": "nail-art",
+          "technician_id": 4
+        }
+      ]
+    }
+  ]
+}
