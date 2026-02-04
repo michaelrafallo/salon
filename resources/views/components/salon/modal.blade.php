@@ -49,6 +49,8 @@ function openModal(content, size = 'default', closeOnOutsideClick = true) {
         modalContent.style.overflowY = 'auto';
     } else if (size === 'medium') {
         modalContainer.classList.add('max-w-4xl');
+    } else if (size === 'small') {
+        modalContainer.classList.add('max-w-md');
     } else {
         modalContainer.classList.add('max-w-2xl');
     }
@@ -93,6 +95,7 @@ function openNestedModal(content, size = 'default', closeOnOutsideClick = true) 
     if (size === 'large') modalContainer.classList.add('max-w-6xl');
     else if (size === 'xl') modalContainer.classList.add('max-w-7xl');
     else if (size === 'medium') modalContainer.classList.add('max-w-4xl');
+    else if (size === 'small') modalContainer.classList.add('max-w-md');
     else modalContainer.classList.add('max-w-2xl');
 
     modalContent.innerHTML = content;
@@ -171,5 +174,70 @@ function showErrorMessage(message) {
     el.textContent = message;
     document.body.appendChild(el);
     setTimeout(function() { el.remove(); }, 3000);
+}
+
+/**
+ * Open a modern confirmation modal (e.g. for delete).
+ * @param {Object} options - title, message, confirmLabel (optional), onConfirm (function), nested (boolean) - if true, opens on top of current modal (z-60)
+ */
+function openConfirmModal(options) {
+    const title = (options && options.title) || 'Confirm';
+    const message = (options && options.message) || 'Are you sure you want to continue?';
+    const confirmLabel = (options && options.confirmLabel) || 'Delete';
+    const onConfirm = options && typeof options.onConfirm === 'function' ? options.onConfirm : null;
+    const nested = options && options.nested === true;
+    window._confirmModalOnConfirm = onConfirm;
+    const closeFn = nested ? 'closeNestedModal' : 'closeModal';
+    const content = `
+        <div class="flex flex-col rounded-2xl overflow-hidden shadow-xl">
+            <div class="px-6 py-4 bg-gray-50/80 border-b border-gray-200">
+                <div class="flex items-center justify-between gap-3">
+                    <h3 class="text-lg font-semibold text-gray-900 tracking-tight">${(title + '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</h3>
+                    <button type="button" onclick="${closeFn}(); window._confirmModalOnConfirm = null;" class="p-2 -m-2 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-lg transition focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2" aria-label="Close">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </button>
+                </div>
+            </div>
+            <div class="px-6 py-6 sm:py-8 bg-white">
+                <div class="flex items-start gap-4 sm:gap-5">
+                    <div class="flex-shrink-0 w-11 h-11 rounded-full bg-red-50 flex items-center justify-center ring-4 ring-red-50/50">
+                        <svg class="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                    </div>
+                    <div class="flex-1 min-w-0 pt-0.5 space-y-1">
+                        <p class="text-sm text-gray-600 leading-relaxed">${(message + '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
+                    </div>
+                </div>
+            </div>
+            <div class="px-6 py-4 bg-gray-50/80 border-t border-gray-200 flex flex-row justify-end gap-3">
+                <button type="button" onclick="${closeFn}(); window._confirmModalOnConfirm = null;" class="min-w-[5rem] px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition shadow-sm focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2">
+                    Cancel
+                </button>
+                <button type="button" id="confirmModalConfirmBtn" class="min-w-[5rem] px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition shadow-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                    ${(confirmLabel + '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}
+                </button>
+            </div>
+        </div>
+    `;
+    if (nested) {
+        openNestedModal(content, 'small');
+    } else {
+        openModal(content, 'small');
+    }
+    const btn = document.getElementById('confirmModalConfirmBtn');
+    if (btn) {
+        btn.onclick = function() {
+            if (nested) {
+                closeNestedModal();
+            } else {
+                closeModal();
+            }
+            if (window._confirmModalOnConfirm) {
+                window._confirmModalOnConfirm();
+                window._confirmModalOnConfirm = null;
+            }
+        };
+    }
 }
 </script>

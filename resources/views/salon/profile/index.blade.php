@@ -2,13 +2,16 @@
 
 @section('content')
 @php
-    $userEmail = session('salon_user_email', 'admin@salon.com');
-    $userRole = ucfirst(session('salon_role', 'admin'));
-    $userName = 'Admin User';
-    $joinDate = now()->subYears(2)->format('Y-m-d');
+    $profileUser = $profileUser ?? null;
+    $userEmail = $profileUser?->email ?? session('salon_user_email', 'admin@salon.com');
+    $userRole = ucfirst($profileUser?->role ?? session('salon_role', 'admin'));
+    $userName = $profileUser ? trim($profileUser->first_name . ' ' . $profileUser->last_name) : 'Admin User';
+    $userPhone = $profileUser?->phone ?? '(555) 100-0000';
+    $joinDate = $profileUser?->created_at?->format('Y-m-d') ?? now()->subYears(2)->format('Y-m-d');
     $avatarBg = 'bg-[#e6f0f3]';
     $avatarText = 'text-[#003047]';
-    $initials = 'AU';
+    $initials = $profileUser?->initials ?? strtoupper(mb_substr($userName, 0, 1) . mb_substr(strrchr($userName . ' ', ' ') ?: 'U', 0, 1));
+    $apiSalonUrl = rtrim(url('api/salon'), '/');
 @endphp
 <main class="flex-1 overflow-y-auto bg-gray-50 lg:ml-0 pt-16 lg:pt-0">
     <div class="p-4 sm:p-6 lg:p-8">
@@ -33,7 +36,7 @@
                             </div>
                             <div>
                                 <p class="text-sm text-gray-500 mb-1">Phone</p>
-                                <p class="text-base font-medium text-gray-900" id="userPhone">(555) 100-0000</p>
+                                <p class="text-base font-medium text-gray-900" id="userPhone">{{ $userPhone }}</p>
                             </div>
                             <div>
                                 <p class="text-sm text-gray-500 mb-1">Member Since</p>
@@ -80,61 +83,95 @@
         </div>
     </div>
 </main>
+@php
+    $profileUserData = $profileUser
+        ? [
+            'id' => $profileUser->id,
+            'first_name' => $profileUser->first_name,
+            'last_name' => $profileUser->last_name,
+            'email' => $profileUser->email,
+            'phone' => $profileUser->phone ?? '',
+            'role' => $profileUser->role,
+            'join_date' => $joinDate,
+            'avatar_color' => 'pink',
+            'initials' => $initials,
+        ]
+        : [
+            'id' => 0,
+            'first_name' => explode(' ', $userName)[0] ?? 'Admin',
+            'last_name' => implode(' ', array_slice(explode(' ', $userName), 1)) ?: 'User',
+            'email' => $userEmail,
+            'phone' => $userPhone,
+            'role' => $userRole,
+            'join_date' => $joinDate,
+            'avatar_color' => 'pink',
+            'initials' => $initials,
+        ];
+@endphp
 @push('scripts')
 <script>
-var salonProfileUserData = {
-    id: 1,
-    first_name: '',
-    last_name: '',
-    email: '{{ $userEmail }}',
-    phone: '(555) 100-0000',
-    role: '{{ $userRole }}',
-    join_date: '{{ $joinDate }}',
-    avatar_color: 'pink',
-    initials: '{{ $initials }}'
-};
+var salonProfileUserData = @json($profileUserData);
+var salonProfileApiUrl = '{{ $apiSalonUrl }}';
 document.addEventListener('DOMContentLoaded', function() {
     var nameEl = document.getElementById('profileUserName');
-    if (nameEl) {
+    if (nameEl && !salonProfileUserData.first_name) {
         var nameParts = nameEl.textContent.trim().split(' ');
         salonProfileUserData.first_name = nameParts[0] || 'Admin';
         salonProfileUserData.last_name = nameParts.slice(1).join(' ') || 'User';
     }
     var phoneEl = document.getElementById('userPhone');
-    if (phoneEl) {
+    if (phoneEl && salonProfileUserData.phone === '') {
         salonProfileUserData.phone = phoneEl.textContent.trim();
     }
 });
 window.salonProfileOpenEditModal = function() {
-    var modalContent = '<div class="p-6"><div class="flex items-center justify-between mb-4"><h3 class="text-xl font-bold text-gray-900">Edit Profile</h3><button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><form onsubmit="salonProfileUpdateProfile(event)" class="space-y-4"><input type="hidden" name="user_id" value="' + salonProfileUserData.id + '"><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">First Name</label><input type="text" name="first_name" id="editFirstName" value="' + salonProfileUserData.first_name + '" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Last Name</label><input type="text" name="last_name" id="editLastName" value="' + salonProfileUserData.last_name + '" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">Email</label><input type="email" name="email" id="editEmail" value="' + salonProfileUserData.email + '" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Phone Number</label><input type="tel" name="phone" id="editPhone" value="' + salonProfileUserData.phone + '" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div></div><div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg"><div><label class="text-sm font-medium text-gray-900">Active</label></div><label class="relative inline-flex items-center cursor-pointer"><input type="checkbox" name="active" class="sr-only peer" checked><div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#b3d1d9] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[\'\'] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#003047]"></div></label></div><div class="flex justify-end gap-3 pt-4"><button type="submit" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">Update Profile</button></div></form></div>';
+    var first = (salonProfileUserData.first_name || '').replace(/"/g, '&quot;');
+    var last = (salonProfileUserData.last_name || '').replace(/"/g, '&quot;');
+    var email = (salonProfileUserData.email || '').replace(/"/g, '&quot;');
+    var phone = (salonProfileUserData.phone || '').replace(/"/g, '&quot;');
+    var modalContent = '<div class="p-6"><div class="flex items-center justify-between mb-4"><h3 class="text-xl font-bold text-gray-900">Edit Profile</h3><button type="button" onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><form onsubmit="salonProfileUpdateProfile(event)" class="space-y-4"><input type="hidden" name="user_id" value="' + salonProfileUserData.id + '"><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">First Name</label><input type="text" name="first_name" value="' + first + '" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Last Name</label><input type="text" name="last_name" value="' + last + '" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">Email</label><input type="email" name="email" value="' + email + '" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Phone Number</label><input type="tel" name="phone" value="' + phone + '" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div></div><div class="flex justify-end gap-3 pt-4"><button type="submit" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">Update Profile</button></div></form></div>';
     if (typeof openModal === 'function') {
         openModal(modalContent);
     }
 };
 window.salonProfileUpdateProfile = function(event) {
     event.preventDefault();
-    var formData = new FormData(event.target);
-    var firstName = formData.get('first_name');
-    var lastName = formData.get('last_name');
-    var email = formData.get('email');
-    var phone = formData.get('phone');
-    var emailEl = document.getElementById('userEmail');
-    var phoneEl = document.getElementById('userPhone');
-    var nameEl = document.getElementById('profileUserName');
-    if (emailEl) emailEl.textContent = email;
-    if (phoneEl) phoneEl.textContent = phone;
-    if (nameEl) nameEl.textContent = firstName + ' ' + lastName;
-    salonProfileUserData.first_name = firstName;
-    salonProfileUserData.last_name = lastName;
-    salonProfileUserData.email = email;
-    salonProfileUserData.phone = phone;
-    if (typeof showSuccessMessage === 'function') {
-        showSuccessMessage('Profile updated successfully!');
+    var form = event.target;
+    var submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Saving...'; }
+    var firstName = form.querySelector('[name="first_name"]').value.trim();
+    var lastName = form.querySelector('[name="last_name"]').value.trim();
+    var email = form.querySelector('[name="email"]').value.trim();
+    var phone = (form.querySelector('[name="phone"]').value || '').trim();
+    var payload = { first_name: firstName, last_name: lastName, email: email, phone: phone || null };
+    if (typeof salonApi === 'undefined' || !salonApi.put) {
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Update Profile'; }
+        if (typeof showErrorMessage === 'function') showErrorMessage('Unable to save. Please refresh and try again.');
+        return;
     }
-    if (typeof closeModal === 'function') {
+    salonApi.put(salonProfileApiUrl + '/profile', payload).then(function(res) {
+        salonProfileUserData.first_name = firstName;
+        salonProfileUserData.last_name = lastName;
+        salonProfileUserData.email = email;
+        salonProfileUserData.phone = phone;
+        var emailEl = document.getElementById('userEmail');
+        var phoneEl = document.getElementById('userPhone');
+        var nameEl = document.getElementById('profileUserName');
+        if (emailEl) emailEl.textContent = email;
+        if (phoneEl) phoneEl.textContent = phone;
+        if (nameEl) nameEl.textContent = firstName + ' ' + lastName;
         closeModal();
-    }
-    console.log('Updating profile:', { firstName: firstName, lastName: lastName, email: email, phone: phone });
+        showSuccessMessage(res.message || 'Profile updated successfully!');
+    }).catch(function(err) {
+        if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Update Profile'; }
+        var msg = err && err.message ? err.message : 'Failed to update profile.';
+        if (err && err.body && err.body.errors && typeof err.body.errors === 'object') {
+            var firstKey = Object.keys(err.body.errors)[0];
+            if (firstKey && err.body.errors[firstKey] && err.body.errors[firstKey][0]) msg = err.body.errors[firstKey][0];
+        }
+        if (typeof showErrorMessage === 'function') showErrorMessage(msg);
+        else alert(msg);
+    });
 };
 window.salonProfileOpenChangePasswordModal = function() {
     var modalContent = '<div class="p-6"><div class="flex items-center justify-between mb-4"><h3 class="text-xl font-bold text-gray-900">Change Password</h3><button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><form onsubmit="salonProfileChangePassword(event)" class="space-y-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">Current Password</label><input type="password" name="current_password" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="Enter current password"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">New Password</label><input type="password" name="new_password" id="newPassword" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="Enter new password"><p class="mt-1 text-xs text-gray-500">Password must be at least 8 characters long</p></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Confirm New Password</label><input type="password" name="confirm_password" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="Confirm new password"></div><div class="flex justify-end gap-3 pt-4"><button type="submit" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">Change Password</button></div></form></div>';

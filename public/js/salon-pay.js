@@ -1,6 +1,7 @@
 (function() {
 var base = window.salonJsonBase || '/json';
 var ticketsUrl = window.salonTicketsUrl || '/booking/tickets';
+var apiAppointmentsUrl = window.salonApiAppointmentsUrl || '';
 var urlParams = new URLSearchParams(window.location.search);
 var appointmentId = urlParams.get('id');
 var appointmentData = null, customerData = null;
@@ -8,20 +9,67 @@ var allServicesData = [], servicesData = [], categoriesMap = {}, selectedCategor
 var cart = [], techniciansData = [], assignedTechnicianIds = [], selectedTechnicianId = null;
 var paymentSubtotal = 0, paymentTax = 0, paymentTip = 0, paymentDiscount = 0, paymentAmountStr = '';
 var currentStep = 1, technicianTips = {}, tipSplitMode = 'percentage';
+var lastSavedCartSignature = null;
 var colorClasses = [
     { bg: 'bg-[#e6f0f3]', text: 'text-[#003047]' }, { bg: 'bg-purple-100', text: 'text-purple-600' },
     { bg: 'bg-teal-100', text: 'text-teal-600' }, { bg: 'bg-indigo-100', text: 'text-indigo-600' },
     { bg: 'bg-rose-100', text: 'text-rose-600' }, { bg: 'bg-blue-100', text: 'text-blue-600' },
     { bg: 'bg-amber-100', text: 'text-amber-600' }, { bg: 'bg-green-100', text: 'text-green-600' }
 ];
+
+function salonPayGetQueryParam(name) {
+    try {
+        return new URLSearchParams(window.location.search).get(name);
+    } catch (e) {
+        return null;
+    }
+}
+
+function salonPaySetStepInUrl(step) {
+    try {
+        var url = new URL(window.location.href);
+        if (step && Number(step) === 2) url.searchParams.set('step', '2');
+        else url.searchParams.delete('step');
+        window.history.replaceState({}, '', url.toString());
+    } catch (e) {
+        // no-op
+    }
+}
+function salonPayMakeStableCartSignature(servicesPayload) {
+    var items = Array.isArray(servicesPayload) ? servicesPayload : [];
+    var normalized = items.map(function(s) {
+        var unit = (s.unit_price == null || s.unit_price === '') ? null : Number(s.unit_price);
+        return {
+            service: s.service || '',
+            service_id: (s.service_id == null || s.service_id === '') ? null : Number(s.service_id),
+            technician_id: (s.technician_id == null || s.technician_id === '') ? null : Number(s.technician_id),
+            quantity: (s.quantity == null || s.quantity === '') ? 1 : Number(s.quantity),
+            unit_price: unit == null || isNaN(unit) ? null : Math.round(unit * 100) / 100
+        };
+    }).filter(function(s) {
+        return !!s.service && !!s.technician_id;
+    });
+    normalized.sort(function(a, b) {
+        if (a.technician_id !== b.technician_id) return a.technician_id - b.technician_id;
+        var aSid = a.service_id == null ? -1 : a.service_id;
+        var bSid = b.service_id == null ? -1 : b.service_id;
+        if (aSid !== bSid) return aSid - bSid;
+        if (a.service !== b.service) return a.service < b.service ? -1 : 1;
+        var aPrice = a.unit_price == null ? -1 : a.unit_price;
+        var bPrice = b.unit_price == null ? -1 : b.unit_price;
+        if (aPrice !== bPrice) return aPrice - bPrice;
+        return a.quantity - b.quantity;
+    });
+    return JSON.stringify(normalized);
+}
 async function salonPayLoadPaymentData() {
     if (!appointmentId) {
         salonPayShowError('No appointment ID provided');
         return;
     }
     try {
-        var aptRes = await fetch(base + '/appointments.json');
-        var custRes = await fetch(base + '/customers.json');
+        var aptRes = await fetch(base + '/appointments');
+        var custRes = await fetch(base + '/customers');
         var aptData = await aptRes.json();
         var custData = await custRes.json();
         appointmentData = aptData.appointments.find(function(apt) {
@@ -42,7 +90,21 @@ async function salonPayLoadPaymentData() {
         }
         await salonPayFetchCategoriesAndServices();
         await salonPayFetchTechnicians();
+        salonPayBuildCartFromAppointmentServices();
         salonPayUpdateCustomerInfoHeader();
+
+        // Deep-link support: /booking/pay?id=87&step=2
+        var stepParam = parseInt(salonPayGetQueryParam('step') || '1', 10);
+        if (stepParam === 2) {
+            // Uses the same behavior as clicking Checkout tab / Next button.
+            if (typeof window.salonPaySaveAndGoToCheckout === 'function') {
+                window.salonPaySaveAndGoToCheckout();
+            } else {
+                window.salonPaySwitchStep(2);
+            }
+        } else {
+            salonPaySetStepInUrl(1);
+        }
     } catch (err) {
         console.error('Error loading payment data:', err);
         salonPayShowError('Failed to load payment details');
@@ -62,6 +124,37 @@ function salonPayUpdateCustomerInfoHeader() {
         container.innerHTML = '<div class="w-12 h-12 bg-[#e6f0f3] rounded-lg flex items-center justify-center flex-shrink-0"><span class="text-lg font-semibold text-[#003047]">' + customerInitial + '</span></div><div class="flex-1"><h2 class="text-xl font-bold text-gray-900">' + customerName + '</h2><p class="text-sm text-gray-600">' + orderId + ' / ' + appointmentType + '</p><p class="text-xs text-gray-500">' + dateStr + ' ' + timeStr + '</p></div>';
     }
 }
+function salonPayBuildCartFromAppointmentServices() {
+    if (!appointmentData || !appointmentData.services || !appointmentData.services.length) return;
+    cart = [];
+    appointmentData.services.forEach(function(item) {
+        var slug = item.service;
+        var technicianIdStr = (item.technician_id || item.technician_id === 0) ? item.technician_id.toString() : null;
+        if (!technicianIdStr) return;
+        var service = null;
+        if (item.service_id != null && item.service_id !== '') {
+            service = servicesData.find(function(s) { return s.id == item.service_id; }) || null;
+        }
+        if (!service) {
+            service = servicesData.find(function(s) { return s.categories && s.categories.indexOf(slug) >= 0; }) || null;
+        }
+        var name = service ? service.name : (item.service_name || categoriesMap[slug] || slug);
+        var price = item.unit_price != null ? parseFloat(item.unit_price) : (service ? parseFloat(service.price) : 0);
+        var qty = Math.max(1, parseInt(item.quantity, 10) || 1);
+        cart.push({
+            name: name,
+            price: price,
+            quantity: qty,
+            technician_id: technicianIdStr,
+            category_slug: slug,
+            service_id: service ? service.id : (item.service_id != null && item.service_id !== '' ? parseInt(item.service_id, 10) : null)
+        });
+    });
+    salonPayRenderTechniciansList();
+    salonPayInitializeServicesList();
+    // Treat loaded cart as "saved" baseline.
+    lastSavedCartSignature = salonPayMakeStableCartSignature(salonPayCartToServicesPayload());
+}
 function salonPayShowError(message) {
     var container = document.querySelector('main .p-4, main .p-6, main .p-8');
     if (container) {
@@ -70,8 +163,8 @@ function salonPayShowError(message) {
 }
 async function salonPayFetchCategoriesAndServices() {
     try {
-        var catRes = await fetch(base + '/service-categories.json');
-        var svcRes = await fetch(base + '/services.json');
+        var catRes = await fetch(base + '/service-categories');
+        var svcRes = await fetch(base + '/services');
         var catData = await catRes.json();
         var svcData = await svcRes.json();
         categoriesMap = catData.categories || {};
@@ -85,7 +178,7 @@ async function salonPayFetchCategoriesAndServices() {
 }
 async function salonPayFetchTechnicians() {
     try {
-        var res = await fetch(base + '/users.json');
+        var res = await fetch(base + '/users');
         var data = await res.json();
         techniciansData = (data.users || []).filter(function(u) {
             return (u.role === 'technician' || u.userlevel === 'technician') && (u.status === 'active' || !u.status);
@@ -148,12 +241,13 @@ function salonPayInitializeServicesList() {
         html = '<div class="col-span-full text-center py-12"><svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg><p class="text-gray-500 text-sm">No services found</p></div>';
     } else {
         filtered.forEach(function(service, index) {
-            var serviceId = service.name.replace(/\s+/g, '-').toLowerCase();
             var color = colorClasses[index % colorClasses.length];
             var isInCart = selectedTechnicianId ? cart.find(function(item) {
-                return item.name === service.name && item.technician_id === selectedTechnicianId;
+                return (item.service_id != null ? item.service_id === service.id : item.name === service.name) && item.technician_id === selectedTechnicianId;
             }) : null;
-            html += '<div class="service-item bg-white border border-gray-200 rounded-lg overflow-hidden hover:border-[#003047] hover:shadow-md transition-all flex flex-col h-full"><div class="w-full h-32 ' + color.bg + ' flex items-center justify-center flex-shrink-0"><svg class="w-12 h-12 ' + color.text + '" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg></div><div class="p-4 flex flex-col flex-1"><div class="flex-1"><h3 class="text-sm font-semibold text-gray-900 mb-1">' + service.name + '</h3><p class="text-lg font-bold text-[#003047] mb-3">$' + service.price.toFixed(2) + '</p></div><button type="button" onclick="salonPayAddServiceToCart(\'' + service.name.replace(/'/g, "\\'") + '\', ' + service.price + ')" class="w-full px-6 py-3 ' + (!selectedTechnicianId ? 'bg-gray-400 cursor-not-allowed' : isInCart ? 'bg-green-600 hover:bg-green-700' : 'bg-[#003047] hover:bg-[#002535]') + ' text-white rounded-lg transition font-medium text-sm active:scale-95 flex items-center justify-center gap-2 mt-auto" ' + (!selectedTechnicianId ? 'disabled title="Please select a technician first"' : '') + '><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>' + (!selectedTechnicianId ? 'Select Technician First' : isInCart ? 'In Cart (' + isInCart.quantity + 'x)' : 'Add to Cart') + '</button></div></div>';
+            var categorySlug = (service.categories && service.categories[0]) ? String(service.categories[0]).replace(/'/g, "\\'") : '';
+            var sid = (service.id != null) ? service.id : '';
+            html += '<div class="service-item bg-white border border-gray-200 rounded-lg overflow-hidden hover:border-[#003047] hover:shadow-md transition-all flex flex-col h-full"><div class="w-full h-32 ' + color.bg + ' flex items-center justify-center flex-shrink-0"><svg class="w-12 h-12 ' + color.text + '" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg></div><div class="p-4 flex flex-col flex-1"><div class="flex-1"><h3 class="text-sm font-semibold text-gray-900 mb-1">' + service.name + '</h3><p class="text-lg font-bold text-[#003047] mb-3">$' + service.price.toFixed(2) + '</p></div><button type="button" onclick="salonPayAddServiceToCart(\'' + service.name.replace(/'/g, "\\'") + '\', ' + service.price + ', \'' + categorySlug + '\', ' + sid + ')" class="w-full px-6 py-3 ' + (!selectedTechnicianId ? 'bg-gray-400 cursor-not-allowed' : isInCart ? 'bg-green-600 hover:bg-green-700' : 'bg-[#003047] hover:bg-[#002535]') + ' text-white rounded-lg transition font-medium text-sm active:scale-95 flex items-center justify-center gap-2 mt-auto" ' + (!selectedTechnicianId ? 'disabled title="Please select a technician first"' : '') + '><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>' + (!selectedTechnicianId ? 'Select Technician First' : isInCart ? 'In Cart (' + isInCart.quantity + 'x)' : 'Add to Cart') + '</button></div></div>';
         });
     }
     grid.innerHTML = html;
@@ -180,12 +274,330 @@ window.salonPayClearSearch = function() {
         input.focus();
     }
 };
-window.salonPayAddServiceToCart = function(serviceName, servicePrice) {
+function salonPayResolveSlugForItem(item) {
+    if (item.service_id != null) {
+        var svc = servicesData.find(function(s) { return s.id == item.service_id; });
+        if (svc && svc.categories && svc.categories[0]) return String(svc.categories[0]);
+    }
+    if (item.category_slug) return String(item.category_slug);
+    var svcByName = servicesData.find(function(s) { return s.name === item.name; });
+    if (svcByName && svcByName.categories && svcByName.categories[0]) return String(svcByName.categories[0]);
+    return '';
+}
+function salonPayCartToServicesPayload() {
+    return cart.map(function(item) {
+        var slug = salonPayResolveSlugForItem(item);
+        return {
+            service: slug,
+            service_id: item.service_id != null ? parseInt(item.service_id, 10) : null,
+            technician_id: parseInt(item.technician_id, 10),
+            quantity: item.quantity,
+            unit_price: parseFloat(item.price)
+        };
+    }).filter(function(s) { return s.service && s.technician_id; });
+}
+
+function salonPaySetButtonBusy(btn, isBusy) {
+    if (!btn) return;
+    btn.disabled = !!isBusy;
+    if (isBusy) btn.classList.add('opacity-50', 'cursor-not-allowed');
+    else btn.classList.remove('opacity-50', 'cursor-not-allowed');
+}
+
+function salonPayEscapeHtml(str) {
+    return (str == null ? '' : String(str))
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+// --- Assign Technicians Modal (copied from Waiting List UI/UX) ---
+var payAvailableTechnicians = [];
+var payTechnicianSearchTerm = '';
+
+window.salonPayOpenAssignTechnicianModal = function() {
+    if (!appointmentId) return;
+    payTechnicianSearchTerm = '';
+
+    var customerName = customerData ? ((customerData.firstName || '') + ' ' + (customerData.lastName || '')).trim() : '';
+    var safeName = customerName.replace(/'/g, "\\'");
+
+    var modalHtml = '<div class="p-6"><div class="flex items-center justify-between mb-6"><h3 class="text-xl font-bold text-gray-900">Assign Technician to ' + safeName + '</h3><button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><div class="grid grid-cols-2 gap-6"><div class="border border-gray-200 rounded-lg p-4"><div class="flex items-center justify-between mb-2"><h4 class="text-sm font-semibold text-gray-900">Available Technicians</h4><span id="availableCount" class="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">0</span></div><p class="text-xs text-gray-500 mb-2">Click to assign technicians</p><div class="relative mb-4"><svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg><input type="text" id="technicianSearchInput" placeholder="Search technicians..." oninput="window.salonPaySearchTechnicians(this.value)" class="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] text-sm"><button id="clearTechnicianSearchBtn" onclick="window.salonPayClearTechnicianSearch()" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 hidden"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><div id="availableTechniciansContainer" class="space-y-3 min-h-[200px] max-h-[300px] overflow-y-auto"></div></div><div class="border border-gray-200 rounded-lg p-4"><div class="flex items-center justify-between mb-2"><h4 class="text-sm font-semibold text-gray-900">Assigned Technicians</h4><span id="assignedCount" class="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">0</span></div><p class="text-xs text-gray-500 mb-4">Click to remove</p><div id="assignedTechniciansContainer" class="space-y-3 min-h-[200px] max-h-[300px] overflow-y-auto"></div></div></div><div class="pt-6 mt-6 border-t border-gray-200"><div class="flex items-center justify-end gap-3"><button onclick="closeModal()" class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium">Cancel</button><button onclick="window.salonPayConfirmAssignTechnicians()" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium">Save Assignment</button></div></div></div>';
+
+    openModal(modalHtml, 'large', false);
+    setTimeout(function() {
+        var modal = document.getElementById('modalContainer');
+        if (modal) modal.style.maxHeight = '95vh';
+        salonPayLoadTechniciansForAssign();
+        var searchInput = document.getElementById('technicianSearchInput');
+        var clearBtn = document.getElementById('clearTechnicianSearchBtn');
+        if (searchInput && clearBtn) clearBtn.classList.add('hidden');
+    }, 50);
+};
+
+function salonPayLoadTechniciansForAssign() {
+    // Prefer already-loaded technicians from the Pay page.
+    if (techniciansData && techniciansData.length) {
+        payAvailableTechnicians = techniciansData.slice();
+        salonPayRenderAvailableTechnicians();
+        salonPayRenderAssignedTechnicians();
+        salonPayUpdateTechnicianCounts();
+        return;
+    }
+
+    fetch(base + '/users').then(function(r) { return r.json(); }).then(function(data) {
+        payAvailableTechnicians = (data.users || []).filter(function(u) { return u.role === 'technician' || u.userlevel === 'technician'; });
+        salonPayRenderAvailableTechnicians();
+        salonPayRenderAssignedTechnicians();
+        salonPayUpdateTechnicianCounts();
+    }).catch(function(err) {
+        console.error(err);
+        var c = document.getElementById('availableTechniciansContainer');
+        if (c) c.innerHTML = '<div class="text-center py-8 text-sm text-gray-400">Error loading technicians</div>';
+    });
+}
+
+window.salonPaySearchTechnicians = function(val) {
+    payTechnicianSearchTerm = (val || '').toLowerCase().trim();
+    var btn = document.getElementById('clearTechnicianSearchBtn');
+    if (btn) {
+        if (val && val.trim()) btn.classList.remove('hidden');
+        else btn.classList.add('hidden');
+    }
+    salonPayRenderAvailableTechnicians();
+};
+
+window.salonPayClearTechnicianSearch = function() {
+    var inp = document.getElementById('technicianSearchInput');
+    var btn = document.getElementById('clearTechnicianSearchBtn');
+    if (inp) { inp.value = ''; payTechnicianSearchTerm = ''; inp.focus(); }
+    if (btn) btn.classList.add('hidden');
+    salonPayRenderAvailableTechnicians();
+};
+
+function salonPayRenderAvailableTechnicians() {
+    var container = document.getElementById('availableTechniciansContainer');
+    if (!container) return;
+    if (!payAvailableTechnicians.length) {
+        container.innerHTML = '<div class="flex items-center justify-center h-full min-h-[200px]"><p class="text-sm text-gray-400">No technicians available</p></div>';
+        return;
+    }
+    var filtered = payTechnicianSearchTerm ? payAvailableTechnicians.filter(function(t) {
+        var name = (t.firstName + ' ' + t.lastName).toLowerCase();
+        var inits = (t.initials || (t.firstName || '')[0] + (t.lastName || '')[0]).toLowerCase();
+        return (name + ' ' + inits).indexOf(payTechnicianSearchTerm) >= 0;
+    }) : payAvailableTechnicians;
+
+    if (!filtered.length) {
+        container.innerHTML = '<div class="flex items-center justify-center h-full min-h-[200px]"><p class="text-sm text-gray-400">No technicians found</p></div>';
+        return;
+    }
+
+    filtered.sort(function(a, b) {
+        var aIdStr = a.id.toString(), bIdStr = b.id.toString();
+        var aIsAssigned = assignedTechnicianIds.indexOf(aIdStr) >= 0;
+        var bIsAssigned = assignedTechnicianIds.indexOf(bIdStr) >= 0;
+        if (aIsAssigned && !bIsAssigned) return 1;
+        if (!aIsAssigned && bIsAssigned) return -1;
+
+        var aOnline = !!(a.clock_in && !a.clock_out);
+        var bOnline = !!(b.clock_in && !b.clock_out);
+        if (aOnline && !bOnline) return -1;
+        if (!aOnline && bOnline) return 1;
+
+        var aServices = typeof a.services === 'number' ? a.services : 0;
+        var bServices = typeof b.services === 'number' ? b.services : 0;
+        var diff = aServices - bServices;
+        if (diff !== 0) return diff;
+
+        var aTime = a.clock_in ? new Date(a.clock_in).getTime() : Infinity;
+        var bTime = b.clock_in ? new Date(b.clock_in).getTime() : Infinity;
+        return aTime - bTime;
+    });
+
+    container.innerHTML = filtered.map(function(tech) {
+        var idStr = tech.id.toString(), isAssigned = assignedTechnicianIds.indexOf(idStr) >= 0;
+        var inits = tech.initials || (tech.firstName || '')[0] + (tech.lastName || '')[0];
+        var name = tech.firstName + ' ' + tech.lastName;
+        var containerCls = isAssigned ? 'flex items-center gap-3 p-2 rounded-lg transition-colors opacity-50 grayscale cursor-pointer group hover:bg-gray-100' : 'flex items-center gap-3 cursor-pointer group hover:bg-gray-50 p-2 rounded-lg transition-colors';
+        var avatarCls = isAssigned ? 'w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center' : 'w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center';
+        var initialCls = isAssigned ? 'text-sm font-bold text-gray-500' : 'text-sm font-bold text-gray-600';
+        var nameCls = isAssigned ? 'text-base font-medium text-gray-400' : 'text-base font-medium text-gray-900';
+        var isOnline = !!(tech.clock_in && !tech.clock_out);
+        var badgeCls = isAssigned ? 'absolute w-5 h-5 rounded-full border-2 border-white bg-gray-400' : (isOnline ? 'absolute w-5 h-5 rounded-full border-2 border-white bg-green-500' : 'absolute w-5 h-5 rounded-full border-2 border-white bg-gray-400');
+        var badgeStyle = 'bottom: -5px; right: -5px;';
+        var servicesNum = typeof tech.services === 'number' ? tech.services : 0;
+        return '<div onclick="' + (isAssigned ? 'salonPayRemoveAssignedTechnician(' + tech.id + ')' : 'salonPayAssignTechnician(' + tech.id + ')') + '" class="' + containerCls + '"><div class="relative flex-shrink-0"><div class="' + avatarCls + '"><span class="' + initialCls + '">' + inits + '</span></div><div class="' + badgeCls + '" style="' + badgeStyle + '" title="' + (isOnline ? 'Online' : 'Offline') + '"></div></div><div class="flex-1 min-w-0"><p class="' + nameCls + '">' + name + '</p></div><div class="flex-shrink-0 text-right"><div class="text-xs font-medium text-gray-500 uppercase">Services</div><div class="text-lg font-semibold text-gray-900">' + servicesNum + '</div></div></div>';
+    }).join('');
+}
+
+function salonPayRenderAssignedTechnicians() {
+    var container = document.getElementById('assignedTechniciansContainer');
+    if (!container) return;
+    if (!assignedTechnicianIds.length) {
+        container.innerHTML = '<div class="flex items-center justify-center h-full min-h-[200px]"><p class="text-sm text-gray-400">No technicians assigned</p></div>';
+        return;
+    }
+    container.innerHTML = assignedTechnicianIds.map(function(idStr) {
+        var tech = payAvailableTechnicians.find(function(t) { return t.id.toString() === idStr; });
+        if (!tech) return '';
+        var inits = tech.initials || (tech.firstName || '')[0] + (tech.lastName || '')[0];
+        var name = tech.firstName + ' ' + tech.lastName;
+        var isOnline = !!(tech.clock_in && !tech.clock_out);
+        var badgeCls = isOnline ? 'absolute w-5 h-5 rounded-full border-2 border-white bg-green-500' : 'absolute w-5 h-5 rounded-full border-2 border-white bg-gray-400';
+        var badgeStyle = 'bottom: -5px; right: -5px;';
+        var servicesNum = typeof tech.services === 'number' ? tech.services : 0;
+        return '<div onclick="salonPayRemoveAssignedTechnician(' + tech.id + ')" class="flex items-center gap-3 cursor-pointer group hover:bg-gray-50 p-2 rounded-lg transition-colors"><div class="relative flex-shrink-0"><div class="w-12 h-12 bg-[#003047] rounded-full flex items-center justify-center"><span class="text-sm font-bold text-white">' + inits + '</span></div><div class="' + badgeCls + '" style="' + badgeStyle + '" title="' + (isOnline ? 'Online' : 'Offline') + '"></div></div><div class="flex-1 min-w-0"><p class="text-base font-medium text-gray-900">' + name + '</p></div><div class="flex-shrink-0 text-right"><div class="text-xs font-medium text-gray-500 uppercase">Services</div><div class="text-lg font-semibold text-gray-900">' + servicesNum + '</div></div></div>';
+    }).join('');
+}
+
+window.salonPayAssignTechnician = function(techId) {
+    var idStr = techId.toString();
+    if (assignedTechnicianIds.indexOf(idStr) < 0) {
+        assignedTechnicianIds.push(idStr);
+        if (!selectedTechnicianId) selectedTechnicianId = idStr;
+        salonPayRenderAvailableTechnicians();
+        salonPayRenderAssignedTechnicians();
+        salonPayUpdateTechnicianCounts();
+    }
+};
+
+window.salonPayRemoveAssignedTechnician = function(techId) {
+    var idStr = techId.toString();
+    assignedTechnicianIds = assignedTechnicianIds.filter(function(id) { return id !== idStr; });
+    if (selectedTechnicianId === idStr) {
+        selectedTechnicianId = assignedTechnicianIds.length ? assignedTechnicianIds[0] : null;
+    }
+    salonPayRenderAvailableTechnicians();
+    salonPayRenderAssignedTechnicians();
+    salonPayUpdateTechnicianCounts();
+};
+
+function salonPayUpdateTechnicianCounts() {
+    var availEl = document.getElementById('availableCount');
+    var assignEl = document.getElementById('assignedCount');
+    if (availEl) availEl.textContent = payAvailableTechnicians.length.toString();
+    if (assignEl) assignEl.textContent = assignedTechnicianIds.length.toString();
+}
+
+window.salonPayConfirmAssignTechnicians = function() {
+    if (!appointmentId) return;
+    if (!apiAppointmentsUrl || typeof salonApi === 'undefined' || !salonApi.put) {
+        alert('Save is not available right now.');
+        return;
+    }
+    var ids = (assignedTechnicianIds || []).map(function(x) { return parseInt(x, 10); }).filter(function(n) { return !isNaN(n); });
+    salonApi.put(apiAppointmentsUrl + '/' + appointmentId, { assigned_technician: ids }).then(function(res) {
+        if (res && res.data && Array.isArray(res.data.assigned_technician)) {
+            assignedTechnicianIds = res.data.assigned_technician.map(function(x) { return x.toString(); });
+            appointmentData.assigned_technician = res.data.assigned_technician;
+            if (!selectedTechnicianId || assignedTechnicianIds.indexOf(selectedTechnicianId) < 0) {
+                selectedTechnicianId = assignedTechnicianIds.length ? assignedTechnicianIds[0] : null;
+            }
+        }
+        salonPayRenderTechniciansList();
+        salonPayInitializeServicesList();
+        if (typeof showSuccessMessage === 'function') showSuccessMessage('Assignment saved.');
+        closeModal();
+    }).catch(function(err) {
+        if (typeof showErrorMessage === 'function') showErrorMessage(err.message || 'Failed to save assignment.');
+        else alert(err.message || 'Failed to save assignment.');
+    });
+};
+
+function salonPaySaveCartRequest(options) {
+    var opts = options || {};
+    if (!appointmentId) {
+        return Promise.reject(new Error('No appointment ID provided.'));
+    }
+    if (!apiAppointmentsUrl || typeof salonApi === 'undefined' || !salonApi.put) {
+        return Promise.reject(new Error('Save is not available right now.'));
+    }
+    var servicesPayload = salonPayCartToServicesPayload();
+    var signature = salonPayMakeStableCartSignature(servicesPayload);
+    var payload = { services: servicesPayload };
+    return salonApi.put(apiAppointmentsUrl + '/' + appointmentId + '/services', payload).then(function(res) {
+        if (res && res.data && res.data.services) {
+            appointmentData.services = res.data.services;
+        }
+        lastSavedCartSignature = signature;
+        if (!opts.silentSuccess) {
+            if (typeof showSuccessMessage === 'function') showSuccessMessage('Cart saved successfully.');
+            else alert('Cart saved successfully.');
+        }
+        return res;
+    });
+}
+
+window.salonPaySaveCart = function() {
+    if (!appointmentId) {
+        alert('No appointment ID provided.');
+        return;
+    }
+    if (!apiAppointmentsUrl || typeof salonApi === 'undefined' || !salonApi.put) {
+        alert('Save is not available right now.');
+        return;
+    }
+
+    var btn = document.getElementById('salonPaySaveCartBtn');
+    salonPaySetButtonBusy(btn, true);
+
+    salonPaySaveCartRequest({ silentSuccess: false }).catch(function(err) {
+        if (typeof showErrorMessage === 'function') showErrorMessage(err.message || 'Failed to save cart.');
+        else alert(err.message || 'Failed to save cart.');
+    }).finally(function() {
+        salonPaySetButtonBusy(btn, false);
+    });
+};
+
+window.salonPaySaveAndGoToCheckout = function() {
+    if (cart.length === 0) {
+        alert('Please add at least one service to your cart before checkout.');
+        return;
+    }
+
+    var currentSignature = salonPayMakeStableCartSignature(salonPayCartToServicesPayload());
+    if (lastSavedCartSignature && currentSignature === lastSavedCartSignature) {
+        salonPaySwitchStep(2);
+        return;
+    }
+
+    var nextBtn = document.getElementById('salonPayNextToCheckoutBtn');
+    var saveBtn = document.getElementById('salonPaySaveCartBtn');
+    salonPaySetButtonBusy(nextBtn, true);
+    salonPaySetButtonBusy(saveBtn, true);
+
+    salonPaySaveCartRequest({ silentSuccess: true }).then(function() {
+        salonPaySwitchStep(2);
+    }).catch(function(err) {
+        if (typeof showErrorMessage === 'function') showErrorMessage(err.message || 'Failed to save cart.');
+        else alert(err.message || 'Failed to save cart.');
+    }).finally(function() {
+        salonPaySetButtonBusy(nextBtn, false);
+        salonPaySetButtonBusy(saveBtn, false);
+    });
+};
+
+window.salonPayAddServiceToCart = function(serviceName, servicePrice, categorySlug, serviceId) {
     if (!selectedTechnicianId) {
         alert('Please select a technician first before adding services.');
         return;
     }
+    var slug = '';
+    if (serviceId != null && serviceId !== '') {
+        var svc = servicesData.find(function(s) { return s.id == serviceId; });
+        if (svc) {
+            slug = (svc.categories && svc.categories[0]) ? String(svc.categories[0]) : (categorySlug || '');
+        } else {
+            slug = categorySlug || '';
+        }
+    } else {
+        slug = categorySlug || (servicesData.find(function(s) { return s.name === serviceName; }) && servicesData.find(function(s) { return s.name === serviceName; }).categories && servicesData.find(function(s) { return s.name === serviceName; }).categories[0]) || '';
+    }
     var existing = cart.find(function(item) {
+        if (serviceId != null && serviceId !== '') return item.service_id == serviceId && item.technician_id === selectedTechnicianId;
         return item.name === serviceName && item.technician_id === selectedTechnicianId;
     });
     if (existing) {
@@ -195,7 +607,9 @@ window.salonPayAddServiceToCart = function(serviceName, servicePrice) {
             name: serviceName,
             price: servicePrice,
             quantity: 1,
-            technician_id: selectedTechnicianId
+            technician_id: selectedTechnicianId,
+            category_slug: slug,
+            service_id: (serviceId != null && serviceId !== '') ? parseInt(serviceId, 10) : null
         });
     }
     salonPayInitializeServicesList();
@@ -226,14 +640,15 @@ function salonPayRenderTechniciansList() {
         var photo = technician.photo || technician.profilePhoto || null;
         var techServices = cart.filter(function(item) { return item.technician_id === idStr; });
         html += '<div onclick="salonPaySelectTechnician(\'' + idStr + '\')" class="flex flex-col gap-2 p-3 rounded-lg border-2 cursor-pointer transition ' + (isActive ? 'border-[#003047] bg-white' : 'border-gray-200 bg-white hover:bg-gray-50') + '"><div class="flex items-center gap-3"><div class="relative flex-shrink-0">' + (photo ? '<img src="' + photo + '" alt="' + fullName + '" class="w-12 h-12 rounded-full object-cover border-2 border-white">' : '<div class="w-12 h-12 bg-[#e6f0f3] rounded-full flex items-center justify-center border-2 border-white"><span class="text-sm font-bold text-[#003047]">' + initials + '</span></div>') + '<div class="absolute -bottom-1 -right-1 w-5 h-5 bg-[#003047] text-white rounded-full flex items-center justify-center text-xs font-bold border-2 border-white">✓</div></div><div class="flex-1 min-w-0"><p class="text-sm font-medium text-gray-900 truncate">' + fullName + '</p><p class="text-xs text-gray-500">Technician</p></div></div>';
+        html += '<div class="mt-2 pt-2 border-t border-gray-200"><p class="text-xs font-semibold text-gray-600 mb-2">Assigned services</p>';
         if (techServices.length > 0) {
-            html += '<div class="mt-2 pt-2 border-t border-gray-300"><div class="space-y-2">';
+            html += '<div class="space-y-2">';
             techServices.forEach(function(service) {
                 html += '<div class="bg-gray-50 rounded-lg p-3 border border-gray-200"><div class="flex items-center justify-between gap-3"><div class="flex-1 min-w-0"><p class="text-sm font-semibold text-gray-900">' + service.name + '</p><p class="text-xs text-gray-500">$' + service.price.toFixed(2) + ' each</p></div><div class="flex items-center gap-2"><button onclick="event.stopPropagation(); salonPayUpdateServiceQuantity(\'' + service.name.replace(/'/g, "\\'") + '\', ' + service.price + ', \'' + idStr + '\', ' + (service.quantity - 1) + ')" class="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-200 rounded border border-gray-300 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg></button><span class="text-sm font-medium text-gray-900 min-w-[2rem] text-center">' + service.quantity + '</span><button onclick="event.stopPropagation(); salonPayUpdateServiceQuantity(\'' + service.name.replace(/'/g, "\\'") + '\', ' + service.price + ', \'' + idStr + '\', ' + (service.quantity + 1) + ')" class="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-200 rounded border border-gray-300 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg></button></div><div class="text-sm font-semibold text-gray-900 min-w-[4rem] text-right">$' + (service.price * service.quantity).toFixed(2) + '</div><button onclick="event.stopPropagation(); salonPayRemoveServiceFromCart(\'' + service.name.replace(/'/g, "\\'") + '\', \'' + idStr + '\')" class="w-8 h-8 flex items-center justify-center text-red-500 hover:bg-red-50 rounded transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div></div>';
             });
             html += '</div></div>';
         } else {
-            html += '<div class="mt-2 pt-2 border-t border-gray-300"><p class="text-xs text-gray-500 italic">No services assigned</p></div>';
+            html += '<p class="text-xs text-gray-500 italic">No services assigned</p></div>';
         }
         html += '</div>';
     });
@@ -284,45 +699,48 @@ window.salonPaySwitchStep = function(step) {
         alert('Please add at least one service to your cart before checkout.');
         return;
     }
+    salonPayDoSwitchStep(step);
+};
+function salonPayDoSwitchStep(step) {
     currentStep = step;
     var step1 = document.getElementById('step1Content');
     var step2 = document.getElementById('step2Content');
+    var step1Tab = document.getElementById('step1Tab');
+    var step2Tab = document.getElementById('step2Tab');
+    if (!step1 || !step2) return;
     if (step === 1) {
         step1.classList.remove('hidden');
         step2.classList.add('hidden');
+        salonPaySetStepInUrl(1);
     } else {
         step1.classList.add('hidden');
         step2.classList.remove('hidden');
         salonPayRenderCheckoutStep();
+        salonPaySetStepInUrl(2);
     }
-    var step1Tab = document.getElementById('step1Tab');
-    var step2Tab = document.getElementById('step2Tab');
+    if (!step1Tab || !step2Tab) return;
+    var step1Span = step1Tab.querySelector('span');
+    var step1H3 = step1Tab.querySelector('h3');
+    var step2Span = step2Tab.querySelector('span');
+    var step2H3 = step2Tab.querySelector('h3');
     if (step === 1) {
         step1Tab.classList.remove('border-transparent');
         step1Tab.classList.add('border-[#003047]');
-        step1Tab.querySelector('span').classList.remove('bg-gray-200', 'text-gray-600');
-        step1Tab.querySelector('span').classList.add('bg-[#003047]', 'text-white');
-        step1Tab.querySelector('h3').classList.remove('text-gray-500');
-        step1Tab.querySelector('h3').classList.add('text-gray-900');
+        if (step1Span) { step1Span.classList.remove('bg-gray-200', 'text-gray-600'); step1Span.classList.add('bg-[#003047]', 'text-white'); }
+        if (step1H3) { step1H3.classList.remove('text-gray-500'); step1H3.classList.add('text-gray-900'); }
         step2Tab.classList.remove('border-[#003047]');
         step2Tab.classList.add('border-transparent');
-        step2Tab.querySelector('span').classList.remove('bg-[#003047]', 'text-white');
-        step2Tab.querySelector('span').classList.add('bg-gray-200', 'text-gray-600');
-        step2Tab.querySelector('h3').classList.remove('text-gray-900');
-        step2Tab.querySelector('h3').classList.add('text-gray-500');
+        if (step2Span) { step2Span.classList.remove('bg-[#003047]', 'text-white'); step2Span.classList.add('bg-gray-200', 'text-gray-600'); }
+        if (step2H3) { step2H3.classList.remove('text-gray-900'); step2H3.classList.add('text-gray-500'); }
     } else {
         step2Tab.classList.remove('border-transparent');
         step2Tab.classList.add('border-[#003047]');
-        step2Tab.querySelector('span').classList.remove('bg-gray-200', 'text-gray-600');
-        step2Tab.querySelector('span').classList.add('bg-[#003047]', 'text-white');
-        step2Tab.querySelector('h3').classList.remove('text-gray-500');
-        step2Tab.querySelector('h3').classList.add('text-gray-900');
+        if (step2Span) { step2Span.classList.remove('bg-gray-200', 'text-gray-600'); step2Span.classList.add('bg-[#003047]', 'text-white'); }
+        if (step2H3) { step2H3.classList.remove('text-gray-500'); step2H3.classList.add('text-gray-900'); }
         step1Tab.classList.remove('border-[#003047]');
         step1Tab.classList.add('border-transparent');
-        step1Tab.querySelector('span').classList.remove('bg-[#003047]', 'text-white');
-        step1Tab.querySelector('span').classList.add('bg-gray-200', 'text-gray-600');
-        step1Tab.querySelector('h3').classList.remove('text-gray-900');
-        step1Tab.querySelector('h3').classList.add('text-gray-500');
+        if (step1Span) { step1Span.classList.remove('bg-[#003047]', 'text-white'); step1Span.classList.add('bg-gray-200', 'text-gray-600'); }
+        if (step1H3) { step1H3.classList.remove('text-gray-900'); step1H3.classList.add('text-gray-500'); }
     }
 };
 function salonPayRenderCheckoutStep() {

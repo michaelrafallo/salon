@@ -246,7 +246,7 @@
 @push('scripts')
 <script src="{{ asset('js/salon-create-ticket.js') }}?v={{ time() }}"></script>
 <script>
-window.salonJsonBase = '{{ url("json") }}';
+window.salonJsonBase = '{{ url("api/salon/data") }}';
 window.salonTicketsUrl = '{{ $ticketsUrl }}';
 </script>
 @endpush

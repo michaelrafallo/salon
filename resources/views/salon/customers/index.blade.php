@@ -3,6 +3,7 @@
 @section('content')
 @php
     $customersViewUrl = route('salon.customers.view');
+    $apiCustomersUrl = url('api/salon/customers');
 @endphp
 <main class="flex-1 overflow-y-auto bg-gray-50 lg:ml-0 pt-16 lg:pt-0">
     <div class="p-4 sm:p-6 lg:p-8">
@@ -36,6 +37,7 @@
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Visits</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Visit</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="listViewBody" class="bg-white divide-y divide-gray-200"></tbody>
@@ -58,8 +60,9 @@
 @push('scripts')
 <script>
 (function() {
-var base = window.salonJsonBase || '{{ url("json") }}';
+var base = window.salonJsonBase || '{{ url("api/salon/data") }}';
 var viewUrl = '{{ $customersViewUrl }}';
+var apiCustomersUrl = '{{ $apiCustomersUrl }}';
 var allCustomers = [], customersData = [], PAGE_SIZE = 15, currentPage = 1, totalPages = 1, currentSearchTerm = '';
 var currentView = localStorage.getItem('customersView') || 'grid';
 var colorClasses = [
@@ -121,17 +124,17 @@ function renderGrid() {
     if (list.length === 0) { el.innerHTML = '<div class="col-span-full text-center py-12"><p class="text-gray-500 text-sm">No customers found</p></div>'; return; }
     el.innerHTML = list.map(function(c, i) {
         var color = colorClasses[i % colorClasses.length], initials = getInitials(c), name = c.firstName + ' ' + c.lastName, visits = getTotalVisits(c), last = getLastVisit(c);
-        return '<div onclick="window.location.href=\'' + viewUrl + '?id=' + c.id + '\'" class="customer-card bg-white rounded-lg shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer active:scale-95"><div class="flex items-center gap-4 mb-4"><div class="w-16 h-16 ' + color.bg + ' rounded-full flex items-center justify-center flex-shrink-0"><span class="text-2xl font-bold ' + color.text + '">' + initials + '</span></div><div class="flex-1 min-w-0"><h3 class="font-semibold text-gray-900 text-lg truncate">' + name + '</h3><p class="text-sm text-gray-500 truncate">' + (c.email || '') + '</p><p class="text-sm text-gray-500">' + (c.phone || '') + '</p></div></div><div class="grid grid-cols-2 gap-3 mb-4 pt-4 border-t border-gray-200"><div><p class="text-xs text-gray-500">Total Visits</p><p class="text-lg font-bold text-gray-900">' + visits + '</p></div><div><p class="text-xs text-gray-500">Last Visit</p><p class="text-sm font-medium text-gray-900">' + last + '</p></div></div></div>';
+        return '<div class="customer-card bg-white rounded-lg shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow relative group"><div onclick="window.location.href=\'' + viewUrl + '?id=' + c.id + '\'" class="flex items-center gap-4 mb-4 cursor-pointer"><div class="w-16 h-16 ' + color.bg + ' rounded-full flex items-center justify-center flex-shrink-0"><span class="text-2xl font-bold ' + color.text + '">' + initials + '</span></div><div class="flex-1 min-w-0"><h3 class="font-semibold text-gray-900 text-lg truncate">' + name + '</h3><p class="text-sm text-gray-500 truncate">' + (c.email || '') + '</p><p class="text-sm text-gray-500">' + (c.phone || '') + '</p></div></div><div class="grid grid-cols-2 gap-3 mb-4 pt-4 border-t border-gray-200"><div><p class="text-xs text-gray-500">Total Visits</p><p class="text-lg font-bold text-gray-900">' + visits + '</p></div><div><p class="text-xs text-gray-500">Last Visit</p><p class="text-sm font-medium text-gray-900">' + last + '</p></div></div><div class="flex gap-2 pt-2 border-t border-gray-100" onclick="event.stopPropagation()"><button type="button" onclick="salonCustomersOpenEditModal(' + c.id + ')" class="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">Edit</button><button type="button" onclick="salonCustomersDelete(' + c.id + ', \'' + name.replace(/'/g, "\\'") + '\')" class="px-3 py-1.5 text-sm bg-red-50 text-red-600 rounded-lg hover:bg-red-100">Delete</button></div></div>';
     }).join('');
 }
 function renderList() {
     var tbody = document.getElementById('listViewBody');
     if (!tbody) return;
     var list = getPaginated();
-    if (list.length === 0) { tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-12 text-center"><p class="text-gray-500 text-sm">No customers found</p></td></tr>'; return; }
+    if (list.length === 0) { tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-12 text-center"><p class="text-gray-500 text-sm">No customers found</p></td></tr>'; return; }
     tbody.innerHTML = list.map(function(c, i) {
         var color = colorClasses[i % colorClasses.length], initials = getInitials(c), name = c.firstName + ' ' + c.lastName, visits = getTotalVisits(c), last = getLastVisit(c);
-        return '<tr onclick="window.location.href=\'' + viewUrl + '?id=' + c.id + '\'" class="hover:bg-gray-50 cursor-pointer transition"><td class="px-6 py-4 whitespace-nowrap"><div class="flex items-center"><div class="w-10 h-10 ' + color.bg + ' rounded-full flex items-center justify-center flex-shrink-0 mr-3"><span class="text-sm font-bold ' + color.text + '">' + initials + '</span></div><div><div class="text-sm font-medium text-gray-900">' + name + '</div><div class="text-sm text-gray-500">' + (c.email || '') + '</div></div></div></td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">' + (c.phone || '') + '</td><td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">' + visits + '</td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">' + last + '</td></tr>';
+        return '<tr class="hover:bg-gray-50 transition"><td class="px-6 py-4 whitespace-nowrap"><div class="flex items-center"><div onclick="window.location.href=\'' + viewUrl + '?id=' + c.id + '\'" class="w-10 h-10 ' + color.bg + ' rounded-full flex items-center justify-center flex-shrink-0 mr-3 cursor-pointer"><span class="text-sm font-bold ' + color.text + '">' + initials + '</span></div><div onclick="window.location.href=\'' + viewUrl + '?id=' + c.id + '\'" class="cursor-pointer"><div class="text-sm font-medium text-gray-900">' + name + '</div><div class="text-sm text-gray-500">' + (c.email || '') + '</div></div></div></td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">' + (c.phone || '') + '</td><td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">' + visits + '</td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">' + last + '</td><td class="px-6 py-4 whitespace-nowrap text-sm"><button type="button" onclick="event.stopPropagation(); salonCustomersOpenEditModal(' + c.id + ')" class="text-[#003047] hover:underline mr-2">Edit</button><button type="button" onclick="event.stopPropagation(); salonCustomersDelete(' + c.id + ', \'' + name.replace(/'/g, "\\'") + '\')" class="text-red-600 hover:underline">Delete</button></td></tr>';
     }).join('');
 }
 function salonCustomersRender() {
@@ -170,11 +173,79 @@ window.salonCustomersOpenNewModal = function() {
 };
 window.salonCustomersSaveCustomer = function(e) {
     e.preventDefault();
-    showSuccessMessage('Customer added successfully!');
-    closeModal();
-    setTimeout(function() { location.reload(); }, 1500);
+    var form = e.target;
+    var first = (form.elements && form.elements['first_name']) ? form.elements['first_name'].value : (form.first_name && form.first_name.value);
+    var last = (form.elements && form.elements['last_name']) ? form.elements['last_name'].value : (form.last_name && form.last_name.value);
+    var email = (form.elements && form.elements['email']) ? form.elements['email'].value : (form.email && form.email.value);
+    var phone = (form.elements && form.elements['phone']) ? form.elements['phone'].value : (form.phone && form.phone.value);
+    var data = { first_name: (first || '').trim(), last_name: (last || '').trim(), email: (email || '').trim() || null, phone: (phone || '').trim() || null };
+    var btn = form.querySelector('button[type="submit"]');
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
+    if (typeof salonApi === 'undefined') {
+        if (btn) { btn.disabled = false; btn.textContent = 'Save Customer'; }
+        showErrorMessage('Unable to send request. Please refresh the page.');
+        return;
+    }
+    salonApi.post(apiCustomersUrl, data).then(function(res) {
+        showSuccessMessage(res.message || 'Customer added successfully!');
+        closeModal();
+        var d = res.data || {};
+        allCustomers.unshift({ id: d.id, firstName: d.firstName || data.first_name, lastName: d.lastName || data.last_name, email: d.email || null, phone: d.phone || null, createdAt: d.createdAt || new Date().toISOString().slice(0, 10), totalBookings: 0, totalSpent: 0 });
+        applyFilters();
+        salonCustomersRender();
+    }).catch(function(err) {
+        var msg = err.message || 'Failed to save customer.';
+        if (err.body && err.body.errors && typeof err.body.errors === 'object') {
+            var firstError = Object.values(err.body.errors)[0];
+            if (Array.isArray(firstError) && firstError[0]) msg = firstError[0];
+            else if (typeof firstError === 'string') msg = firstError;
+        }
+        showErrorMessage(msg);
+        if (btn) { btn.disabled = false; btn.textContent = 'Save Customer'; }
+    });
 };
-fetch(base + '/customers.json').then(function(r) { return r.json(); }).then(function(data) {
+window.salonCustomersOpenEditModal = function(id) {
+    var c = allCustomers.find(function(x) { return x.id === id; });
+    if (!c) return;
+    var content = '<div class="p-6"><div class="flex items-center justify-between mb-4"><h3 class="text-xl font-bold text-gray-900">Edit Customer</h3><button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><form onsubmit="salonCustomersUpdateCustomer(event, ' + c.id + ')" class="space-y-4"><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">First Name</label><input type="text" name="first_name" value="' + (c.firstName || '').replace(/"/g, '&quot;') + '" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Last Name</label><input type="text" name="last_name" value="' + (c.lastName || '').replace(/"/g, '&quot;') + '" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">Email</label><input type="email" name="email" value="' + (c.email || '').replace(/"/g, '&quot;') + '" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Phone</label><input type="tel" name="phone" value="' + (c.phone || '').replace(/"/g, '&quot;') + '" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div></div><div class="flex justify-end gap-3 pt-4"><button type="button" onclick="closeModal()" class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium active:scale-95">Cancel</button><button type="submit" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">Update Customer</button></div></form></div>';
+    openModal(content);
+};
+window.salonCustomersUpdateCustomer = function(e, id) {
+    e.preventDefault();
+    var form = e.target;
+    var data = { first_name: form.first_name.value.trim(), last_name: form.last_name.value.trim(), email: form.email.value.trim() || null, phone: form.phone.value.trim() || null };
+    var btn = form.querySelector('button[type="submit"]');
+    if (btn) { btn.disabled = true; btn.textContent = 'Updating...'; }
+    salonApi.put(apiCustomersUrl + '/' + id, data).then(function(res) {
+        showSuccessMessage(res.message || 'Customer updated.');
+        closeModal();
+        var idx = allCustomers.findIndex(function(x) { return x.id === parseInt(id, 10); });
+        if (idx >= 0) allCustomers[idx] = { id: res.data.id, firstName: res.data.firstName, lastName: res.data.lastName, email: res.data.email, phone: res.data.phone, createdAt: allCustomers[idx].createdAt, totalBookings: allCustomers[idx].totalBookings, totalSpent: allCustomers[idx].totalSpent };
+        applyFilters();
+        salonCustomersRender();
+    }).catch(function(err) {
+        showErrorMessage(err.message || 'Failed to update customer.');
+        if (btn) { btn.disabled = false; btn.textContent = 'Update Customer'; }
+    });
+};
+window.salonCustomersDelete = function(id, name) {
+    openConfirmModal({
+        title: 'Delete customer',
+        message: 'You are about to permanently remove this customer' + (name ? ': ' + (name || '').replace(/"/g, '\\"') : '') + '. Do you want to continue?',
+        confirmLabel: 'Delete',
+        onConfirm: function() {
+            salonApi.delete(apiCustomersUrl + '/' + id).then(function() {
+                showSuccessMessage('Customer deleted.');
+                allCustomers = allCustomers.filter(function(c) { return c.id !== id && c.id !== parseInt(id, 10); });
+                applyFilters();
+                salonCustomersRender();
+            }).catch(function(err) {
+                showErrorMessage(err.message || 'Failed to delete customer.');
+            });
+        }
+    });
+};
+fetch(base + '/customers').then(function(r) { return r.json(); }).then(function(data) {
     allCustomers = data.customers || [];
     var saved = localStorage.getItem('customersPerPage');
     if (saved) { var sel = document.getElementById('perPageSelect'); if (sel) { sel.value = saved; PAGE_SIZE = saved === 'all' ? Infinity : parseInt(saved, 10); } }

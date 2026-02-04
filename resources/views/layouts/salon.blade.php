@@ -9,6 +9,6 @@
     </div>
     @include('components.salon.modal')
     @push('scripts')
-    <script>window.salonJsonBase = window.salonJsonBase || '{{ url("json") }}';</script>
+    <script>window.salonJsonBase = window.salonJsonBase || '{{ url("api/salon/data") }}';</script>
     @endpush
 @endsection

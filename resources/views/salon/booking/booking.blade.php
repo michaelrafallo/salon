@@ -3,8 +3,10 @@
 @section('content')
 @php
     $calendarUrl = route('salon.booking.calendar');
+    $appointmentsUrl = route('api.salon.appointments.store');
+    $customersUrl = route('api.salon.customers.store');
 @endphp
-<main class="flex-1 overflow-y-auto bg-gray-50 lg:ml-0 pt-16 lg:pt-0">
+<main class="flex-1 overflow-y-auto bg-gray-50 lg:ml-0 pt-16 lg:pt-0" data-appointments-url="{{ $appointmentsUrl }}" data-customers-url="{{ $customersUrl }}">
     <div class="p-4 sm:p-6 lg:p-8">
         <div class="mb-6">
             <div class="flex items-center justify-between mb-6">
@@ -111,7 +113,7 @@
 <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-40">
     <div class="px-4 py-3">
         <div class="flex justify-end">
-            <button onclick="salonBookingSave()" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95 flex items-center gap-2">
+            <button type="button" id="salonBookingSaveBtn" onclick="salonBookingSave()" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95 flex items-center gap-2">
                 <span>Save Booking</span>
             </button>
         </div>
@@ -120,7 +122,7 @@
 @push('scripts')
 <script>
 (function() {
-var base = window.salonJsonBase || '{{ url("json") }}';
+var base = window.salonJsonBase || '{{ url("api/salon/data") }}';
 var calendarUrl = '{{ $calendarUrl }}';
 var allCustomers = [], selectedCustomer = null, selectedAppointmentDate = null, selectedAppointmentTime = null;
 var currentCalendarMonth = new Date().getMonth(), currentCalendarYear = new Date().getFullYear();
@@ -131,7 +133,7 @@ function getInitials(c) {
     return (first + last).toUpperCase().substring(0, 2);
 }
 function fetchCustomers() {
-    return fetch(base + '/customers.json').then(function(r) { return r.json(); }).then(function(data) {
+    return fetch(base + '/customers').then(function(r) { return r.json(); }).then(function(data) {
         allCustomers = data.customers || [];
     }).catch(function(err) { console.error(err); allCustomers = []; });
 }
@@ -219,12 +221,32 @@ window.salonBookingSaveNewCustomer = function(e) {
     var lastName = document.getElementById('newCustomerLastName').value.trim();
     var phone = document.getElementById('newCustomerPhone').value.trim();
     var email = document.getElementById('newCustomerEmail').value.trim();
-    var newId = allCustomers.length ? Math.max.apply(null, allCustomers.map(function(c) { return c.id; })) + 1 : 1;
-    var newCustomer = { id: newId, firstName: firstName, lastName: lastName, phone: phone || '', email: email || '', createdAt: new Date().toISOString().split('T')[0] };
-    allCustomers.push(newCustomer);
-    closeModal();
-    salonBookingSelectCustomer(newId);
-    showSuccessMessage('Customer added successfully!');
+    var main = document.querySelector('main[data-customers-url]');
+    if (!main || typeof salonApi === 'undefined' || !salonApi.post) {
+        var newId = allCustomers.length ? Math.max.apply(null, allCustomers.map(function(c) { return c.id; })) + 1 : 1;
+        var newCustomer = { id: newId, firstName: firstName, lastName: lastName, phone: phone || '', email: email || '', createdAt: new Date().toISOString().split('T')[0] };
+        allCustomers.push(newCustomer);
+        closeModal();
+        salonBookingSelectCustomer(newId);
+        if (typeof showSuccessMessage === 'function') showSuccessMessage('Customer added successfully!');
+        return;
+    }
+    var url = main.getAttribute('data-customers-url');
+    var btn = e.target.querySelector('button[type="submit"]');
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+    salonApi.post(url, { first_name: firstName, last_name: lastName, phone: phone || null, email: email || null })
+        .then(function(res) {
+            closeModal();
+            var d = (res && res.data) ? res.data : {};
+            var newCustomer = { id: d.id, firstName: d.firstName || firstName, lastName: d.lastName || lastName, phone: d.phone || '', email: d.email || '', createdAt: d.createdAt || new Date().toISOString().split('T')[0] };
+            allCustomers.push(newCustomer);
+            salonBookingSelectCustomer(newCustomer.id);
+            if (typeof showSuccessMessage === 'function') showSuccessMessage('Customer added successfully!');
+        })
+        .catch(function(err) {
+            if (btn) { btn.disabled = false; btn.textContent = 'Save Customer'; }
+            if (typeof showErrorMessage === 'function') showErrorMessage(err && err.message ? err.message : 'Failed to add customer.');
+        });
 };
 function initializeAppointmentCalendar() {
     var container = document.getElementById('appointmentCalendar');
@@ -349,7 +371,7 @@ window.selectAppointmentTime = function(time) {
     updateAvailableTimeSlots();
 };
 function fetchTechnicians() {
-    return fetch(base + '/users.json').then(function(r) { return r.json(); }).then(function(data) {
+    return fetch(base + '/users').then(function(r) { return r.json(); }).then(function(data) {
         availableTechnicians = (data.users || []).filter(function(u) {
             return (u.role === 'technician' || u.userlevel === 'technician') && (u.status === 'active' || !u.status);
         });
@@ -384,17 +406,39 @@ function renderAvailableTechnicians() {
         var name = (t.firstName + ' ' + t.lastName).toLowerCase();
         var inits = (t.initials || (t.firstName || '')[0] + (t.lastName || '')[0]).toLowerCase();
         return (name + ' ' + inits).indexOf(technicianSearchTerm) >= 0;
-    }) : availableTechnicians;
+    }) : availableTechnicians.slice();
     if (!list.length) {
         container.innerHTML = '<div class="flex items-center justify-center h-full min-h-[90vh]"><p class="text-sm text-gray-400">No technicians found</p></div>';
         return;
     }
+    list.sort(function(a, b) {
+        var aIdStr = a.id.toString(), bIdStr = b.id.toString();
+        var aIsAssigned = assignedTechnicianIds.indexOf(aIdStr) >= 0;
+        var bIsAssigned = assignedTechnicianIds.indexOf(bIdStr) >= 0;
+        if (aIsAssigned && !bIsAssigned) return 1;
+        if (!aIsAssigned && bIsAssigned) return -1;
+        var aOnline = !!(a.clock_in && !a.clock_out);
+        var bOnline = !!(b.clock_in && !b.clock_out);
+        if (aOnline && !bOnline) return -1;
+        if (!aOnline && bOnline) return 1;
+        var aServices = typeof a.services === 'number' ? a.services : 0;
+        var bServices = typeof b.services === 'number' ? b.services : 0;
+        var diff = aServices - bServices;
+        if (diff !== 0) return diff;
+        var aTime = a.clock_in ? new Date(a.clock_in).getTime() : Infinity;
+        var bTime = b.clock_in ? new Date(b.clock_in).getTime() : Infinity;
+        return aTime - bTime;
+    });
+    var badgeStyle = 'bottom: -5px; right: -5px;';
     container.innerHTML = list.map(function(tech) {
         var idStr = tech.id.toString(), isAssigned = assignedTechnicianIds.indexOf(idStr) >= 0;
         var inits = tech.initials || (tech.firstName || '')[0] + (tech.lastName || '')[0];
         var name = tech.firstName + ' ' + tech.lastName;
         var cls = isAssigned ? 'opacity-50 grayscale cursor-pointer group hover:bg-gray-100' : 'cursor-pointer group hover:bg-gray-50';
-        return '<div onclick="' + (isAssigned ? 'salonBookingRemoveTechnician(' + tech.id + ')' : 'salonBookingAssignTechnician(' + tech.id + ')') + '" class="flex items-center gap-3 p-2 rounded-lg transition-colors ' + cls + '"><div class="relative flex-shrink-0"><div class="w-12 h-12 ' + (isAssigned ? 'bg-gray-300' : 'bg-gray-200') + ' rounded-full flex items-center justify-center"><span class="text-sm font-bold ' + (isAssigned ? 'text-gray-500' : 'text-gray-600') + '">' + inits + '</span></div><div class="absolute -bottom-1 -right-1 w-5 h-5 ' + (isAssigned ? 'bg-gray-400' : 'bg-[#003047]') + ' text-white rounded-full flex items-center justify-center text-xs font-bold border-2 border-white">0</div></div><div class="flex-1"><p class="text-base font-medium ' + (isAssigned ? 'text-gray-400' : 'text-gray-900') + '">' + name + '</p></div></div>';
+        var isOnline = !!(tech.clock_in && !tech.clock_out);
+        var badgeCls = isAssigned ? 'absolute w-5 h-5 rounded-full border-2 border-white bg-gray-400' : (isOnline ? 'absolute w-5 h-5 rounded-full border-2 border-white bg-green-500' : 'absolute w-5 h-5 rounded-full border-2 border-white bg-gray-400');
+        var servicesNum = typeof tech.services === 'number' ? tech.services : 0;
+        return '<div onclick="' + (isAssigned ? 'salonBookingRemoveTechnician(' + tech.id + ')' : 'salonBookingAssignTechnician(' + tech.id + ')') + '" class="flex items-center gap-3 p-2 rounded-lg transition-colors ' + cls + '"><div class="relative flex-shrink-0"><div class="w-12 h-12 ' + (isAssigned ? 'bg-gray-300' : 'bg-gray-200') + ' rounded-full flex items-center justify-center"><span class="text-sm font-bold ' + (isAssigned ? 'text-gray-500' : 'text-gray-600') + '">' + inits + '</span></div><div class="' + badgeCls + '" style="' + badgeStyle + '" title="' + (isOnline ? 'Online' : 'Offline') + '"></div></div><div class="flex-1 min-w-0"><p class="text-base font-medium ' + (isAssigned ? 'text-gray-400' : 'text-gray-900') + '">' + name + '</p></div><div class="flex-shrink-0 text-right"><div class="text-xs font-medium text-gray-500 uppercase">Services</div><div class="text-lg font-semibold text-gray-900">' + servicesNum + '</div></div></div>';
     }).join('');
 }
 function renderAssignedTechnicians() {
@@ -404,12 +448,16 @@ function renderAssignedTechnicians() {
         container.innerHTML = '<div class="flex items-center justify-center h-full min-h-[400px]"><p class="text-sm text-gray-400">No technicians assigned</p></div>';
         return;
     }
+    var badgeStyle = 'bottom: -5px; right: -5px;';
     container.innerHTML = assignedTechnicianIds.map(function(idStr) {
         var tech = availableTechnicians.find(function(t) { return t.id.toString() === idStr; });
         if (!tech) return '';
         var inits = tech.initials || (tech.firstName || '')[0] + (tech.lastName || '')[0];
         var name = tech.firstName + ' ' + tech.lastName;
-        return '<div onclick="salonBookingRemoveTechnician(' + tech.id + ')" class="flex items-center gap-3 cursor-pointer group hover:bg-gray-50 p-2 rounded-lg transition-colors"><div class="relative flex-shrink-0"><div class="w-12 h-12 bg-[#003047] rounded-full flex items-center justify-center"><span class="text-sm font-bold text-white">' + inits + '</span></div><div class="absolute -bottom-1 -right-1 w-5 h-5 bg-[#003047] text-white rounded-full flex items-center justify-center text-xs font-bold border-2 border-white">0</div></div><div class="flex-1"><p class="text-base font-medium text-gray-900">' + name + '</p></div></div>';
+        var isOnline = !!(tech.clock_in && !tech.clock_out);
+        var badgeCls = isOnline ? 'absolute w-5 h-5 rounded-full border-2 border-white bg-green-500' : 'absolute w-5 h-5 rounded-full border-2 border-white bg-gray-400';
+        var servicesNum = typeof tech.services === 'number' ? tech.services : 0;
+        return '<div onclick="salonBookingRemoveTechnician(' + tech.id + ')" class="flex items-center gap-3 cursor-pointer group hover:bg-gray-50 p-2 rounded-lg transition-colors"><div class="relative flex-shrink-0"><div class="w-12 h-12 bg-[#003047] rounded-full flex items-center justify-center"><span class="text-sm font-bold text-white">' + inits + '</span></div><div class="' + badgeCls + '" style="' + badgeStyle + '" title="' + (isOnline ? 'Online' : 'Offline') + '"></div></div><div class="flex-1 min-w-0"><p class="text-base font-medium text-gray-900">' + name + '</p></div><div class="flex-shrink-0 text-right"><div class="text-xs font-medium text-gray-500 uppercase">Services</div><div class="text-lg font-semibold text-gray-900">' + servicesNum + '</div></div></div>';
     }).join('');
 }
 window.salonBookingAssignTechnician = function(techId) {
@@ -438,23 +486,50 @@ function updateCounts() {
     if (assignEl) assignEl.textContent = assignedTechnicianIds.length.toString();
 }
 window.salonBookingSave = function() {
-    if (!selectedCustomer) { alert('Please select a customer first.'); return; }
-    if (!selectedAppointmentDate) { alert('Please select a booking date.'); return; }
-    if (!selectedAppointmentTime) { alert('Please select a booking time.'); return; }
-    if (!assignedTechnicianIds.length) { alert('Please assign at least one technician.'); return; }
-    var bookingData = {
+    if (!selectedCustomer) {
+        if (typeof showErrorMessage === 'function') showErrorMessage('Please select a customer first.'); else alert('Please select a customer first.');
+        return;
+    }
+    if (!selectedAppointmentDate) {
+        if (typeof showErrorMessage === 'function') showErrorMessage('Please select a booking date.'); else alert('Please select a booking date.');
+        return;
+    }
+    if (!selectedAppointmentTime) {
+        if (typeof showErrorMessage === 'function') showErrorMessage('Please select a booking time.'); else alert('Please select a booking time.');
+        return;
+    }
+    if (!assignedTechnicianIds.length) {
+        if (typeof showErrorMessage === 'function') showErrorMessage('Please assign at least one technician.'); else alert('Please assign at least one technician.');
+        return;
+    }
+    var main = document.querySelector('main[data-appointments-url]');
+    if (!main || typeof salonApi === 'undefined' || !salonApi.post) {
+        if (typeof showErrorMessage === 'function') showErrorMessage('Unable to save booking.'); else alert('Unable to save booking.');
+        return;
+    }
+    var y = selectedAppointmentDate.getFullYear();
+    var m = String(selectedAppointmentDate.getMonth() + 1).padStart(2, '0');
+    var d = String(selectedAppointmentDate.getDate()).padStart(2, '0');
+    var appointmentDatetime = y + '-' + m + '-' + d + ' ' + selectedAppointmentTime + ':00';
+    var payload = {
         customer_id: selectedCustomer.id,
-        appointment: 'booked',
+        type: 'booked',
         status: 'waiting',
-        created_at: new Date().toISOString(),
-        assigned_technician: assignedTechnicianIds.map(function(id) { return parseInt(id, 10); }),
-        appointment_date: selectedAppointmentDate.toISOString().split('T')[0],
-        appointment_time: selectedAppointmentTime,
-        services: []
+        appointment_datetime: appointmentDatetime,
+        assigned_technician: assignedTechnicianIds.map(function(id) { return parseInt(id, 10); })
     };
-    console.log('Saving booking:', bookingData);
-    showSuccessMessage('Booking created successfully for ' + selectedCustomer.firstName + ' ' + selectedCustomer.lastName + '!');
-    setTimeout(function() { window.location.href = calendarUrl; }, 1500);
+    var url = main.getAttribute('data-appointments-url');
+    var saveBtn = document.getElementById('salonBookingSaveBtn');
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.querySelector('span').textContent = 'Saving…'; }
+    salonApi.post(url, payload)
+        .then(function() {
+            if (typeof showSuccessMessage === 'function') showSuccessMessage('Booking created successfully for ' + selectedCustomer.firstName + ' ' + selectedCustomer.lastName + '!');
+            setTimeout(function() { window.location.href = calendarUrl; }, 1500);
+        })
+        .catch(function(err) {
+            if (saveBtn) { saveBtn.disabled = false; saveBtn.querySelector('span').textContent = 'Save Booking'; }
+            if (typeof showErrorMessage === 'function') showErrorMessage(err && err.message ? err.message : 'Failed to save booking.');
+        });
 };
 document.addEventListener('DOMContentLoaded', function() {
     Promise.all([fetchCustomers(), fetchTechnicians()]).then(function() {

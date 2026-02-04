@@ -14,8 +14,8 @@ var colorClasses = [
 ];
 function fetchCategoriesAndServices() {
     return Promise.all([
-        fetch(base + '/service-categories.json').then(function(r) { return r.json(); }),
-        fetch(base + '/services.json').then(function(r) { return r.json(); })
+        fetch(base + '/service-categories').then(function(r) { return r.json(); }),
+        fetch(base + '/services').then(function(r) { return r.json(); })
     ]).then(function(arr) {
         categoriesMap = arr[0].categories || {};
         allServicesData = arr[1].services || [];
@@ -25,7 +25,7 @@ function fetchCategoriesAndServices() {
     }).catch(function(err) { console.error(err); });
 }
 function fetchTechnicians() {
-    return fetch(base + '/users.json').then(function(r) { return r.json(); }).then(function(data) {
+    return fetch(base + '/users').then(function(r) { return r.json(); }).then(function(data) {
         techniciansData = (data.users || []).filter(function(u) {
             return (u.role === 'technician' || u.userlevel === 'technician') && (u.status === 'active' || !u.status);
         });
@@ -175,7 +175,7 @@ window.salonTicketOpenTechnicianModal = function() {
     loadTechniciansForSelection();
 };
 function loadTechniciansForSelection() {
-    fetch(base + '/users.json').then(function(r) { return r.json(); }).then(function(data) {
+    fetch(base + '/users').then(function(r) { return r.json(); }).then(function(data) {
         availableTechnicians = (data.users || []).filter(function(u) {
             return (u.role === 'technician' || u.userlevel === 'technician') && (u.status === 'active' || !u.status);
         });

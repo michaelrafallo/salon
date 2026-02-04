@@ -78,7 +78,8 @@
 @push('scripts')
 <script>
 (function() {
-    var base = window.salonJsonBase || '{{ url("json") }}';
+    var base = window.salonJsonBase || '{{ url("api/salon/data") }}';
+    var apiUsersUrl = '{{ url("api/salon/users") }}';
     var userData = null;
     var allUsers = [];
 
@@ -147,7 +148,7 @@
     async function loadUserData() {
         try {
             var userId = getUserIdFromURL();
-            var response = await fetch(base + '/users.json');
+            var response = await fetch(base + '/users');
             var data = await response.json();
             allUsers = data.users || [];
             userData = allUsers.find(function(u) { return u.id === userId; });
@@ -269,6 +270,10 @@
                 </div>
                 <form onsubmit="updateUser(event)" class="space-y-4">
                     <input type="hidden" name="user_id" value="${userData.id}">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Username</label>
+                        <input type="text" name="username" value="${(userData.username || '').replace(/"/g, '&quot;')}" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent">
+                    </div>
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">First Name</label>
@@ -322,34 +327,28 @@
 
     window.updateUser = function(event) {
         event.preventDefault();
-        
-        var formData = new FormData(event.target);
-        var firstName = formData.get('first_name');
-        var lastName = formData.get('last_name');
-        var email = formData.get('email');
-        var phone = formData.get('phone');
-        var role = formData.get('role');
-        var active = formData.get('active');
-        
-        // Update userData object
-        userData.firstName = firstName;
-        userData.lastName = lastName;
-        userData.email = email;
-        userData.phone = phone;
-        userData.role = role;
-        userData.status = active ? 'active' : 'inactive';
-        
-        // Re-render user info
-        renderUserInfo();
-        
-        // Show success message
-        showSuccessMessage('Staff updated successfully!');
-        
-        // Close modal
-        closeModal();
-        
-        // In a real application, you would send this data to the server
-        console.log('Updating user:', { firstName, lastName, email, phone, role, active });
+        var form = event.target;
+        var btn = form.querySelector('button[type="submit"]');
+        var data = {
+            username: form.username.value.trim(),
+            first_name: form.first_name.value.trim(),
+            last_name: form.last_name.value.trim(),
+            email: form.email.value.trim(),
+            phone: form.phone.value.trim() || null,
+            role: form.role.value,
+            status: form.active && form.active.checked ? 'active' : 'inactive'
+        };
+        if (btn) { btn.disabled = true; btn.textContent = 'Updating...'; }
+        salonApi.put(apiUsersUrl + '/' + userData.id, data).then(function(res) {
+            showSuccessMessage(res.message || 'Staff updated successfully.');
+            closeModal();
+            userData = res.data;
+            renderUserInfo();
+        }).catch(function(err) {
+            showErrorMessage(err.message || 'Failed to update staff.');
+        }).finally(function() {
+            if (btn) { btn.disabled = false; btn.textContent = 'Update Staff'; }
+        });
     };
 
     function showSuccessMessage(message) {

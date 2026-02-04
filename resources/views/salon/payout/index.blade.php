@@ -69,13 +69,13 @@
 @push('scripts')
 <script>
 (function() {
-var base = window.salonJsonBase || '{{ url("json") }}';
+var base = window.salonJsonBase || '{{ url("api/salon/data") }}';
 var isTechnicianUser = {{ $isTechnician ? 'true' : 'false' }};
 var payoutData = [], filteredPayoutData = [], dateRangeFrom = null, dateRangeTo = null, selectedTechnicianId = isTechnicianUser ? '1' : null, techniciansList = [];
 async function salonPayoutFetchPayouts() {
     try {
-        var bookingsRes = await fetch(base + '/booking.json');
-        var techRes = await fetch(base + '/users.json');
+        var bookingsRes = await fetch(base + '/booking');
+        var techRes = await fetch(base + '/users');
         var bookingsData = await bookingsRes.json();
         var techniciansData = await techRes.json();
         var bookings = bookingsData.bookings || [];
@@ -506,7 +506,7 @@ window.salonPayoutPrintReport = function() {
 };
 async function salonPayoutLoadTechnicians() {
     try {
-        var techRes = await fetch(base + '/users.json');
+        var techRes = await fetch(base + '/users');
         var techData = await techRes.json();
         var technicians = techData.users || [];
         techniciansList = technicians.filter(function(t) { return t.role === 'technician'; });

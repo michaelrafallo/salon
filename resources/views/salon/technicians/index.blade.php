@@ -69,7 +69,8 @@
 @push('scripts')
 <script>
 (function() {
-var base = window.salonJsonBase || '{{ url("json") }}';
+var base = window.salonJsonBase || '{{ url("api/salon/data") }}';
+var apiSalonUrl = '{{ url("api/salon") }}';
 var viewUrl = '{{ $techniciansViewUrl }}';
 var isAdmin = {{ $isAdmin ? 'true' : 'false' }};
 var allTechnicians = [], techniciansData = [], technicianData = {}, currentStatusFilter = 'all', currentSearchTerm = '';
@@ -81,6 +82,15 @@ var colorClasses = [
     { bg: 'bg-amber-100', text: 'text-amber-600' }, { bg: 'bg-green-100', text: 'text-green-600' }
 ];
 function getInitials(t) { return t.initials || ((t.firstName||'')[0] + (t.lastName||'')[0]).toUpperCase(); }
+function getClockFromTech(t) {
+    var clockIn = t.clock_in || '';
+    var clockOut = t.clock_out || '';
+    return {
+        isLoggedIn: !!(clockIn && !clockOut),
+        clockInTime: clockIn || '--',
+        clockOutTime: clockOut || '--'
+    };
+}
 function getPaginated() {
     if (PAGE_SIZE === 'all' || PAGE_SIZE === Infinity) return techniciansData;
     var start = (currentPage - 1) * PAGE_SIZE;
@@ -130,8 +140,8 @@ function applyFilters() {
     techniciansData = allTechnicians.filter(function(t) {
         var statusMatch = true;
         if (currentStatusFilter !== 'all') {
-            var isLoggedIn = localStorage.getItem('technician_' + t.id + '_loggedIn') === 'true';
-            var status = isLoggedIn ? 'active' : 'inactive';
+            var clock = getClockFromTech(t);
+            var status = clock.isLoggedIn ? 'active' : 'inactive';
             statusMatch = status === currentStatusFilter;
         }
         var searchMatch = true;
@@ -154,9 +164,9 @@ function renderGrid() {
     if (list.length === 0) { el.innerHTML = '<div class="col-span-full text-center py-12"><p class="text-gray-500 text-sm">No technicians found</p></div>'; return; }
     el.innerHTML = list.map(function(t, i) {
         var inits = getInitials(t), name = t.firstName + ' ' + t.lastName, color = colorClasses[i % colorClasses.length];
-        var isLoggedIn = localStorage.getItem('technician_' + t.id + '_loggedIn') === 'true';
-        var statusClass = isLoggedIn ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700';
-        var statusText = isLoggedIn ? 'Active' : 'Inactive';
+        var clock = getClockFromTech(t);
+        var statusClass = clock.isLoggedIn ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700';
+        var statusText = clock.isLoggedIn ? 'Active' : 'Inactive';
         var stats = isAdmin ? '<div class="grid grid-cols-3 gap-3 mb-4 pt-4 border-t border-gray-200"><div><p class="text-xs text-gray-500">Total</p><p class="text-lg font-bold text-gray-900">$' + (t.totalEarnings || 0).toFixed(2) + '</p></div><div><p class="text-xs text-gray-500">Tip</p><p class="text-lg font-bold text-gray-900">$' + (t.totalTips || 0).toFixed(2) + '</p></div><div><p class="text-xs text-gray-500">Commission</p><p class="text-lg font-bold text-gray-900">$' + (t.totalCommission || 0).toFixed(2) + '</p></div></div>' : '';
         return '<div onclick="event.stopPropagation(); window.location.href=\'' + viewUrl + '?id=' + t.id + '\'" class="technician-card bg-white rounded-lg shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer active:scale-95" data-status="' + statusText.toLowerCase() + '"><div class="flex items-center gap-4 mb-4"><div class="w-16 h-16 ' + color.bg + ' rounded-full flex items-center justify-center flex-shrink-0"><span class="text-2xl font-bold ' + color.text + '">' + inits + '</span></div><div class="flex-1 min-w-0"><h3 class="font-semibold text-gray-900 text-lg truncate">' + name + '</h3><p class="text-sm text-gray-500">Technician</p><div class="flex items-center gap-2 mt-1"><span id="status-badge-' + t.id + '" class="px-2 py-1 ' + statusClass + ' text-xs font-medium rounded">' + statusText + '</span></div></div></div>' + stats + '</div>';
     }).join('');
@@ -169,13 +179,13 @@ function renderList() {
     if (list.length === 0) { tbody.innerHTML = '<tr><td colspan="' + colCount + '" class="px-6 py-12 text-center"><p class="text-gray-500 text-sm">No technicians found</p></td></tr>'; return; }
     tbody.innerHTML = list.map(function(t, i) {
         var inits = getInitials(t), name = t.firstName + ' ' + t.lastName, color = colorClasses[i % colorClasses.length];
-        var isLoggedIn = localStorage.getItem('technician_' + t.id + '_loggedIn') === 'true';
-        var statusClass = isLoggedIn ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700';
-        var statusText = isLoggedIn ? 'Active' : 'Inactive';
-        var clockInTime = localStorage.getItem('technician_' + t.id + '_clockIn') || '--';
-        var clockOutTime = localStorage.getItem('technician_' + t.id + '_clockOut') || '--';
-        var buttonClass = isLoggedIn ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600';
-        var buttonText = isLoggedIn ? 'Clock Out' : 'Clock In';
+        var clock = getClockFromTech(t);
+        var statusClass = clock.isLoggedIn ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700';
+        var statusText = clock.isLoggedIn ? 'Active' : 'Inactive';
+        var clockInTime = clock.clockInTime;
+        var clockOutTime = clock.clockOutTime;
+        var buttonClass = clock.isLoggedIn ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600';
+        var buttonText = clock.isLoggedIn ? 'Clock Out' : 'Clock In';
         var adminCols = isAdmin ? '<td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">$' + (t.totalEarnings || 0).toFixed(2) + '</td><td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">$' + (t.totalTips || 0).toFixed(2) + '</td><td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">$' + (t.totalCommission || 0).toFixed(2) + '</td>' : '';
         return '<tr onclick="event.stopPropagation(); window.location.href=\'' + viewUrl + '?id=' + t.id + '\'" class="technician-row hover:bg-gray-50 cursor-pointer transition" data-status="' + statusText.toLowerCase() + '"><td class="px-6 py-4 whitespace-nowrap"><div class="flex items-center"><div class="w-10 h-10 ' + color.bg + ' rounded-full flex items-center justify-center flex-shrink-0 mr-3"><span class="text-sm font-bold ' + color.text + '">' + inits + '</span></div><div class="text-sm font-medium text-gray-900">' + name + '</div></div></td><td class="px-6 py-4 whitespace-nowrap"><span id="status-badge-list-' + t.id + '" class="px-2 py-1 ' + statusClass + ' text-xs font-medium rounded">' + statusText + '</span></td>' + adminCols + '<td class="px-6 py-4 whitespace-nowrap" onclick="event.stopPropagation()"><div class="space-y-1" id="clockInfo-' + t.id + '"><div class="text-xs text-gray-900 font-medium" id="clockTimeIn-' + t.id + '">In: ' + clockInTime + '</div><div class="text-xs text-gray-900 font-medium" id="clockTimeOut-' + t.id + '">Out: ' + clockOutTime + '</div></div></td><td class="px-6 py-4 whitespace-nowrap text-right" onclick="event.stopPropagation()"><div class="flex items-center justify-end gap-2"><button id="loginToggle-' + t.id + '" onclick="salonTechToggleLogin(' + t.id + ')" class="px-3 py-1.5 ' + buttonClass + ' text-white text-xs font-medium rounded hover:opacity-90 transition active:scale-95">' + buttonText + '</button><button onclick="salonTechPrintTicket(' + t.id + ')" class="px-3 py-1.5 bg-gray-500 text-white text-xs font-medium rounded hover:bg-gray-600 transition active:scale-95 flex items-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>Ticket</button></div></td></tr>';
     }).join('');
@@ -244,12 +254,10 @@ window.salonTechToggleView = function(view) {
 function initializeTechnicianLoginStates() {
     allTechnicians.forEach(function(technician) {
         var techId = technician.id;
-        var isLoggedIn = localStorage.getItem('technician_' + techId + '_loggedIn') === 'true';
+        var clock = getClockFromTech(technician);
         var button = document.getElementById('loginToggle-' + techId);
-        var clockInTime = localStorage.getItem('technician_' + techId + '_clockIn');
-        var clockOutTime = localStorage.getItem('technician_' + techId + '_clockOut');
         if (button) {
-            if (isLoggedIn) {
+            if (clock.isLoggedIn) {
                 button.textContent = 'Clock Out';
                 button.classList.remove('bg-green-500', 'hover:bg-green-600');
                 button.classList.add('bg-red-500', 'hover:bg-red-600');
@@ -259,8 +267,8 @@ function initializeTechnicianLoginStates() {
                 button.classList.add('bg-green-500', 'hover:bg-green-600');
             }
         }
-        updateStatusBadge(techId, isLoggedIn);
-        updateClockDisplay(techId, clockInTime, clockOutTime);
+        updateStatusBadge(techId, clock.isLoggedIn);
+        updateClockDisplay(techId, clock.clockInTime, clock.clockOutTime);
     });
 }
 function updateStatusBadge(techId, isOnline) {
@@ -326,31 +334,40 @@ window.salonTechShowLoginModal = function(technician, action, techId, isCurrentl
 window.salonTechConfirmLogin = function(techId, action) {
     var button = document.getElementById('loginToggle-' + techId);
     var isClockIn = action === 'Clock In';
-    var now = new Date();
-    var formattedDateTime = formatDateTime(now);
-    if (isClockIn) {
-        button.textContent = 'Clock Out';
-        button.classList.remove('bg-green-500', 'hover:bg-green-600');
-        button.classList.add('bg-red-500', 'hover:bg-red-600');
-        localStorage.setItem('technician_' + techId + '_loggedIn', 'true');
-        localStorage.setItem('technician_' + techId + '_clockIn', formattedDateTime);
-        localStorage.removeItem('technician_' + techId + '_clockOut');
-        updateClockDisplay(techId, formattedDateTime, '--');
-        updateStatusBadge(techId, true);
-    } else {
-        button.textContent = 'Clock In';
-        button.classList.remove('bg-red-500', 'hover:bg-red-600');
-        button.classList.add('bg-green-500', 'hover:bg-green-600');
-        localStorage.setItem('technician_' + techId + '_loggedIn', 'false');
-        localStorage.setItem('technician_' + techId + '_clockOut', formattedDateTime);
-        var clockInTime = localStorage.getItem('technician_' + techId + '_clockIn') || '--';
-        updateClockDisplay(techId, clockInTime, formattedDateTime);
-        updateStatusBadge(techId, false);
+    var url = apiSalonUrl + '/technicians/' + techId + (isClockIn ? '/clock-in' : '/clock-out');
+    var method = 'POST';
+    var body = {};
+    if (typeof salonApi === 'undefined' || !salonApi.post) {
+        salonTechApplyClockState(techId, isClockIn, null, null);
+        closeModal();
+        showSuccessMessage('Technician ' + action.toLowerCase() + ' successful!');
+        return;
+    }
+    salonApi.post(url, body).then(function(res) {
+        var data = (res && res.data) || {};
+        salonTechApplyClockState(techId, isClockIn, data.clock_in, data.clock_out);
+        closeModal();
+        showSuccessMessage('Technician ' + action.toLowerCase() + ' successful!');
+    }).catch(function(err) {
+        if (typeof showErrorMessage === 'function') showErrorMessage(err.message || 'Failed to ' + action.toLowerCase() + '.');
+    });
+};
+function salonTechApplyClockState(techId, isClockIn, apiClockIn, apiClockOut) {
+    var tech = allTechnicians.find(function(t) { return t.id === techId || t.id.toString() === techId.toString(); });
+    if (tech) {
+        var now = new Date();
+        var formatted = formatDateTime(now);
+        if (isClockIn) {
+            tech.clock_in = apiClockIn ? formatDateTime(new Date(apiClockIn)) : formatted;
+            tech.clock_out = null;
+        } else {
+            tech.clock_out = apiClockOut ? formatDateTime(new Date(apiClockOut)) : formatted;
+            if (!tech.clock_in) tech.clock_in = '--';
+        }
     }
     applyFilters();
-    closeModal();
-    showSuccessMessage('Technician ' + action.toLowerCase() + ' successful!');
-};
+    salonTechRender();
+}
 window.salonTechOpenAddModal = function() {
     var content = '<div class="p-6"><div class="flex items-center justify-between mb-4"><h3 class="text-xl font-bold text-gray-900">Add New Technician</h3><button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><form onsubmit="salonTechSaveTechnician(event)" class="space-y-4"><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">First Name</label><input type="text" name="first_name" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Last Name</label><input type="text" name="last_name" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Email</label><input type="email" name="email" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Phone Number</label><input type="tel" name="phone" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div><div class="flex justify-end gap-3 pt-4"><button type="button" onclick="closeModal()" class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium active:scale-95">Cancel</button><button type="submit" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">Save Technician</button></div></form></div>';
     openModal(content);
@@ -365,7 +382,7 @@ window.salonTechPrintTicket = function(techId) {
     var tech = allTechnicians.find(function(t) { return t.id === techId; });
     if (!tech) { showErrorMessage('Technician not found'); return; }
     var techName = tech.firstName + ' ' + tech.lastName;
-    Promise.all([fetch(base + '/appointments.json'), fetch(base + '/payments.json'), fetch(base + '/customers.json')]).then(function(responses) {
+    Promise.all([fetch(base + '/appointments'), fetch(base + '/payments'), fetch(base + '/customers')]).then(function(responses) {
         return Promise.all(responses.map(function(r) { return r.json(); }));
     }).then(function(data) {
         var aptData = data[0], payData = data[1], custData = data[2];
@@ -442,7 +459,7 @@ window.salonTechPrintTicket = function(techId) {
         showErrorMessage('Failed to load technician ticket');
     });
 };
-fetch(base + '/users.json').then(function(r) { return r.json(); }).then(function(data) {
+fetch(base + '/users').then(function(r) { return r.json(); }).then(function(data) {
     allTechnicians = (data.users || []).filter(function(u) { return u.role === 'technician' || u.userlevel === 'technician'; });
     allTechnicians.forEach(function(tech) {
         technicianData[tech.id] = { name: tech.firstName + ' ' + tech.lastName, email: tech.email, role: 'Technician', initials: tech.initials || (tech.firstName || '')[0] + (tech.lastName || '')[0] };

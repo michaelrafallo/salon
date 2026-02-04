@@ -6,6 +6,7 @@
     $currentRole = session('salon_role', 'admin');
     $isTechnician = in_array($currentRole, ['technician'], true);
     $editBookingUrl = route('salon.booking.edit-booking');
+    $appointmentsApiUrl = url('api/salon/appointments');
 @endphp
 
 <main class="flex-1 overflow-y-auto bg-gray-50 lg:ml-0 pt-16 lg:pt-0">
@@ -73,7 +74,8 @@
 // Pass PHP role to JavaScript
 const currentUserRole = '{{ $currentRole }}';
 const isTechnician = currentUserRole === 'technician';
-var base = window.salonJsonBase || '{{ url("json") }}';
+var base = window.salonJsonBase || '{{ url("api/salon/data") }}';
+window.salonCalendarAppointmentsApiUrl = '{{ $appointmentsApiUrl }}';
 
 // Store bookings and customers data
 let bookingsData = [];
@@ -81,6 +83,7 @@ let customersData = [];
 let techniciansData = [];
 let selectedListViewDate = new Date(); // Default to today
 let noShowStatus = {}; // Track no show status for appointments { appointmentId: true/false }
+let statusBeforeNoShow = {}; // When marking no-show, remember previous status for uncheck
 let selectedTechnicianIds = []; // Selected technician IDs for appointment
 let currentAppointmentId = null; // Current appointment ID being edited
 let technicianSearchTerm = ''; // Search term for technician search
@@ -90,7 +93,7 @@ let currentEventModalElement = null; // Reference to the technician display elem
 // Fetch customers to match phone numbers
 async function fetchCustomers() {
     try {
-        const response = await fetch(base + '/customers.json');
+        const response = await fetch(base + '/customers');
         const data = await response.json();
         customersData = data.customers;
     } catch (error) {
@@ -116,7 +119,7 @@ function getCustomerPhone(customerName) {
 // Fetch technicians from users.json
 async function fetchTechnicians() {
     try {
-        const response = await fetch(base + '/users.json');
+        const response = await fetch(base + '/users');
         const data = await response.json();
         techniciansData = data.users.filter(user => user.role === 'technician' && user.status === 'active');
     } catch (error) {
@@ -131,10 +134,13 @@ async function fetchBookings() {
         // Fetch appointments, customers, and technicians in parallel
         await Promise.all([fetchCustomers(), fetchTechnicians()]);
         
-        const response = await fetch(base + '/appointments.json');
+        const response = await fetch(base + '/appointments');
         const data = await response.json();
         bookingsData = data.appointments || [];
-        
+        noShowStatus = {};
+        (bookingsData || []).forEach(function(apt) {
+            if (apt.status === 'no-show') noShowStatus[apt.id] = true;
+        });
         return convertAppointmentsToEvents(bookingsData);
     } catch (error) {
         console.error('Error fetching appointments:', error);
@@ -151,7 +157,8 @@ function convertAppointmentsToEvents(appointments) {
             'waiting': { class: 'event-in-booking', display: 'Waiting' },
             'in-progress': { class: 'event-in-progress', display: 'In Progress' },
             'completed': { class: 'event-completed', display: 'Completed' },
-            'paid': { class: 'event-completed', display: 'Paid' }
+            'paid': { class: 'event-completed', display: 'Paid' },
+            'no-show': { class: 'event-no-show', display: 'No Show' }
         };
         
         const statusInfo = statusMap[appointment.status] || { class: 'event-booked', display: 'Booked' };
@@ -161,33 +168,26 @@ function convertAppointmentsToEvents(appointments) {
         const customerName = customer ? `${customer.firstName} ${customer.lastName}` : `Customer #${appointment.customer_id}`;
         const customerPhone = customer ? (customer.phone || 'No phone') : 'No phone';
         
-        // Parse appointment datetime - use appointment_datetime if available, otherwise use created_at
+        // Parse appointment datetime as local time (ignore Z so saved time displays correctly in calendar and modal)
         let appointmentDateTime = appointment.appointment_datetime || appointment.created_at;
-        
-        // Parse the datetime correctly as local time
         let startDate;
         if (appointmentDateTime) {
-            // If it doesn't have time, add default time
-            if (appointmentDateTime.indexOf('T') === -1) {
-                appointmentDateTime = appointmentDateTime + 'T10:00:00';
-            }
-            // Parse as local time if no timezone specified
-            // ISO format without timezone (e.g., "2025-12-01T10:30:00") should be treated as local time
-            const dateStr = appointmentDateTime;
-            if (dateStr.indexOf('Z') === -1 && !dateStr.match(/[+-]\d{2}:\d{2}$/)) {
-                // No timezone, parse components and create local date
-                const [datePart, timePart] = dateStr.split('T');
-                const [year, month, day] = datePart.split('-').map(Number);
-                const timeComponents = (timePart || '00:00:00').split(':');
-                const [hours, minutes] = timeComponents.map(Number);
-                const seconds = timeComponents[2] ? parseInt(timeComponents[2]) : 0;
-                startDate = new Date(year, month - 1, day, hours, minutes, seconds);
+            if (typeof appointmentDateTime !== 'string') appointmentDateTime = String(appointmentDateTime);
+            if (appointmentDateTime.indexOf('T') === -1) appointmentDateTime = appointmentDateTime + 'T10:00:00';
+            const dateStr = appointmentDateTime.trim().replace(/Z$/, '').replace(/[+-]\d{2}:\d{2}$/, '').replace(/\.\d+/, '');
+            const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?/);
+            if (match) {
+                const year = parseInt(match[1], 10);
+                const month = parseInt(match[2], 10) - 1;
+                const day = parseInt(match[3], 10);
+                const hours = parseInt(match[4], 10);
+                const minutes = parseInt(match[5], 10) || 0;
+                const seconds = parseInt(match[6], 10) || 0;
+                startDate = new Date(year, month, day, hours, minutes, seconds);
             } else {
-                // Has timezone, parse normally
-                startDate = new Date(dateStr);
+                startDate = new Date(appointmentDateTime);
             }
         } else {
-            // Fallback to current date/time
             startDate = new Date();
         }
         
@@ -368,6 +368,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             const appointment = bookingsData.find(a => a.id.toString() === event.id.toString());
             
             // Build appointment data object from event
+            const bookingTypeRaw = (appointment && appointment.appointment) ? appointment.appointment : (extendedProps.bookingType || 'booked');
             const appointmentData = {
                 id: event.id,
                 customer: extendedProps.customer,
@@ -376,7 +377,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 status: extendedProps.status,
                 date: event.start,
                 isNoShow: extendedProps.isNoShow || noShowStatus[event.id] || false,
-                assigned_technician: appointment ? appointment.assigned_technician : null
+                assigned_technician: appointment ? appointment.assigned_technician : null,
+                bookingType: bookingTypeRaw === 'walk-in' ? 'Walk-In' : 'Booked'
             };
             
             // Use shared modal function
@@ -1787,19 +1789,14 @@ function showAppointmentModal(appointmentData) {
     const status = appointmentData.status;
     const appointmentDate = appointmentData.date;
     const isNoShow = appointmentData.isNoShow || noShowStatus[appointmentId] || false;
+    const bookingType = appointmentData.bookingType || 'Booked';
+    const typeBadgeClass = bookingType === 'Walk-In' ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-purple-100 text-purple-700 border-purple-200';
     
     // Find event if it exists (for calendar view)
     if (calendarInstance && !currentEvent) {
         const events = calendarInstance.getEvents();
         currentEvent = events.find(e => e.id && e.id.toString() === appointmentId.toString());
     }
-    
-    const statusColors = {
-        'In Booking': 'bg-blue-50 text-blue-700 border-blue-200',
-        'In Progress': 'bg-[#e6f0f3] text-[#003047] border-[#003047]',
-        'Booked': 'bg-amber-50 text-amber-700 border-amber-200',
-        'Completed': 'bg-green-50 text-green-700 border-green-200'
-    };
     
     // Create modal content
     const modalContent = `
@@ -1808,8 +1805,8 @@ function showAppointmentModal(appointmentData) {
                 <div>
                     <h3 class="text-2xl font-bold text-gray-900 mb-1">${customerName}</h3>
                 </div>
-                <span class="px-3 py-1.5 rounded-lg text-xs font-semibold border ${statusColors[status] || 'bg-gray-50 text-gray-700 border-gray-200'}">
-                    ${status}
+                <span class="px-3 py-1.5 rounded-lg text-xs font-semibold border ${typeBadgeClass}">
+                    ${bookingType}
                 </span>
             </div>
             
@@ -1870,7 +1867,7 @@ function showAppointmentModal(appointmentData) {
                             </label>
                             <p class="text-xs text-gray-500 ml-6">Mark this appointment as a no-show if the customer did not arrive for their scheduled appointment.</p>
                         </div>
-                        <div>
+                        <div class="hidden">
                             <div class="flex items-center justify-between mb-2">
                                 <label class="flex items-center gap-2 cursor-pointer">
                                     <input type="checkbox" id="smsNotificationToggle" class="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500" onchange="toggleSMSNotificationCheckbox(${appointmentId}, this.checked)">
@@ -1954,6 +1951,7 @@ function viewAppointment(bookingId) {
     }
     
     // Build appointment data object
+    const bookingTypeDisplay = (appointment.appointment === 'walk-in') ? 'Walk-In' : 'Booked';
     const appointmentData = {
         id: appointment.id,
         customer: customerName,
@@ -1962,7 +1960,8 @@ function viewAppointment(bookingId) {
         status: status,
         date: aptDate,
         isNoShow: noShowStatus[appointment.id] || false,
-        assigned_technician: appointment.assigned_technician
+        assigned_technician: appointment.assigned_technician,
+        bookingType: bookingTypeDisplay
     };
     
     // Use shared modal function
@@ -2112,71 +2111,72 @@ function sendSMSNotification(bookingId) {
 }
 
 function toggleNoShow(bookingId, isNoShow) {
-    // Handle no show toggle
-    console.log('No Show toggled for booking:', bookingId, 'Status:', isNoShow);
+    const event = calendarInstance ? calendarInstance.getEventById(bookingId.toString()) : null;
+    const appointment = bookingsData.find(function(apt) { return apt.id.toString() === bookingId.toString(); });
+    const currentStatus = (event && event.extendedProps && event.extendedProps.originalStatus) || (appointment && appointment.status) || 'waiting';
     
-    // Update no show status
-    noShowStatus[bookingId] = isNoShow;
-    
-    // Update the event in the calendar
-    if (calendarInstance) {
-        const event = calendarInstance.getEventById(bookingId.toString());
-        if (event) {
-            // Update event styling
-            if (isNoShow) {
-                // Apply gray styling for no show
-                event.setProp('backgroundColor', '#9ca3af');
-                event.setProp('borderColor', '#6b7280');
-                event.setProp('textColor', '#003047');
-                
-                // Add no-show class if not already present
-                if (!event.classNames.includes('event-no-show')) {
-                    event.setProp('classNames', [...event.classNames, 'event-no-show']);
-                }
-            } else {
-                // Restore original styling based on technician assignment
-                const extendedProps = event.extendedProps;
-                const hasTechnician = extendedProps.hasTechnician || false;
-                
-                if (hasTechnician) {
-                    // Blue background with blue border for assigned technician
-                    event.setProp('backgroundColor', '#003047');
-                    event.setProp('textColor', '#ffffff');
-                } else {
-                    // White/transparent background with blue border for no assigned technician
-                    event.setProp('backgroundColor', 'transparent');
-                    event.setProp('textColor', '#003047');
-                }
-                
-                event.setProp('borderColor', '#003047');
-                
-                // Remove no-show class
-                const classNames = event.classNames.filter(cn => cn !== 'event-no-show');
-                event.setProp('classNames', classNames);
-            }
-            
-            // Update extended props
-            event.setExtendedProp('isNoShow', isNoShow);
-            
-            // Force calendar to re-render the event
-            calendarInstance.render();
-        }
-    }
-    
-    // Update list view if it's currently visible
-    const listViewContainer = document.getElementById('listViewContainer');
-    if (listViewContainer && !listViewContainer.classList.contains('hidden')) {
-        renderTechnicianListView();
-    }
-    
-    // TODO: Update booking status in backend/JSON
-    // You can add code here to save the no show status to your backend
-    
-    // Show toast alert message
     if (isNoShow) {
-        showToastMessage('Marked as No Show', 'success');
-    } else {
-        showToastMessage('No Show status removed', 'success');
+        statusBeforeNoShow[bookingId] = currentStatus;
+    }
+    const newStatus = isNoShow ? 'no-show' : (statusBeforeNoShow[bookingId] || 'waiting');
+    
+    const apiUrl = window.salonCalendarAppointmentsApiUrl;
+    if (!apiUrl || typeof salonApi === 'undefined' || !salonApi.put) {
+        noShowStatus[bookingId] = isNoShow;
+        updateNoShowUI(bookingId, isNoShow, event);
+        if (isNoShow) showToastMessage('Marked as No Show', 'success');
+        else { delete statusBeforeNoShow[bookingId]; showToastMessage('No Show status removed', 'success'); }
+        return;
+    }
+    
+    salonApi.put(apiUrl + '/' + bookingId, { status: newStatus })
+        .then(function(res) {
+            noShowStatus[bookingId] = isNoShow;
+            if (!isNoShow) delete statusBeforeNoShow[bookingId];
+            var aptIndex = bookingsData.findIndex(function(apt) { return apt.id.toString() === bookingId.toString(); });
+            if (aptIndex !== -1 && res && res.data) {
+                bookingsData[aptIndex].status = res.data.status || newStatus;
+            } else if (aptIndex !== -1) {
+                bookingsData[aptIndex].status = newStatus;
+            }
+            updateNoShowUI(bookingId, isNoShow, event);
+            if (isNoShow) showToastMessage('Marked as No Show', 'success');
+            else showToastMessage('No Show status removed', 'success');
+        })
+        .catch(function(err) {
+            if (typeof showErrorMessage === 'function') {
+                showErrorMessage(err && err.message ? err.message : 'Failed to update no-show status.');
+            }
+        });
+}
+
+function updateNoShowUI(bookingId, isNoShow, event) {
+    if (!event && calendarInstance) {
+        event = calendarInstance.getEventById(bookingId.toString());
+    }
+    if (event) {
+        if (isNoShow) {
+            event.setProp('backgroundColor', '#9ca3af');
+            event.setProp('borderColor', '#6b7280');
+            event.setProp('textColor', '#003047');
+            if (!event.classNames.includes('event-no-show')) {
+                event.setProp('classNames', [...event.classNames, 'event-no-show']);
+            }
+        } else {
+            var extendedProps = event.extendedProps;
+            var hasTechnician = extendedProps && extendedProps.hasTechnician;
+            event.setProp('backgroundColor', hasTechnician ? '#003047' : 'transparent');
+            event.setProp('textColor', hasTechnician ? '#ffffff' : '#003047');
+            event.setProp('borderColor', '#003047');
+            var classNames = event.classNames.filter(function(cn) { return cn !== 'event-no-show'; });
+            event.setProp('classNames', classNames);
+        }
+        event.setExtendedProp('isNoShow', isNoShow);
+        if (calendarInstance) calendarInstance.render();
+    }
+    var listViewContainer = document.getElementById('listViewContainer');
+    if (listViewContainer && !listViewContainer.classList.contains('hidden') && typeof renderTechnicianListView === 'function') {
+        renderTechnicianListView();
     }
 }
 
@@ -2565,6 +2565,27 @@ function renderAvailableTechnicians() {
         return;
     }
     
+    filteredTechnicians = [...filteredTechnicians].sort((a, b) => {
+        const aIdStr = a.id.toString();
+        const bIdStr = b.id.toString();
+        const aIsAssigned = selectedTechnicianIds.includes(aIdStr);
+        const bIsAssigned = selectedTechnicianIds.includes(bIdStr);
+        if (aIsAssigned && !bIsAssigned) return 1;
+        if (!aIsAssigned && bIsAssigned) return -1;
+        const aOnline = !!(a.clock_in && !a.clock_out);
+        const bOnline = !!(b.clock_in && !b.clock_out);
+        if (aOnline && !bOnline) return -1;
+        if (!aOnline && bOnline) return 1;
+        const aServices = typeof a.services === 'number' ? a.services : 0;
+        const bServices = typeof b.services === 'number' ? b.services : 0;
+        const diff = aServices - bServices;
+        if (diff !== 0) return diff;
+        const aTime = a.clock_in ? new Date(a.clock_in).getTime() : Infinity;
+        const bTime = b.clock_in ? new Date(b.clock_in).getTime() : Infinity;
+        return aTime - bTime;
+    });
+    
+    const badgeStyle = 'bottom: -5px; right: -5px;';
     let html = '';
     filteredTechnicians.forEach(technician => {
         const technicianIdStr = technician.id.toString();
@@ -2588,9 +2609,12 @@ function renderAvailableTechnicians() {
             ? "text-base font-medium text-gray-400"
             : "text-base font-medium text-gray-900";
         
+        const isOnline = !!(technician.clock_in && !technician.clock_out);
         const badgeClasses = isAssigned
-            ? "absolute -bottom-1 -right-1 w-5 h-5 bg-gray-400 text-white rounded-full flex items-center justify-center text-xs font-bold border-2 border-white"
-            : "absolute -bottom-1 -right-1 w-5 h-5 bg-[#003047] text-white rounded-full flex items-center justify-center text-xs font-bold border-2 border-white";
+            ? "absolute w-5 h-5 rounded-full border-2 border-white bg-gray-400"
+            : (isOnline ? "absolute w-5 h-5 rounded-full border-2 border-white bg-green-500" : "absolute w-5 h-5 rounded-full border-2 border-white bg-gray-400");
+        const servicesNum = typeof technician.services === 'number' ? technician.services : 0;
+        const badgeTitle = isOnline ? 'Online' : 'Offline';
         
         html += `
             <div onclick="${isAssigned ? 'removeAssignedTechnician(' + technician.id + ')' : 'assignTechnician(' + technician.id + ')'}" class="${containerClasses}">
@@ -2598,12 +2622,14 @@ function renderAvailableTechnicians() {
                     <div class="${avatarClasses}">
                         <span class="${initialClasses}">${initials}</span>
                     </div>
-                    <div class="${badgeClasses}">
-                        0
-                    </div>
+                    <div class="${badgeClasses}" style="${badgeStyle}" title="${badgeTitle}"></div>
                 </div>
-                <div class="flex-1">
+                <div class="flex-1 min-w-0">
                     <p class="${nameClasses}">${fullName}</p>
+                </div>
+                <div class="flex-shrink-0 text-right">
+                    <div class="text-xs font-medium text-gray-500 uppercase">Services</div>
+                    <div class="text-lg font-semibold text-gray-900">${servicesNum}</div>
                 </div>
             </div>
         `;
@@ -2628,6 +2654,7 @@ function renderAssignedTechnicians() {
         return;
     }
     
+    const badgeStyle = 'bottom: -5px; right: -5px;';
     let html = '';
     selectedTechnicianIds.forEach(technicianIdStr => {
         const technician = techniciansData.find(t => t.id.toString() === technicianIdStr);
@@ -2635,6 +2662,10 @@ function renderAssignedTechnicians() {
         
         const initials = technician.initials || (technician.firstName?.[0] || '') + (technician.lastName?.[0] || '');
         const fullName = `${technician.firstName} ${technician.lastName}`;
+        const isOnline = !!(technician.clock_in && !technician.clock_out);
+        const badgeClasses = isOnline ? "absolute w-5 h-5 rounded-full border-2 border-white bg-green-500" : "absolute w-5 h-5 rounded-full border-2 border-white bg-gray-400";
+        const servicesNum = typeof technician.services === 'number' ? technician.services : 0;
+        const badgeTitle = isOnline ? 'Online' : 'Offline';
         
         html += `
             <div onclick="removeAssignedTechnician(${technician.id})" class="flex items-center gap-3 cursor-pointer group hover:bg-gray-50 p-2 rounded-lg transition-colors">
@@ -2642,12 +2673,14 @@ function renderAssignedTechnicians() {
                     <div class="w-12 h-12 bg-[#003047] rounded-full flex items-center justify-center">
                         <span class="text-sm font-bold text-white">${initials}</span>
                     </div>
-                    <div class="absolute -bottom-1 -right-1 w-5 h-5 bg-[#003047] text-white rounded-full flex items-center justify-center text-xs font-bold border-2 border-white">
-                        0
-                    </div>
+                    <div class="${badgeClasses}" style="${badgeStyle}" title="${badgeTitle}"></div>
                 </div>
-                <div class="flex-1">
+                <div class="flex-1 min-w-0">
                     <p class="text-base font-medium text-gray-900">${fullName}</p>
+                </div>
+                <div class="flex-shrink-0 text-right">
+                    <div class="text-xs font-medium text-gray-500 uppercase">Services</div>
+                    <div class="text-lg font-semibold text-gray-900">${servicesNum}</div>
                 </div>
             </div>
         `;
@@ -2702,33 +2735,55 @@ function updateCounts() {
 function confirmTechnicianSelection() {
     if (!currentAppointmentId) return;
     
-    // Find the appointment in bookingsData
-    const appointmentIndex = bookingsData.findIndex(apt => apt.id.toString() === currentAppointmentId.toString());
-    if (appointmentIndex === -1) return;
-    
-    // Update the appointment with selected technicians
     const technicianIds = selectedTechnicianIds.map(id => parseInt(id));
-    bookingsData[appointmentIndex].assigned_technician = technicianIds.length > 0 ? technicianIds : null;
-    
-    // TODO: Save to backend/JSON file
-    console.log('Updated appointment technicians:', bookingsData[appointmentIndex]);
-    
-    // Update the technician display in the event modal
-    updateEventModalTechnicianDisplay();
-    
-    // Update the calendar event display
-    updateCalendarEventDisplay();
-    
-    // Update list view if it's currently visible
-    const listViewContainer = document.getElementById('listViewContainer');
-    if (listViewContainer && !listViewContainer.classList.contains('hidden')) {
-        if (typeof renderTechnicianListView === 'function') {
-            renderTechnicianListView();
+    const apiUrl = window.salonCalendarAppointmentsApiUrl;
+    const doUpdateUI = function() {
+        const appointmentIndex = bookingsData.findIndex(apt => apt.id.toString() === currentAppointmentId.toString());
+        if (appointmentIndex !== -1) {
+            bookingsData[appointmentIndex].assigned_technician = technicianIds.length > 0 ? technicianIds : null;
         }
-    }
+        updateEventModalTechnicianDisplay();
+        updateCalendarEventDisplay();
+        const listViewContainer = document.getElementById('listViewContainer');
+        if (listViewContainer && !listViewContainer.classList.contains('hidden')) {
+            if (typeof renderTechnicianListView === 'function') {
+                renderTechnicianListView();
+            }
+        }
+        closeNestedModal();
+        if (typeof showSuccessMessage === 'function') {
+            showSuccessMessage('Technician assignment saved.');
+        }
+    };
     
-    // Close the technician selection modal (not the event modal)
-    closeNestedModal();
+    if (apiUrl && typeof salonApi !== 'undefined' && salonApi.put) {
+        const btn = document.querySelector('[onclick="confirmTechnicianSelection()"]');
+        if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+        salonApi.put(apiUrl + '/' + currentAppointmentId, { assigned_technician: technicianIds })
+            .then(function() {
+                doUpdateUI();
+            })
+            .catch(function(err) {
+                if (btn) { btn.disabled = false; btn.textContent = 'Confirm'; }
+                if (typeof showErrorMessage === 'function') {
+                    showErrorMessage(err && err.message ? err.message : 'Failed to save technician assignment.');
+                }
+            });
+    } else {
+        const appointmentIndex = bookingsData.findIndex(apt => apt.id.toString() === currentAppointmentId.toString());
+        if (appointmentIndex !== -1) {
+            bookingsData[appointmentIndex].assigned_technician = technicianIds.length > 0 ? technicianIds : null;
+        }
+        updateEventModalTechnicianDisplay();
+        updateCalendarEventDisplay();
+        const listViewContainer = document.getElementById('listViewContainer');
+        if (listViewContainer && !listViewContainer.classList.contains('hidden')) {
+            if (typeof renderTechnicianListView === 'function') {
+                renderTechnicianListView();
+            }
+        }
+        closeNestedModal();
+    }
 }
 
 // Update technician display in the event modal

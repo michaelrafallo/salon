@@ -52,7 +52,8 @@
 @push('scripts')
 <script>
 (function() {
-var base = window.salonJsonBase || '{{ url("json") }}';
+var base = window.salonJsonBase || '{{ url("api/salon/data") }}';
+var apiPaymentsUrl = '{{ url("api/salon/payments") }}';
 var allPayments = [], paymentsData = [], PAGE_SIZE = 15, currentPage = 1, totalPages = 1;
 var currentView = localStorage.getItem('paymentsView') || 'list';
 function formatDate(str) {
@@ -240,22 +241,22 @@ window.salonPaymentsCloseVoidModal = function() {
 };
 window.salonPaymentsVoidPayment = function(transactionId) {
     salonPaymentsCloseVoidModal();
-    var paymentIndex = allPayments.findIndex(function(p) { return p.id === transactionId; });
-    if (paymentIndex !== -1) {
+    var paymentIndex = allPayments.findIndex(function(p) { return String(p.id) === String(transactionId); });
+    if (paymentIndex === -1) {
+        if (typeof showErrorMessage === 'function') showErrorMessage('Transaction not found');
+        return;
+    }
+    salonApi.put(apiPaymentsUrl + '/' + encodeURIComponent(transactionId), { status: 'Voided' }).then(function() {
         allPayments[paymentIndex].status = 'Voided';
         allPayments[paymentIndex].statusColor = 'bg-gray-100';
         allPayments[paymentIndex].statusTextColor = 'text-gray-700';
         paymentsData = allPayments;
         salonPaymentsRender();
         salonPaymentsCloseModal();
-        if (typeof showSuccessMessage === 'function') {
-            showSuccessMessage('Transaction voided successfully');
-        }
-    } else {
-        if (typeof showErrorMessage === 'function') {
-            showErrorMessage('Transaction not found');
-        }
-    }
+        if (typeof showSuccessMessage === 'function') showSuccessMessage('Transaction voided successfully');
+    }).catch(function(err) {
+        if (typeof showErrorMessage === 'function') showErrorMessage(err.message || 'Failed to void transaction');
+    });
 };
 document.addEventListener('DOMContentLoaded', function() {
     var savedPerPage = localStorage.getItem('paymentsPerPage');
@@ -266,7 +267,7 @@ document.addEventListener('DOMContentLoaded', function() {
             PAGE_SIZE = savedPerPage === 'all' ? Infinity : parseInt(savedPerPage, 10);
         }
     }
-    fetch(base + '/payments.json').then(function(r) { return r.json(); }).then(function(data) {
+    fetch(base + '/payments').then(function(r) { return r.json(); }).then(function(data) {
         allPayments = (data.payments || []).map(function(p) { return Object.assign({}, p, { date: formatDate(p.date) || p.date }); });
         paymentsData = allPayments;
         salonPaymentsRender();

@@ -16,6 +16,7 @@
 </head>
 <body class="bg-gray-50 font-poppins">
     @yield('body')
+    <script src="{{ asset('js/salon-api.js') }}"></script>
     @stack('scripts')
 </body>
 </html>

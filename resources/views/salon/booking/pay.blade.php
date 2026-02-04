@@ -36,7 +36,7 @@
                                 </div>
                             </div>
                         </button>
-                        <button onclick="salonPaySwitchStep(2)" id="step2Tab" class="flex-1 lg:flex-initial px-6 py-3 text-left border-b-2 border-transparent hover:border-gray-300 transition">
+                        <button type="button" onclick="salonPaySaveAndGoToCheckout()" id="step2Tab" class="flex-1 lg:flex-initial px-6 py-3 text-left border-b-2 border-transparent hover:border-gray-300 transition">
                             <div class="flex items-center gap-3">
                                 <span class="flex items-center justify-center w-8 h-8 rounded-full bg-gray-200 text-gray-600 text-sm font-semibold">2</span>
                                 <div>
@@ -58,14 +58,44 @@
                     <!-- Right Column: Technicians List -->
                     <div class="w-full lg:w-1/3 lg:order-2 flex flex-col min-w-0">
                         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex flex-col h-full overflow-hidden">
-                            <h2 class="text-xl font-bold text-gray-900 mb-4 flex-shrink-0">Assigned Technicians</h2>
+                            <div class="flex items-center justify-between gap-3 mb-4 flex-shrink-0">
+                                <h2 class="text-xl font-bold text-gray-900">Assigned Technicians</h2>
+                                <button
+                                    type="button"
+                                    onclick="salonPayOpenAssignTechnicianModal()"
+                                    class="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 hover:border-[#003047] hover:text-[#003047] hover:bg-[#e6f0f3] transition active:scale-95 text-sm font-medium"
+                                    title="Assign technician"
+                                    aria-label="Assign technician"
+                                >
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                                    </svg>
+                                    Assign
+                                </button>
+                            </div>
                             <div id="techniciansListContainer" class="flex-1 overflow-y-auto min-h-0 mb-4">
                                 <!-- Technicians will be populated by JavaScript -->
                             </div>
                             <!-- Next Step Button -->
-                            <button onclick="salonPaySwitchStep(2)" class="w-full px-6 py-4 text-lg font-semibold text-white bg-[#003047] rounded-lg hover:bg-[#002535] transition active:scale-95 flex-shrink-0">
-                                Next: Checkout
-                            </button>
+                            <div class="flex items-stretch gap-3 flex-shrink-0">
+                                <button type="button" id="salonPayNextToCheckoutBtn" onclick="salonPaySaveAndGoToCheckout()" class="flex-1 px-6 py-4 text-lg font-semibold text-white bg-[#003047] rounded-lg hover:bg-[#002535] transition active:scale-95">
+                                    Next: Checkout
+                                </button>
+                                <button
+                                    type="button"
+                                    id="salonPaySaveCartBtn"
+                                    onclick="salonPaySaveCart()"
+                                    class="w-14 px-4 py-4 rounded-lg border border-gray-200 bg-white text-gray-700 hover:border-[#003047] hover:text-[#003047] hover:bg-[#e6f0f3] transition active:scale-95 flex items-center justify-center"
+                                    title="Save cart"
+                                    aria-label="Save cart"
+                                >
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 21H7a2 2 0 01-2-2V5a2 2 0 012-2h8l4 4v12a2 2 0 01-2 2z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 21v-8H7v8" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 3v4h8" />
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
                     </div>
                     <!-- Left Column: Services Grid -->
@@ -349,8 +379,9 @@
 </main>
 @push('scripts')
 <script>
-window.salonJsonBase = '{{ asset("json") }}';
+window.salonJsonBase = '{{ url("api/salon/data") }}';
 window.salonTicketsUrl = '{{ $ticketsUrl }}';
+window.salonApiAppointmentsUrl = '{{ url("api/salon/appointments") }}';
 </script>
 <script src="{{ asset('js/salon-pay.js') }}"></script>
 @endpush

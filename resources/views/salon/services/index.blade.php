@@ -21,14 +21,19 @@
             </div>
         </div>
         <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div class="flex-shrink-0">
-                <select id="categoryFilter" onchange="filterByCategory(this.value)" class="w-full sm:w-auto px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent text-base bg-white cursor-pointer">
+            <div class="flex items-center gap-2 border-b border-gray-200 overflow-x-auto min-w-0">
+                <button type="button" id="tab-all" onclick="filterByStatus('all')" class="px-4 py-2 text-sm font-medium text-[#003047] border-b-2 border-[#003047] transition whitespace-nowrap">All</button>
+                <button type="button" id="tab-active" onclick="filterByStatus('active')" class="px-4 py-2 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-gray-700 transition whitespace-nowrap">Active</button>
+                <button type="button" id="tab-inactive" onclick="filterByStatus('inactive')" class="px-4 py-2 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-gray-700 transition whitespace-nowrap">Inactive</button>
+            </div>
+            <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:flex-shrink-0">
+                <select id="categoryFilter" onchange="filterByCategory(this.value)" class="w-full sm:w-auto sm:min-w-[180px] px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent text-base bg-white cursor-pointer">
                     <option value="">All Categories</option>
                 </select>
-            </div>
-            <div class="relative w-full sm:w-[400px]">
-                <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                <input type="text" id="serviceSearchInput" placeholder="Search services by name or description..." oninput="searchServices(this.value)" class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent text-base">
+                <div class="relative w-full sm:w-[280px] lg:w-[320px]">
+                    <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    <input type="text" id="serviceSearchInput" placeholder="Search services by name or description..." oninput="searchServices(this.value)" class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent text-base">
+                </div>
             </div>
         </div>
         <div id="gridView" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6"></div>
@@ -62,10 +67,13 @@
 </main>
 @push('scripts')
 <script>
-var base = window.salonJsonBase || '{{ url("json") }}';
+var base = window.salonJsonBase || '{{ url("api/salon/data") }}';
+var apiServicesUrl = '{{ url("api/salon/services") }}';
+var storageUrl = '{{ rtrim(asset("storage"), "/") }}';
 var isAdmin = {{ $isAdmin ? 'true' : 'false' }};
 var SERVICE_PASSWORD = '54321';
-var allServices = [], servicesData = [], categoriesMap = {}, currentCategoryFilter = '', currentSearchTerm = '';
+var allServices = [], servicesData = [], categoriesMap = {}, currentCategoryFilter = '', currentSearchTerm = '', currentStatusFilter = 'all';
+var editingServiceId = null;
 var PAGE_SIZE = 15, currentPage = 1, totalPages = 1, currentView = localStorage.getItem('servicesView') || 'grid';
 var pendingAction = null;
 var colorClasses = [
@@ -115,6 +123,9 @@ function updateResultsCounter() {
 }
 function applyFilters() {
     servicesData = allServices.filter(function(s) {
+        var statusMatch = true;
+        if (currentStatusFilter === 'active') statusMatch = !!s.active;
+        else if (currentStatusFilter === 'inactive') statusMatch = !s.active;
         var categoryMatch = true;
         if (currentCategoryFilter !== '') {
             categoryMatch = s.categories && s.categories.includes(currentCategoryFilter);
@@ -124,12 +135,25 @@ function applyFilters() {
             var text = ((s.name || '') + ' ' + (s.description || '')).toLowerCase();
             searchMatch = text.includes(currentSearchTerm);
         }
-        return categoryMatch && searchMatch;
+        return statusMatch && categoryMatch && searchMatch;
     });
     currentPage = 1;
     updatePaginationState();
     renderServices();
     updateResultsCounter();
+}
+function filterByStatus(status) {
+    currentStatusFilter = status;
+    var url = new URL(window.location);
+    if (status === 'all') url.searchParams.delete('status'); else url.searchParams.set('status', status);
+    window.history.pushState({}, '', url);
+    ['all', 'active', 'inactive'].forEach(function(id) {
+        var btn = document.getElementById('tab-' + id);
+        if (!btn) return;
+        var active = id === status;
+        btn.className = 'px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition ' + (active ? 'text-[#003047] border-[#003047]' : 'text-gray-500 border-transparent hover:text-gray-700');
+    });
+    applyFilters();
 }
 function renderGridView() {
     var el = document.getElementById('gridView');
@@ -142,12 +166,16 @@ function renderGridView() {
     }
     list.forEach(function(s, i) {
         var color = colorClasses[i % colorClasses.length];
+        var imgUrl = (s.image ? (storageUrl + '/' + s.image) : null) || s.image_url || null;
+        var thumbHtml = imgUrl
+            ? '<img src="' + imgUrl.replace(/"/g, '&quot;').replace(/'/g, '&#39;') + '" alt="" class="w-full h-32 object-cover rounded-lg" onerror="this.style.display=\'none\'">'
+            : '<div class="w-full h-32 ' + color.bg + ' rounded-lg flex items-center justify-center"><svg class="w-10 h-10 ' + color.text + '" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg></div>';
         var card = document.createElement('div');
         card.className = 'bg-white rounded-lg shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer active:scale-95';
         card.onclick = function() {
-            openServiceModal(s.name, s.description, s.price, s.active, s.categories);
+            openServiceModal(s);
         };
-        card.innerHTML = '<div class="flex items-start mb-3"><div class="w-12 h-12 ' + color.bg + ' rounded-lg flex items-center justify-center"><svg class="w-6 h-6 ' + color.text + '" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg></div></div><h3 class="font-semibold text-gray-900 text-lg mb-2">' + (s.name || '') + '</h3><p class="text-sm text-gray-600 mb-4">' + (s.description || '') + '</p><div class="pt-4 border-t border-gray-200"><span class="text-2xl font-bold text-gray-900">$' + (parseFloat(s.price || 0).toFixed(2)) + '</span></div>';
+        card.innerHTML = '<div class="flex items-start mb-3">' + thumbHtml + '</div><h3 class="font-semibold text-gray-900 text-lg mb-2">' + (s.name || '') + '</h3><p class="text-sm text-gray-600 mb-4 line-clamp-2">' + (s.description || '') + '</p><div class="pt-4 border-t border-gray-200"><span class="text-2xl font-bold text-gray-900">$' + (parseFloat(s.price || 0).toFixed(2)) + '</span></div>';
         el.appendChild(card);
     });
 }
@@ -162,12 +190,17 @@ function renderListView() {
     }
     list.forEach(function(s, i) {
         var color = colorClasses[i % colorClasses.length];
+        var imgUrl = (s.image ? (storageUrl + '/' + s.image) : null) || s.image_url || null;
+        var thumbCell = imgUrl
+            ? '<img src="' + imgUrl.replace(/"/g, '&quot;').replace(/'/g, '&#39;') + '" alt="" class="w-10 h-10 rounded-lg object-cover flex-shrink-0 mr-3" onerror="this.style.display=\'none\'">'
+            : '<div class="w-10 h-10 ' + color.bg + ' rounded-lg flex items-center justify-center flex-shrink-0 mr-3"><svg class="w-6 h-6 ' + color.text + '" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547z"></path></svg></div>';
         var row = document.createElement('tr');
         row.className = 'hover:bg-gray-50 cursor-pointer transition';
         row.onclick = function() {
-            openServiceModal(s.name, s.description, s.price, s.active, s.categories);
+            openServiceModal(s);
         };
-        row.innerHTML = '<td class="px-6 py-4 whitespace-nowrap"><div class="flex items-center"><div class="w-10 h-10 ' + color.bg + ' rounded-lg flex items-center justify-center flex-shrink-0 mr-3"><svg class="w-6 h-6 ' + color.text + '" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg></div><div class="text-sm font-medium text-gray-900">' + (s.name || '') + '</div></div></td><td class="px-6 py-4"><div class="text-sm text-gray-900">' + (s.description || '') + '</div></td><td class="px-6 py-4 whitespace-nowrap"><div class="text-sm font-bold text-gray-900">$' + (parseFloat(s.price || 0).toFixed(2)) + '</div></td><td class="px-6 py-4 whitespace-nowrap"><span class="text-sm font-medium text-green-600">Active</span></td>';
+        var statusHtml = s.active ? '<span class="text-sm font-medium text-green-600">Active</span>' : '<span class="text-sm font-medium text-gray-500">Inactive</span>';
+        row.innerHTML = '<td class="px-6 py-4 whitespace-nowrap"><div class="flex items-center">' + thumbCell + '<div class="ml-3 text-sm font-medium text-gray-900">' + (s.name || '') + '</div></div></td><td class="px-6 py-4"><div class="text-sm text-gray-900">' + (s.description || '') + '</div></td><td class="px-6 py-4 whitespace-nowrap"><div class="text-sm font-bold text-gray-900">$' + (parseFloat(s.price || 0).toFixed(2)) + '</div></td><td class="px-6 py-4 whitespace-nowrap">' + statusHtml + '</td>';
         tbody.appendChild(row);
     });
 }
@@ -263,36 +296,99 @@ function openAddServiceModal() {
     openAddServiceModalContent();
 }
 function openAddServiceModalContent() {
+    editingServiceId = null;
     var sorted = Object.entries(categoriesMap).sort(function(a, b) { return (a[1] || '').localeCompare(b[1] || ''); });
     var checkboxes = sorted.map(function(entry) {
         var k = entry[0], v = entry[1];
         return '<label class="flex items-center p-2 bg-white rounded-lg border border-gray-200 hover:border-[#003047] hover:bg-[#e6f0f3] cursor-pointer transition-all duration-200 group has-[:checked]:border-[#003047] has-[:checked]:bg-[#e6f0f3]"><input type="checkbox" name="category[]" value="' + k + '" class="w-4 h-4 text-[#003047] border-gray-300 rounded focus:ring-[#003047] focus:ring-2 cursor-pointer" style="accent-color: #003047;"><span class="ml-2 text-sm font-medium text-gray-700 group-hover:text-[#003047] has-[:checked]:text-[#003047]">' + v + '</span></label>';
     }).join('');
-    var content = '<div class="p-6"><div class="flex items-center justify-between mb-4"><h3 class="text-xl font-bold text-gray-900">Add New Service</h3><button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><form onsubmit="saveService(event)" class="space-y-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">Service Name</label><input type="text" name="name" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="Classic Manicure"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Category</label><div class="border border-gray-300 rounded-lg p-2 bg-gray-50"><div class="grid grid-cols-1 sm:grid-cols-2 gap-2">' + checkboxes + '</div></div><p class="mt-2 text-xs text-gray-500">Select one or more categories for this service</p></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Description</label><textarea name="description" rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="Service description"></textarea></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Price ($)</label><input type="number" name="price" required step="0.01" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="35.00"></div><div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg"><div><label class="text-sm font-medium text-gray-900">Active</label></div><label class="relative inline-flex items-center cursor-pointer"><input type="checkbox" name="active" class="sr-only peer" checked><div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#b3d1d9] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[\'\'] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#003047]"></div></label></div><div class="flex justify-end gap-3 pt-4"><button type="submit" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">Save Service</button></div></form></div>';
+    var fileBlock = '<div><label class="block text-sm font-medium text-gray-700 mb-2">Image</label><input type="file" name="image" accept="image/*" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent text-sm"><p class="mt-1 text-xs text-gray-500">Optional. Max 2 MB. JPG, PNG, GIF, WebP.</p></div>';
+    var content = '<div class="p-6"><div class="flex items-center justify-between mb-4"><h3 class="text-xl font-bold text-gray-900">Add New Service</h3><button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><form onsubmit="saveService(event)" class="space-y-4" enctype="multipart/form-data"><div><label class="block text-sm font-medium text-gray-700 mb-2">Service Name</label><input type="text" name="name" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="Classic Manicure"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Category</label><div class="border border-gray-300 rounded-lg p-2 bg-gray-50"><div class="grid grid-cols-1 sm:grid-cols-2 gap-2">' + checkboxes + '</div></div><p class="mt-2 text-xs text-gray-500">Select one or more categories for this service</p></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Description</label><textarea name="description" rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="Service description"></textarea></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Price ($)</label><input type="number" name="price" required step="0.01" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="35.00"></div>' + fileBlock + '<div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg"><div><label class="text-sm font-medium text-gray-900">Active</label></div><label class="relative inline-flex items-center cursor-pointer"><input type="checkbox" name="active" class="sr-only peer" checked><div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#b3d1d9] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[\'\'] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#003047]"></div></label></div><div class="flex justify-end gap-3 pt-4"><button type="submit" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">Save Service</button></div></form></div>';
     openModal(content);
 }
-function openServiceModal(serviceName, description, price, active, categories) {
+function openServiceModal(service) {
+    if (!service || typeof service !== 'object') return;
     if (!isAdmin) {
-        openPasswordModal(function() { openServiceModalContent(serviceName, description, price, active, categories); });
+        openPasswordModal(function() { openServiceModalContent(service); });
         return;
     }
-    openServiceModalContent(serviceName, description, price, active, categories);
+    openServiceModalContent(service);
 }
-function openServiceModalContent(serviceName, description, price, active, categories) {
-    var cats = categories || [];
+function openServiceModalContent(service) {
+    var id = service.id, name = service.name || '', description = service.description || '', price = service.price != null ? service.price : 0, active = !!service.active;
+    var imgUrl = (service.image ? (storageUrl + '/' + service.image) : null) || service.image_url || null;
+    var cats = service.categories || [];
+    editingServiceId = id || null;
     var sorted = Object.entries(categoriesMap).sort(function(a, b) { return (a[1] || '').localeCompare(b[1] || ''); });
     var checkboxes = sorted.map(function(entry) {
         var k = entry[0], v = entry[1], checked = cats.indexOf(k) >= 0 ? 'checked' : '';
         return '<label class="flex items-center p-2 bg-white rounded-lg border border-gray-200 hover:border-[#003047] hover:bg-[#e6f0f3] cursor-pointer transition-all duration-200 group has-[:checked]:border-[#003047] has-[:checked]:bg-[#e6f0f3]"><input type="checkbox" name="category[]" value="' + k + '" ' + checked + ' class="w-4 h-4 text-[#003047] border-gray-300 rounded focus:ring-[#003047] focus:ring-2 cursor-pointer" style="accent-color: #003047;"><span class="ml-2 text-sm font-medium text-gray-700 group-hover:text-[#003047] has-[:checked]:text-[#003047]">' + v + '</span></label>';
     }).join('');
-    var content = '<div class="p-6"><div class="flex items-center justify-between mb-4"><h3 class="text-xl font-bold text-gray-900">Edit Service</h3><button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><form onsubmit="saveService(event)" class="space-y-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">Service Name</label><input type="text" name="name" required value="' + (serviceName || '').replace(/"/g, '&quot;') + '" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="Classic Manicure"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Category</label><div class="border border-gray-300 rounded-lg p-2 bg-gray-50"><div class="grid grid-cols-1 sm:grid-cols-2 gap-2">' + checkboxes + '</div></div><p class="mt-2 text-xs text-gray-500">Select one or more categories for this service</p></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Description</label><textarea name="description" rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="Service description">' + (description || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</textarea></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Price ($)</label><input type="number" name="price" required step="0.01" value="' + (price || 0) + '" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="35.00"></div><div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg"><div><label class="text-sm font-medium text-gray-900">Active</label></div><label class="relative inline-flex items-center cursor-pointer"><input type="checkbox" name="active" class="sr-only peer" ' + (active ? 'checked' : '') + '><div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#b3d1d9] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[\'\'] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#003047]"></div></label></div><div class="flex justify-end gap-3 pt-4"><button type="submit" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">Save Service</button></div></form></div>';
+    var fileBlock = '<div><label class="block text-sm font-medium text-gray-700 mb-2">Image</label>' + (imgUrl ? '<div class="mb-2"><img src="' + imgUrl.replace(/"/g, '&quot;') + '" alt="" class="h-20 w-20 object-cover rounded-lg border border-gray-200"></div>' : '') + '<input type="file" name="image" accept="image/*" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent text-sm"><p class="mt-1 text-xs text-gray-500">Optional. Max 2 MB. Leave empty to keep current.</p></div>';
+    var deleteBtn = id ? '<button type="button" onclick="deleteService(' + id + ', \'' + (name || '').replace(/'/g, "\\'") + '\')" class="px-6 py-3 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition font-medium active:scale-95">Delete</button>' : '';
+    var content = '<div class="p-6"><div class="flex items-center justify-between mb-4"><h3 class="text-xl font-bold text-gray-900">' + (id ? 'Edit Service' : 'View Service') + '</h3><button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><form onsubmit="saveService(event)" class="space-y-4" enctype="multipart/form-data"><div><label class="block text-sm font-medium text-gray-700 mb-2">Service Name</label><input type="text" name="name" required value="' + (name || '').replace(/"/g, '&quot;') + '" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="Classic Manicure"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Category</label><div class="border border-gray-300 rounded-lg p-2 bg-gray-50"><div class="grid grid-cols-1 sm:grid-cols-2 gap-2">' + checkboxes + '</div></div><p class="mt-2 text-xs text-gray-500">Select one or more categories for this service</p></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Description</label><textarea name="description" rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="Service description">' + (description || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</textarea></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Price ($)</label><input type="number" name="price" required step="0.01" value="' + (price || 0) + '" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="35.00"></div>' + fileBlock + '<div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg"><div><label class="text-sm font-medium text-gray-900">Active</label></div><label class="relative inline-flex items-center cursor-pointer"><input type="checkbox" name="active" class="sr-only peer" ' + (active ? 'checked' : '') + '><div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#b3d1d9] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[\'\'] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#003047]"></div></label></div><div class="flex justify-end gap-3 pt-4">' + deleteBtn + '<button type="submit" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">Save Service</button></div></form></div>';
     openModal(content);
+}
+function buildServiceFormData(form) {
+    var fd = new FormData();
+    fd.append('name', form.name.value.trim());
+    fd.append('description', form.description.value.trim() || '');
+    fd.append('price', form.price.value ? parseFloat(form.price.value, 10) : 0);
+    var activeEl = form.querySelector('input[name="active"]');
+    fd.append('active', activeEl && activeEl.checked ? '1' : '0');
+    form.querySelectorAll('input[name="category[]"]:checked').forEach(function(cb) { fd.append('categories[]', cb.value); });
+    var fileEl = form.querySelector('input[name="image"]');
+    if (fileEl && fileEl.files && fileEl.files[0]) fd.append('image', fileEl.files[0]);
+    return fd;
 }
 function saveService(event) {
     event.preventDefault();
-    showSuccessMessage('Service saved successfully!');
-    closeModal();
-    setTimeout(function() { location.reload(); }, 1500);
+    var form = event.target;
+    var btn = form.querySelector('button[type="submit"]');
+    var formData = buildServiceFormData(form);
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
+    var url = editingServiceId ? apiServicesUrl + '/' + editingServiceId : apiServicesUrl;
+    if (editingServiceId) formData.append('_method', 'PUT');
+    var promise = salonApi.postFormData(url, formData);
+    promise.then(function(res) {
+        showSuccessMessage(res.message || 'Service saved successfully.');
+        closeModal();
+        editingServiceId = null;
+        var s = res.data;
+        var idx = allServices.findIndex(function(x) { return x.id === s.id; });
+        if (idx >= 0) allServices[idx] = s;
+        else allServices.unshift(s);
+        applyFilters();
+        renderServices();
+    }).catch(function(err) {
+        var msg = err.message || 'Failed to save service.';
+        if (err.body && err.body.errors && typeof err.body.errors === 'object') {
+            var firstKey = Object.keys(err.body.errors)[0];
+            if (firstKey && err.body.errors[firstKey] && err.body.errors[firstKey][0]) msg = err.body.errors[firstKey][0];
+        }
+        showErrorMessage(msg);
+    }).finally(function() {
+        if (btn) { btn.disabled = false; btn.textContent = 'Save Service'; }
+    });
+}
+function deleteService(id, name) {
+    openConfirmModal({
+        title: 'Delete service',
+        message: 'You are about to permanently remove this service' + (name ? ': ' + (name || '').replace(/"/g, '\\"') : '') + '. Do you want to continue?',
+        confirmLabel: 'Delete',
+        nested: true,
+        onConfirm: function() {
+            salonApi.delete(apiServicesUrl + '/' + id).then(function() {
+                closeModal();
+                showSuccessMessage('Service deleted.');
+                allServices = allServices.filter(function(s) { return s.id !== id && s.id !== parseInt(id, 10); });
+                applyFilters();
+                renderServices();
+            }).catch(function(err) {
+                showErrorMessage(err.message || 'Failed to delete service.');
+            });
+        }
+    });
 }
 function populateCategoryDropdown() {
     var sel = document.getElementById('categoryFilter');
@@ -313,11 +409,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (sel) { sel.value = saved; PAGE_SIZE = saved === 'all' ? Infinity : parseInt(saved, 10); }
     }
     Promise.all([
-        fetch(base + '/service-categories.json').then(function(r) { return r.json(); }),
-        fetch(base + '/services.json').then(function(r) { return r.json(); })
+        fetch(base + '/service-categories').then(function(r) { return r.json(); }),
+        fetch(base + '/services').then(function(r) { return r.json(); })
     ]).then(function(arr) {
         categoriesMap = arr[0].categories || {};
-        allServices = (arr[1].services || []).filter(function(s) { return s.active; });
+        allServices = arr[1].services || [];
         populateCategoryDropdown();
         var urlParams = new URLSearchParams(window.location.search);
         var catParam = urlParams.get('category');
@@ -325,6 +421,16 @@ document.addEventListener('DOMContentLoaded', function() {
             currentCategoryFilter = catParam;
             var sel = document.getElementById('categoryFilter');
             if (sel) sel.value = catParam;
+        }
+        var statusParam = urlParams.get('status');
+        if (statusParam === 'active' || statusParam === 'inactive') {
+            currentStatusFilter = statusParam;
+            ['all', 'active', 'inactive'].forEach(function(id) {
+                var btn = document.getElementById('tab-' + id);
+                if (!btn) return;
+                var active = id === statusParam;
+                btn.className = 'px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition ' + (active ? 'text-[#003047] border-[#003047]' : 'text-gray-500 border-transparent hover:text-gray-700');
+            });
         }
         applyFilters();
         toggleView(currentView);

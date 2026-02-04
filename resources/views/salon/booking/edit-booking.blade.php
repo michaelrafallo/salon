@@ -3,6 +3,9 @@
 @section('content')
 @php
     $calendarUrl = route('salon.booking.calendar');
+    $apiDataBase = url('api/salon/data');
+    $apiAppointmentsUrl = url('api/salon/appointments');
+    $apiCustomersUrl = url('api/salon/customers');
 @endphp
 
 <main class="flex-1 overflow-y-auto bg-gray-50 lg:ml-0 pt-16 lg:pt-0">
@@ -172,8 +175,22 @@
 
 @push('scripts')
 <script>
-window.salonJsonBase = '{{ asset("json") }}';
-var base = window.salonJsonBase || '{{ url("json") }}';
+window.salonJsonBase = '{{ $apiDataBase }}';
+    var base = window.salonJsonBase || '{{ $apiDataBase }}';
+    var apiAppointmentsUrl = '{{ $apiAppointmentsUrl }}';
+    var apiCustomersUrl = '{{ $apiCustomersUrl }}';
+    var opts = { credentials: 'same-origin' };
+
+    function getCsrfToken() {
+        var meta = document.querySelector('meta[name="csrf-token"]');
+        return meta ? meta.getAttribute('content') : '';
+    }
+    function getJsonHeaders() {
+        var headers = { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' };
+        var token = getCsrfToken();
+        if (token) headers['X-CSRF-TOKEN'] = token;
+        return headers;
+    }
 
 // Global variables
 let allCustomers = [];
@@ -201,9 +218,10 @@ function getBookingIdFromURL() {
 // Fetch booking data
 async function fetchBookingData(bookingId) {
     try {
-        const response = await fetch(base + '/appointments.json');
+        const response = await fetch(base + '/appointments', opts);
+        if (!response.ok) return null;
         const data = await response.json();
-        const booking = data.appointments.find(apt => apt.id.toString() === bookingId.toString());
+        const booking = (data.appointments || []).find(apt => apt.id.toString() === bookingId.toString());
         return booking;
     } catch (error) {
         console.error('Error fetching booking data:', error);
@@ -260,17 +278,29 @@ async function loadBookingData() {
         };
     }
     
+    // Parse ISO datetime string as local date/time (ignore Z so stored time displays correctly)
+    function parseAppointmentDatetimeLocal(isoStr) {
+        if (!isoStr || typeof isoStr !== 'string') return null;
+        const s = isoStr.trim().replace(/Z$/, '').replace(/\.\d+/, '');
+        const match = s.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+        if (!match) return null;
+        return {
+            year: parseInt(match[1], 10),
+            month: parseInt(match[2], 10) - 1,
+            day: parseInt(match[3], 10),
+            hours: parseInt(match[4], 10),
+            minutes: parseInt(match[5], 10) || 0
+        };
+    }
     // Load appointment date and time
     // Priority: appointment_datetime > appointment_date + appointment_time > created_at
     if (currentBookingData.appointment_datetime) {
-        // Parse from appointment_datetime (ISO format: "2025-12-01T10:30:00")
-        const appointmentDate = new Date(currentBookingData.appointment_datetime);
-        selectedAppointmentDate = new Date(appointmentDate.getFullYear(), appointmentDate.getMonth(), appointmentDate.getDate());
-        // Extract time and round to nearest 30-minute slot
-        const hours = appointmentDate.getHours();
-        const minutes = appointmentDate.getMinutes();
-        const rounded = roundToNearestSlot(hours, minutes);
-        selectedAppointmentTime = `${rounded.hours.toString().padStart(2, '0')}:${rounded.minutes.toString().padStart(2, '0')}`;
+        const parsed = parseAppointmentDatetimeLocal(currentBookingData.appointment_datetime);
+        if (parsed) {
+            selectedAppointmentDate = new Date(parsed.year, parsed.month, parsed.day);
+            const rounded = roundToNearestSlot(parsed.hours, parsed.minutes);
+            selectedAppointmentTime = `${rounded.hours.toString().padStart(2, '0')}:${rounded.minutes.toString().padStart(2, '0')}`;
+        }
     } else if (currentBookingData.appointment_date && currentBookingData.appointment_time) {
         // Use existing appointment_date and appointment_time
         const dateParts = currentBookingData.appointment_date.split('-');
@@ -280,14 +310,12 @@ async function loadBookingData() {
         const rounded = roundToNearestSlot(hours, minutes || 0);
         selectedAppointmentTime = `${rounded.hours.toString().padStart(2, '0')}:${rounded.minutes.toString().padStart(2, '0')}`;
     } else if (currentBookingData.created_at) {
-        // Parse from created_at (ISO format: "2025-11-20T14:00:00")
-        const createdDate = new Date(currentBookingData.created_at);
-        selectedAppointmentDate = new Date(createdDate.getFullYear(), createdDate.getMonth(), createdDate.getDate());
-        // Extract time and round to nearest 30-minute slot
-        const hours = createdDate.getHours();
-        const minutes = createdDate.getMinutes();
-        const rounded = roundToNearestSlot(hours, minutes);
-        selectedAppointmentTime = `${rounded.hours.toString().padStart(2, '0')}:${rounded.minutes.toString().padStart(2, '0')}`;
+        const parsed = parseAppointmentDatetimeLocal(currentBookingData.created_at);
+        if (parsed) {
+            selectedAppointmentDate = new Date(parsed.year, parsed.month, parsed.day);
+            const rounded = roundToNearestSlot(parsed.hours, parsed.minutes);
+            selectedAppointmentTime = `${rounded.hours.toString().padStart(2, '0')}:${rounded.minutes.toString().padStart(2, '0')}`;
+        }
     }
     
     // Update calendar to show the correct month/year and selected date
@@ -312,7 +340,8 @@ async function loadBookingData() {
 // Fetch customers
 async function fetchCustomers() {
     try {
-        const response = await fetch(base + '/customers.json');
+        const response = await fetch(base + '/customers', opts);
+        if (!response.ok) { allCustomers = []; return; }
         const data = await response.json();
         allCustomers = data.customers || [];
     } catch (error) {
@@ -413,7 +442,7 @@ function getInitials(customer) {
 }
 
 function selectCustomer(customerId) {
-    const customer = allCustomers.find(c => c.id === customerId);
+    const customer = allCustomers.find(c => c.id === customerId || c.id.toString() === customerId.toString());
     if (!customer) return;
     
     selectedCustomer = customer;
@@ -520,31 +549,48 @@ function saveNewCustomer(event) {
     const phone = document.getElementById('newCustomerPhone').value.trim();
     const email = document.getElementById('newCustomerEmail').value.trim();
     
-    // Generate new customer ID
-    const newId = allCustomers.length > 0 ? Math.max(...allCustomers.map(c => c.id), 0) + 1 : 1;
+    const submitBtn = event.target.querySelector('button[type="submit"]');
+    if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Saving...'; }
     
-    // Add new customer to the list
-    const newCustomer = {
-        id: newId,
-        firstName: firstName,
-        lastName: lastName,
-        phone: phone || '',
-        email: email || '',
-        createdAt: new Date().toISOString().split('T')[0]
+    const payload = {
+        first_name: firstName,
+        last_name: lastName,
+        phone: phone || null,
+        email: email || null
     };
     
-    allCustomers.push(newCustomer);
-    
-    // Close the modal
-    if (typeof closeModal === 'function') {
-        closeModal();
-    }
-    
-    // Automatically select the newly created customer
-    selectCustomer(newId);
-    
-    // Show success message
-    showSuccessMessage('Customer added successfully!');
+    fetch(apiCustomersUrl, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: getJsonHeaders(),
+        body: JSON.stringify(payload)
+    })
+        .then(function(res) { return res.json().then(function(data) { return { ok: res.ok, data: data }; }); })
+        .then(function(result) {
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Save Customer'; }
+            if (!result.ok) {
+                const msg = (result.data && result.data.message) || (result.data && result.data.errors && JSON.stringify(result.data.errors)) || 'Failed to create customer.';
+                showErrorMessage(msg);
+                return;
+            }
+            const d = result.data && result.data.data ? result.data.data : result.data;
+            const newCustomer = {
+                id: d.id,
+                firstName: d.firstName || firstName,
+                lastName: d.lastName || lastName,
+                phone: d.phone || phone || '',
+                email: d.email || email || '',
+                createdAt: d.createdAt || new Date().toISOString().split('T')[0]
+            };
+            allCustomers.push(newCustomer);
+            if (typeof closeModal === 'function') closeModal();
+            selectCustomer(newCustomer.id);
+            showSuccessMessage('Customer added successfully!');
+        })
+        .catch(function(err) {
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Save Customer'; }
+            showErrorMessage(err && err.message ? err.message : 'Failed to create customer.');
+        });
 }
 
 function showSuccessMessage(message) {
@@ -768,9 +814,11 @@ function selectAppointmentTime(time) {
 // Technician functions
 async function fetchTechnicians() {
     try {
-        const response = await fetch(base + '/users.json');
+        const response = await fetch(base + '/users', opts);
+        if (!response.ok) { availableTechnicians = []; return; }
         const data = await response.json();
-        availableTechnicians = data.users.filter(user => (user.role === 'technician' || user.userlevel === 'technician') && user.status === 'active');
+        const users = data.users || [];
+        availableTechnicians = users.filter(user => (user.role === 'technician' || user.userlevel === 'technician') && (user.status === 'active' || !user.status));
         renderAvailableTechnicians();
         renderAssignedTechnicians();
         updateCounts();
@@ -844,6 +892,27 @@ function renderAvailableTechnicians() {
         return;
     }
     
+    filteredTechnicians = [...filteredTechnicians].sort((a, b) => {
+        const aIdStr = a.id.toString();
+        const bIdStr = b.id.toString();
+        const aIsAssigned = assignedTechnicianIds.includes(aIdStr);
+        const bIsAssigned = assignedTechnicianIds.includes(bIdStr);
+        if (aIsAssigned && !bIsAssigned) return 1;
+        if (!aIsAssigned && bIsAssigned) return -1;
+        const aOnline = !!(a.clock_in && !a.clock_out);
+        const bOnline = !!(b.clock_in && !b.clock_out);
+        if (aOnline && !bOnline) return -1;
+        if (!aOnline && bOnline) return 1;
+        const aServices = typeof a.services === 'number' ? a.services : 0;
+        const bServices = typeof b.services === 'number' ? b.services : 0;
+        const diff = aServices - bServices;
+        if (diff !== 0) return diff;
+        const aTime = a.clock_in ? new Date(a.clock_in).getTime() : Infinity;
+        const bTime = b.clock_in ? new Date(b.clock_in).getTime() : Infinity;
+        return aTime - bTime;
+    });
+    
+    const badgeStyle = 'bottom: -5px; right: -5px;';
     let html = '';
     filteredTechnicians.forEach(technician => {
         const technicianIdStr = technician.id.toString();
@@ -867,9 +936,12 @@ function renderAvailableTechnicians() {
             ? "text-base font-medium text-gray-400"
             : "text-base font-medium text-gray-900";
         
+        const isOnline = !!(technician.clock_in && !technician.clock_out);
         const badgeClasses = isAssigned
-            ? "absolute -bottom-1 -right-1 w-5 h-5 bg-gray-400 text-white rounded-full flex items-center justify-center text-xs font-bold border-2 border-white"
-            : "absolute -bottom-1 -right-1 w-5 h-5 bg-[#003047] text-white rounded-full flex items-center justify-center text-xs font-bold border-2 border-white";
+            ? "absolute w-5 h-5 rounded-full border-2 border-white bg-gray-400"
+            : (isOnline ? "absolute w-5 h-5 rounded-full border-2 border-white bg-green-500" : "absolute w-5 h-5 rounded-full border-2 border-white bg-gray-400");
+        const servicesNum = typeof technician.services === 'number' ? technician.services : 0;
+        const badgeTitle = isOnline ? 'Online' : 'Offline';
         
         html += `
             <div onclick="${isAssigned ? 'removeAssignedTechnician(' + technician.id + ')' : 'assignTechnician(' + technician.id + ')'}" class="${containerClasses}">
@@ -877,12 +949,14 @@ function renderAvailableTechnicians() {
                     <div class="${avatarClasses}">
                         <span class="${initialClasses}">${initials}</span>
                     </div>
-                    <div class="${badgeClasses}">
-                        0
-                    </div>
+                    <div class="${badgeClasses}" style="${badgeStyle}" title="${badgeTitle}"></div>
                 </div>
-                <div class="flex-1">
+                <div class="flex-1 min-w-0">
                     <p class="${nameClasses}">${fullName}</p>
+                </div>
+                <div class="flex-shrink-0 text-right">
+                    <div class="text-xs font-medium text-gray-500 uppercase">Services</div>
+                    <div class="text-lg font-semibold text-gray-900">${servicesNum}</div>
                 </div>
             </div>
         `;
@@ -904,6 +978,7 @@ function renderAssignedTechnicians() {
         return;
     }
     
+    const badgeStyle = 'bottom: -5px; right: -5px;';
     let html = '';
     assignedTechnicianIds.forEach(technicianIdStr => {
         const technician = availableTechnicians.find(t => t.id.toString() === technicianIdStr);
@@ -911,6 +986,10 @@ function renderAssignedTechnicians() {
         
         const initials = technician.initials || (technician.firstName?.[0] || '') + (technician.lastName?.[0] || '');
         const fullName = `${technician.firstName} ${technician.lastName}`;
+        const isOnline = !!(technician.clock_in && !technician.clock_out);
+        const badgeClasses = isOnline ? "absolute w-5 h-5 rounded-full border-2 border-white bg-green-500" : "absolute w-5 h-5 rounded-full border-2 border-white bg-gray-400";
+        const servicesNum = typeof technician.services === 'number' ? technician.services : 0;
+        const badgeTitle = isOnline ? 'Online' : 'Offline';
         
         html += `
             <div onclick="removeAssignedTechnician(${technician.id})" class="flex items-center gap-3 cursor-pointer group hover:bg-gray-50 p-2 rounded-lg transition-colors">
@@ -918,12 +997,14 @@ function renderAssignedTechnicians() {
                     <div class="w-12 h-12 bg-[#003047] rounded-full flex items-center justify-center">
                         <span class="text-sm font-bold text-white">${initials}</span>
                     </div>
-                    <div class="absolute -bottom-1 -right-1 w-5 h-5 bg-[#003047] text-white rounded-full flex items-center justify-center text-xs font-bold border-2 border-white">
-                        0
-                    </div>
+                    <div class="${badgeClasses}" style="${badgeStyle}" title="${badgeTitle}"></div>
                 </div>
-                <div class="flex-1">
+                <div class="flex-1 min-w-0">
                     <p class="text-base font-medium text-gray-900">${fullName}</p>
+                </div>
+                <div class="flex-shrink-0 text-right">
+                    <div class="text-xs font-medium text-gray-500 uppercase">Services</div>
+                    <div class="text-lg font-semibold text-gray-900">${servicesNum}</div>
                 </div>
             </div>
         `;
@@ -975,53 +1056,62 @@ function updateCounts() {
 
 // Update booking function
 function updateBooking() {
-    // Validate required fields
     if (!selectedCustomer) {
-        alert('Please select a customer first.');
+        showErrorMessage('Please select a customer first.');
         return;
     }
-    
     if (!selectedAppointmentDate) {
-        alert('Please select a booking date.');
+        showErrorMessage('Please select a booking date.');
         return;
     }
-    
     if (!selectedAppointmentTime) {
-        alert('Please select a booking time.');
+        showErrorMessage('Please select a booking time.');
         return;
     }
-    
     if (assignedTechnicianIds.length === 0) {
-        alert('Please assign at least one technician.');
+        showErrorMessage('Please assign at least one technician.');
         return;
     }
-    
     if (!currentBookingId) {
-        alert('Invalid booking ID.');
+        showErrorMessage('Invalid booking ID.');
         return;
     }
     
-    // Prepare updated booking data
-    const bookingData = {
-        id: currentBookingId,
+    const year = selectedAppointmentDate.getFullYear();
+    const month = String(selectedAppointmentDate.getMonth() + 1).padStart(2, '0');
+    const day = String(selectedAppointmentDate.getDate()).padStart(2, '0');
+    const appointment_datetime = `${year}-${month}-${day}T${selectedAppointmentTime}:00`;
+    
+    const payload = {
         customer_id: selectedCustomer.id,
-        appointment: currentBookingData?.appointment || 'booked',
-        status: currentBookingData?.status || 'waiting',
-        created_at: currentBookingData?.created_at || new Date().toISOString(),
-        assigned_technician: assignedTechnicianIds.map(id => parseInt(id)),
-        appointment_date: selectedAppointmentDate.toISOString().split('T')[0],
-        appointment_time: selectedAppointmentTime,
-        services: currentBookingData?.services || []
+        appointment_datetime: appointment_datetime,
+        assigned_technician: assignedTechnicianIds.map(id => parseInt(id, 10))
     };
     
-    // TODO: Update booking in backend/JSON
-    console.log('Updating booking:', bookingData);
+    const btn = document.querySelector('button[onclick="updateBooking()"]');
+    if (btn) { btn.disabled = true; btn.textContent = 'Updating...'; }
     
-    // Show success message
-    alert(`Booking updated successfully for ${selectedCustomer.firstName} ${selectedCustomer.lastName}!`);
-    
-    // Redirect to calendar
-    window.location.href = '{{ $calendarUrl }}';
+    fetch(apiAppointmentsUrl + '/' + currentBookingId, {
+        method: 'PUT',
+        credentials: 'same-origin',
+        headers: getJsonHeaders(),
+        body: JSON.stringify(payload)
+    })
+        .then(function(res) { return res.json().then(function(data) { return { ok: res.ok, data: data }; }); })
+        .then(function(result) {
+            if (btn) { btn.disabled = false; btn.textContent = 'Update Booking'; }
+            if (!result.ok) {
+                const msg = (result.data && result.data.message) || (result.data && result.data.errors && JSON.stringify(result.data.errors)) || 'Failed to update booking.';
+                showErrorMessage(msg);
+                return;
+            }
+            showSuccessMessage('Booking updated successfully for ' + selectedCustomer.firstName + ' ' + selectedCustomer.lastName + '!');
+            setTimeout(function() { window.location.href = '{{ $calendarUrl }}'; }, 800);
+        })
+        .catch(function(err) {
+            if (btn) { btn.disabled = false; btn.textContent = 'Update Booking'; }
+            showErrorMessage(err && err.message ? err.message : 'Failed to update booking.');
+        });
 }
 
 // Initialize on page load

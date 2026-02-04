@@ -71,7 +71,9 @@
 @push('scripts')
 <script>
 (function() {
-var base = window.salonJsonBase || '{{ url("json") }}';
+var base = window.salonJsonBase || '{{ url("api/salon/data") }}';
+var apiAppointmentsUrl = '{{ url("api/salon/appointments") }}';
+var apiPaymentsUrl = '{{ url("api/salon/payments") }}';
 var bookingUrl = '{{ $bookingUrl }}';
 var payUrl = '{{ $payUrl }}';
 var allCustomers = [], allAppointments = [], allTechnicians = [], allPayments = [], allMergedData = [], ticketsData = [];
@@ -81,7 +83,7 @@ var durationInterval = null;
 var availableTechnicians = [];
 var originalTechnicianOrder = [];
 var assignedTechnicianIds = [];
-var currentCustomerId = null;
+var currentCustomerId = null, currentAppointmentId = null;
 var currentCustomerName = '';
 var technicianSearchTerm = '';
 var colorClasses = [
@@ -555,7 +557,7 @@ window.salonTicketsViewDetails = function(appointmentId, customerName) {
     var aptId = appointment.appointmentId || appointment.id || 'N/A';
     var createdDate = appointment.created_at ? new Date(appointment.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A';
     var transactionId = payment ? (payment.id || payment.bookingId || 'N/A') : 'N/A';
-    var content = '<div class="p-6"><div class="flex items-center justify-between mb-6"><h3 class="text-2xl font-bold text-gray-900">Ticket Details</h3><button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><div class="space-y-2"><div class="bg-gray-50 rounded-xl p-4"><h4 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Ticket Information</h4><div class="grid grid-cols-2 gap-4"><div><p class="text-xs text-gray-500 mb-1">Ticket ID</p><p class="text-base font-semibold text-gray-900">#' + aptId + '</p></div><div><p class="text-xs text-gray-500 mb-1">Status</p><span class="inline-block px-3 py-1 ' + statusClass + ' text-xs font-medium rounded-full">' + statusDisplay + '</span></div><div><p class="text-xs text-gray-500 mb-1">Appointment Type</p><p class="text-base font-semibold text-gray-900">' + appointmentTypeDisplay + '</p></div><div><p class="text-xs text-gray-500 mb-1">Created Date</p><p class="text-base font-semibold text-gray-900">' + createdDate + '</p></div></div></div><div class="bg-gray-50 rounded-xl p-4"><h4 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Customer Information</h4><div class="grid grid-cols-2 gap-4"><div><p class="text-xs text-gray-500 mb-1">Name</p><p class="text-base font-semibold text-gray-900">' + fullName + '</p></div><div><p class="text-xs text-gray-500 mb-1">Phone</p><p class="text-base font-semibold text-gray-900">' + customerPhone + '</p></div><div><p class="text-xs text-gray-500 mb-1">Email</p><p class="text-base font-semibold text-gray-900">' + customerEmail + '</p></div><div><p class="text-xs text-gray-500 mb-1">Customer ID</p><p class="text-base font-semibold text-gray-900">#' + (appointment.customer_id || 'N/A') + '</p></div></div></div><div class="bg-gray-50 rounded-xl p-4"><h4 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Appointment Details</h4><div class="grid grid-cols-2 gap-4"><div><p class="text-xs text-gray-500 mb-1">Date</p><p class="text-base font-semibold text-gray-900">' + appointmentDate + '</p></div><div><p class="text-xs text-gray-500 mb-1">Time</p><p class="text-base font-semibold text-gray-900">' + appointmentTime + '</p></div><div><p class="text-xs text-gray-500 mb-1">Assigned Technicians</p><p class="text-base font-semibold text-gray-900">' + techniciansList + '</p></div></div></div><div class="bg-gray-50 rounded-xl p-4"><h4 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Services</h4><div class="space-y-2">' + enhancedServicesList + '</div></div>' + (status !== 'cancelled' && status !== 'canceled' ? '<div class="bg-gray-50 rounded-xl p-4"><h4 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Payment Information</h4><div class="grid grid-cols-2 gap-4"><div><p class="text-xs text-gray-500 mb-1">Amount</p><p class="text-lg font-bold text-gray-900">' + paymentAmount + '</p></div><div><p class="text-xs text-gray-500 mb-1">Payment Method</p><p class="text-base font-semibold text-gray-900">' + paymentMethod + '</p></div><div><p class="text-xs text-gray-500 mb-1">Payment Status</p><span class="inline-block px-3 py-1 ' + (paymentStatus === 'Completed' ? 'bg-green-100 text-green-700' : paymentStatus === 'Refunded' ? 'bg-gray-100 text-gray-700' : paymentStatus === 'Failed' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700') + ' text-xs font-medium rounded-full">' + paymentStatus + '</span></div><div><p class="text-xs text-gray-500 mb-1">Payment Date</p><p class="text-base font-semibold text-gray-900">' + paymentDate + '</p></div>' + (transactionId !== 'N/A' ? '<div><p class="text-xs text-gray-500 mb-1">Transaction ID</p><p class="text-base font-semibold text-gray-900">' + transactionId + '</p></div>' : '') + '</div>' + (status === 'paid' ? '<div class="mt-4 pt-4 border-t border-gray-200"><button onclick="salonTicketsConfirmRefund(\'' + aptId + '\', \'' + fullName.replace(/'/g, "\\'") + '\', \'' + paymentAmount + '\')" class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium text-sm active:scale-95"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>Refund</button></div>' : '') + '</div>' : '') + (status === 'cancelled' || status === 'canceled' ? '<div class="bg-gray-50 rounded-xl p-4"><div class="flex items-center justify-between"><div><h4 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Ticket Status</h4><p class="text-base text-gray-700">This ticket has been cancelled</p></div><button onclick="salonTicketsConfirmRestore(\'' + aptId + '\', \'' + fullName.replace(/'/g, "\\'") + '\')" class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium text-sm active:scale-95"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>Restore</button></div></div>' : '') + '</div><div class="flex items-center justify-end gap-3 pt-6 mt-6 border-t border-gray-200"><button onclick="closeModal()" class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium active:scale-95">Close</button></div></div>';
+    var content = '<div class="p-6"><div class="flex items-center justify-between mb-6"><h3 class="text-2xl font-bold text-gray-900">Ticket Details</h3><button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><div class="space-y-2"><div class="bg-gray-50 rounded-xl p-4"><h4 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Ticket Information</h4><div class="grid grid-cols-2 gap-4"><div><p class="text-xs text-gray-500 mb-1">Ticket ID</p><p class="text-base font-semibold text-gray-900">#' + aptId + '</p></div><div><p class="text-xs text-gray-500 mb-1">Status</p><span class="inline-block px-3 py-1 ' + statusClass + ' text-xs font-medium rounded-full">' + statusDisplay + '</span></div><div><p class="text-xs text-gray-500 mb-1">Appointment Type</p><p class="text-base font-semibold text-gray-900">' + appointmentTypeDisplay + '</p></div><div><p class="text-xs text-gray-500 mb-1">Created Date</p><p class="text-base font-semibold text-gray-900">' + createdDate + '</p></div></div></div><div class="bg-gray-50 rounded-xl p-4"><h4 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Customer Information</h4><div class="grid grid-cols-2 gap-4"><div><p class="text-xs text-gray-500 mb-1">Name</p><p class="text-base font-semibold text-gray-900">' + fullName + '</p></div><div><p class="text-xs text-gray-500 mb-1">Phone</p><p class="text-base font-semibold text-gray-900">' + customerPhone + '</p></div><div><p class="text-xs text-gray-500 mb-1">Email</p><p class="text-base font-semibold text-gray-900">' + customerEmail + '</p></div><div><p class="text-xs text-gray-500 mb-1">Customer ID</p><p class="text-base font-semibold text-gray-900">#' + (appointment.customer_id || 'N/A') + '</p></div></div></div><div class="bg-gray-50 rounded-xl p-4"><h4 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Appointment Details</h4><div class="grid grid-cols-2 gap-4"><div><p class="text-xs text-gray-500 mb-1">Date</p><p class="text-base font-semibold text-gray-900">' + appointmentDate + '</p></div><div><p class="text-xs text-gray-500 mb-1">Time</p><p class="text-base font-semibold text-gray-900">' + appointmentTime + '</p></div><div><p class="text-xs text-gray-500 mb-1">Assigned Technicians</p><p class="text-base font-semibold text-gray-900">' + techniciansList + '</p></div></div></div><div class="bg-gray-50 rounded-xl p-4"><h4 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Services</h4><div class="space-y-2">' + enhancedServicesList + '</div></div>' + (status !== 'cancelled' && status !== 'canceled' ? '<div class="bg-gray-50 rounded-xl p-4"><h4 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Payment Information</h4><div class="grid grid-cols-2 gap-4"><div><p class="text-xs text-gray-500 mb-1">Amount</p><p class="text-lg font-bold text-gray-900">' + paymentAmount + '</p></div><div><p class="text-xs text-gray-500 mb-1">Payment Method</p><p class="text-base font-semibold text-gray-900">' + paymentMethod + '</p></div><div><p class="text-xs text-gray-500 mb-1">Payment Status</p><span class="inline-block px-3 py-1 ' + (paymentStatus === 'Completed' ? 'bg-green-100 text-green-700' : paymentStatus === 'Refunded' ? 'bg-gray-100 text-gray-700' : paymentStatus === 'Failed' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700') + ' text-xs font-medium rounded-full">' + paymentStatus + '</span></div><div><p class="text-xs text-gray-500 mb-1">Payment Date</p><p class="text-base font-semibold text-gray-900">' + paymentDate + '</p></div>' + (transactionId !== 'N/A' ? '<div><p class="text-xs text-gray-500 mb-1">Transaction ID</p><p class="text-base font-semibold text-gray-900">' + transactionId + '</p></div>' : '') + '</div>' + (status === 'paid' ? '<div class="mt-4 pt-4 border-t border-gray-200"><button onclick="salonTicketsConfirmRefund(\'' + aptId + '\', \'' + fullName.replace(/'/g, "\\'") + '\', \'' + paymentAmount + '\')" class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium text-sm active:scale-95"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>Refund</button></div>' : '') + '</div>' : '') + (status === 'cancelled' || status === 'canceled' ? '<div class="bg-gray-50 rounded-xl p-4"><div class="flex items-center justify-between flex-wrap gap-3"><div><h4 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Ticket Status</h4><p class="text-base text-gray-700">This ticket has been cancelled</p></div><div class="flex items-center gap-2"><button onclick="salonTicketsShowRestoreConfirm(\'' + aptId + '\', \'' + fullName.replace(/'/g, "\\'") + '\')" class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium text-sm active:scale-95"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>Restore</button><button onclick="salonTicketsShowDeleteConfirm(\'' + aptId + '\', \'' + fullName.replace(/'/g, "\\'") + '\')" class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium text-sm active:scale-95"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>Delete</button></div></div></div>' : '') + '</div><div class="flex items-center justify-end gap-3 pt-6 mt-6 border-t border-gray-200"><button onclick="closeModal()" class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium active:scale-95">Close</button></div></div>';
     openModal(content, 'medium');
 };
 window.salonTicketsConfirmRefund = function(appointmentId, customerName, amount) {
@@ -570,8 +572,8 @@ window.salonTicketsConfirmRefund = function(appointmentId, customerName, amount)
     var payment = appointment.payment || null;
     var paymentMethod = payment ? payment.method : 'N/A';
     var transactionId = payment ? (payment.id || payment.bookingId || 'N/A') : 'N/A';
-    var content = '<div class="p-6"><div class="flex items-center justify-between mb-6"><div class="flex items-center gap-3"><div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center"><svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg></div><div><h3 class="text-xl font-bold text-gray-900">Refund Transaction</h3><p class="text-sm text-gray-500">Confirm refund for ' + customerName + '</p></div></div><button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><div class="space-y-4"><div class="bg-gray-50 rounded-lg p-4"><h4 class="text-sm font-semibold text-gray-700 mb-3 uppercase">Transaction Details</h4><div class="grid grid-cols-2 gap-4"><div><p class="text-xs text-gray-500 mb-1">Amount</p><p class="text-lg font-bold text-gray-900">' + amount + '</p></div><div><p class="text-xs text-gray-500 mb-1">Payment Method</p><p class="text-sm font-semibold text-gray-900">' + paymentMethod + '</p></div><div><p class="text-xs text-gray-500 mb-1">Transaction ID</p><p class="text-sm font-semibold text-gray-900">' + transactionId + '</p></div></div></div><div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4"><div class="flex items-start gap-3"><svg class="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg><div><h4 class="text-sm font-semibold text-yellow-800 mb-1">Refund Warning</h4><p class="text-sm text-yellow-700">This action cannot be undone. The refund will be processed immediately.</p></div></div></div></div><div class="flex justify-end gap-3 mt-6 pt-6 border-t border-gray-200"><button onclick="closeModal()" class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium active:scale-95">Cancel</button><button onclick="salonTicketsProcessRefund(\'' + appointmentId + '\', \'' + customerName.replace(/'/g, "\\'") + '\', ' + amountValue + ')" class="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium active:scale-95">Confirm Refund</button></div></div>';
-    openModal(content);
+    var content = '<div class="p-6"><div class="flex items-center justify-between mb-6"><div class="flex items-center gap-3"><div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center"><svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg></div><div><h3 class="text-xl font-bold text-gray-900">Refund Transaction</h3><p class="text-sm text-gray-500">Confirm refund for ' + customerName + '</p></div></div><button onclick="closeNestedModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><div class="space-y-4"><div class="bg-gray-50 rounded-lg p-4"><h4 class="text-sm font-semibold text-gray-700 mb-3 uppercase">Transaction Details</h4><div class="grid grid-cols-2 gap-4"><div><p class="text-xs text-gray-500 mb-1">Amount</p><p class="text-lg font-bold text-gray-900">' + amount + '</p></div><div><p class="text-xs text-gray-500 mb-1">Payment Method</p><p class="text-sm font-semibold text-gray-900">' + paymentMethod + '</p></div><div><p class="text-xs text-gray-500 mb-1">Transaction ID</p><p class="text-sm font-semibold text-gray-900">' + transactionId + '</p></div></div></div><div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4"><div class="flex items-start gap-3"><svg class="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg><div><h4 class="text-sm font-semibold text-yellow-800 mb-1">Refund Warning</h4><p class="text-sm text-yellow-700">This action cannot be undone. The refund will be processed immediately.</p></div></div></div></div><div class="flex justify-end gap-3 mt-6 pt-6 border-t border-gray-200"><button onclick="closeNestedModal()" class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium active:scale-95">Cancel</button><button onclick="salonTicketsProcessRefund(\'' + appointmentId + '\', \'' + customerName.replace(/'/g, "\\'") + '\', ' + amountValue + ')" class="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium active:scale-95">Confirm Refund</button></div></div>';
+    openNestedModal(content);
 };
 window.salonTicketsProcessRefund = function(appointmentId, customerName, amount) {
     var appointment = allMergedData.find(function(apt) {
@@ -581,26 +583,43 @@ window.salonTicketsProcessRefund = function(appointmentId, customerName, amount)
         alert('Appointment not found.');
         return;
     }
-    appointment.status = 'refunded';
-    if (appointment.payment) {
-        appointment.payment.status = 'Refunded';
-    }
-    allMergedData = allMergedData.filter(function(item) {
-        if (!item || !item.status) return false;
-        var status = item.status.toLowerCase().trim();
-        var validStatuses = ['in-progress', 'completed', 'waiting', 'paid', 'cancelled', 'canceled', 'refunded', 'closed'];
-        return validStatuses.indexOf(status) >= 0;
+    var paymentId = appointment.payment && (appointment.payment.id || appointment.payment.bookingId);
+    var appointmentPromise = salonApi.put(apiAppointmentsUrl + '/' + appointmentId, { status: 'refunded' });
+    var paymentPromise = paymentId ? salonApi.put(apiPaymentsUrl + '/' + paymentId, { status: 'Refunded' }) : Promise.resolve();
+    Promise.all([appointmentPromise, paymentPromise]).then(function() {
+        appointment.status = 'refunded';
+        if (appointment.payment) {
+            appointment.payment.status = 'Refunded';
+        }
+        var idx = allAppointments.findIndex(function(a) { return a.id.toString() === appointmentId.toString(); });
+        if (idx >= 0 && allAppointments[idx]) {
+            allAppointments[idx].status = 'refunded';
+        }
+        allMergedData = allMergedData.filter(function(item) {
+            if (!item || !item.status) return false;
+            var status = item.status.toLowerCase().trim();
+            var validStatuses = ['in-progress', 'completed', 'waiting', 'paid', 'cancelled', 'canceled', 'refunded', 'closed'];
+            return validStatuses.indexOf(status) >= 0;
+        });
+        currentStatusFilter = 'refunded';
+        updateTabStates('refunded');
+        var url = new URL(window.location);
+        url.searchParams.set('status', 'refunded');
+        window.history.pushState({}, '', url);
+        applyFilters();
+        closeNestedModal();
+        closeModal();
+        showSuccessMessage('Refund of $' + amount.toFixed(2) + ' has been processed successfully for ' + customerName + '. The ticket has been moved to the "Refunded" tab.');
+    }).catch(function(err) {
+        showErrorMessage(err.message || 'Failed to update status. Please try again.');
     });
-    currentStatusFilter = 'refunded';
-    updateTabStates('refunded');
-    var url = new URL(window.location);
-    url.searchParams.set('status', 'refunded');
-    window.history.pushState({}, '', url);
-    applyFilters();
-    closeModal();
-    showSuccessMessage('Refund of $' + amount.toFixed(2) + ' has been processed successfully for ' + customerName + '. The ticket has been moved to the "Refunded" tab.');
 };
-window.salonTicketsConfirmRestore = function(appointmentId, customerName) {
+window.salonTicketsShowRestoreConfirm = function(appointmentId, customerName) {
+    var escapedName = (customerName + '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    var content = '<div class="p-6"><div class="flex items-center justify-between mb-6"><div class="flex items-center gap-3"><div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center"><svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg></div><div><h3 class="text-xl font-bold text-gray-900">Restore Ticket</h3><p class="text-sm text-gray-500">Confirm for ' + customerName + '</p></div></div><button onclick="closeNestedModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><div class="space-y-4"><div class="bg-gray-50 rounded-lg p-4"><p class="text-sm text-gray-700">Restore this cancelled ticket? The ticket will be set to <strong>unpaid</strong> and moved to the Unpaid tab.</p></div></div><div class="flex justify-end gap-3 mt-6 pt-6 border-t border-gray-200"><button onclick="closeNestedModal()" class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium active:scale-95">Cancel</button><button onclick="salonTicketsProcessRestore(\'' + appointmentId + '\', \'' + escapedName + '\')" class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium active:scale-95">Confirm</button></div></div>';
+    openNestedModal(content, 'small');
+};
+window.salonTicketsProcessRestore = function(appointmentId, customerName) {
     var appointment = allMergedData.find(function(apt) {
         return (apt.appointmentId && apt.appointmentId.toString() === appointmentId.toString()) || (apt.id && apt.id.toString() === appointmentId.toString());
     });
@@ -608,21 +627,47 @@ window.salonTicketsConfirmRestore = function(appointmentId, customerName) {
         alert('Appointment not found.');
         return;
     }
-    appointment.status = 'unpaid';
-    allMergedData = allMergedData.filter(function(item) {
-        if (!item || !item.status) return false;
-        var status = item.status.toLowerCase().trim();
-        var validStatuses = ['in-progress', 'completed', 'waiting', 'paid', 'cancelled', 'canceled', 'refunded', 'closed'];
-        return validStatuses.indexOf(status) >= 0;
+    salonApi.put(apiAppointmentsUrl + '/' + appointmentId, { status: 'unpaid' }).then(function(res) {
+        var data = res.data;
+        if (data) {
+            var idx = allAppointments.findIndex(function(a) { return a.id.toString() === appointmentId.toString(); });
+            if (idx >= 0) {
+                allAppointments[idx] = data;
+            } else if (data) {
+                allAppointments.push(data);
+            }
+        }
+        appointment.status = 'unpaid';
+        mergeAppointmentsWithCustomers();
+        currentStatusFilter = 'unpaid';
+        updateTabStates('unpaid');
+        var url = new URL(window.location);
+        url.searchParams.set('status', 'unpaid');
+        window.history.pushState({}, '', url);
+        applyFilters();
+        closeNestedModal();
+        closeModal();
+        showSuccessMessage('Ticket #' + appointmentId + ' has been restored for ' + customerName + '. The ticket has been moved to the "Unpaid" tab.');
+    }).catch(function(err) {
+        showErrorMessage(err.message || 'Failed to update status. Please try again.');
     });
-    currentStatusFilter = 'unpaid';
-    updateTabStates('unpaid');
-    var url = new URL(window.location);
-    url.searchParams.set('status', 'unpaid');
-    window.history.pushState({}, '', url);
-    applyFilters();
-    closeModal();
-    showSuccessMessage('Ticket #' + appointmentId + ' has been restored successfully for ' + customerName + '. The ticket has been moved to the "Unpaid" tab.');
+};
+window.salonTicketsShowDeleteConfirm = function(appointmentId, customerName) {
+    var escapedName = (customerName + '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    var content = '<div class="p-6"><div class="flex items-center justify-between mb-6"><div class="flex items-center gap-3"><div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center"><svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></div><div><h3 class="text-xl font-bold text-gray-900">Delete Ticket</h3><p class="text-sm text-gray-500">' + customerName + '</p></div></div><button onclick="closeNestedModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><div class="space-y-4"><div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4"><p class="text-sm text-yellow-800">Delete this cancelled ticket? This action cannot be undone.</p></div></div><div class="flex justify-end gap-3 mt-6 pt-6 border-t border-gray-200"><button onclick="closeNestedModal()" class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium active:scale-95">Cancel</button><button onclick="salonTicketsProcessDelete(\'' + appointmentId + '\', \'' + escapedName + '\')" class="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium active:scale-95">Delete</button></div></div>';
+    openNestedModal(content, 'small');
+};
+window.salonTicketsProcessDelete = function(appointmentId, customerName) {
+    salonApi.delete(apiAppointmentsUrl + '/' + appointmentId).then(function() {
+        allAppointments = allAppointments.filter(function(a) { return a.id.toString() !== appointmentId.toString(); });
+        mergeAppointmentsWithCustomers();
+        applyFilters();
+        closeNestedModal();
+        closeModal();
+        showSuccessMessage('Ticket #' + appointmentId + ' has been deleted.');
+    }).catch(function(err) {
+        showErrorMessage(err.message || 'Failed to delete ticket. Please try again.');
+    });
 };
 window.salonTicketsAssignCustomer = function(customerId, customerName) {
     currentCustomerId = customerId;
@@ -631,12 +676,13 @@ window.salonTicketsAssignCustomer = function(customerId, customerName) {
     var customer = allMergedData.find(function(c) {
         return (c.id && c.id.toString() === customerId.toString()) || (c.customer_id && c.customer_id.toString() === customerId.toString());
     });
+    currentAppointmentId = customer && customer.appointmentId ? customer.appointmentId : null;
     if (customer && customer.assigned_technician && Array.isArray(customer.assigned_technician)) {
         assignedTechnicianIds = customer.assigned_technician.map(function(id) { return id.toString(); });
     } else {
         assignedTechnicianIds = [];
     }
-    var content = '<div class="p-6"><div class="flex items-center justify-between mb-6"><h3 class="text-xl font-bold text-gray-900">Assign Technician to ' + customerName + '</h3><button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><div class="grid grid-cols-2 gap-6"><div class="border border-gray-200 rounded-lg p-4"><div class="flex items-center justify-between mb-2"><h4 class="text-sm font-semibold text-gray-900">Available Technicians</h4><span id="availableCount" class="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">0</span></div><p class="text-xs text-gray-500 mb-2">Click to assign technicians to services</p><div class="mb-4"><div class="relative"><svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg><input type="text" id="technicianSearchInput" placeholder="Search technicians..." oninput="salonTicketsSearchTechnicians(this.value)" class="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent text-sm"><button id="clearTechnicianSearchBtn" onclick="salonTicketsClearTechnicianSearch()" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 hidden"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div></div><div id="availableTechniciansContainer" class="space-y-3 min-h-[500px] max-h-[500px] overflow-y-auto"></div></div><div class="border border-gray-200 rounded-lg p-4"><div class="flex items-center justify-between mb-2"><h4 class="text-sm font-semibold text-gray-900">Assigned Technicians</h4><span id="assignedCount" class="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">0</span></div><p class="text-xs text-gray-500 mb-4">Click to remove assigned technicians</p><div id="assignedTechniciansContainer" class="space-y-3 min-h-[500px] max-h-[500px] overflow-y-auto"><div class="flex items-center justify-center h-full min-h-[500px]"><p class="text-sm text-gray-400">No technicians assigned</p></div></div></div></div><div class="pt-6 mt-6 border-t border-gray-200"><div class="flex items-center justify-end"><div class="flex gap-3"><button onclick="closeModal()" class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium active:scale-95">Cancel</button><button onclick="salonTicketsConfirmAssign()" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">Save Changes</button></div></div></div></div>';
+    var content = '<div class="p-6"><div class="flex items-center justify-between mb-6"><h3 class="text-xl font-bold text-gray-900">Assign Technician to ' + customerName + '</h3><button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><div class="grid grid-cols-2 gap-6"><div class="border border-gray-200 rounded-lg p-4"><div class="flex items-center justify-between mb-2"><h4 class="text-sm font-semibold text-gray-900">Available Technicians</h4><span id="availableCount" class="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">0</span></div><p class="text-xs text-gray-500 mb-2">Click to assign technicians to services</p><div class="mb-4"><div class="relative"><svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg><input type="text" id="technicianSearchInput" placeholder="Search technicians..." oninput="salonTicketsSearchTechnicians(this.value)" class="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent text-sm"><button id="clearTechnicianSearchBtn" onclick="salonTicketsClearTechnicianSearch()" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 hidden"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div></div><div id="availableTechniciansContainer" class="space-y-3 min-h-[500px] max-h-[500px] overflow-y-auto"></div></div><div class="border border-gray-200 rounded-lg p-4"><div class="flex items-center justify-between mb-2"><h4 class="text-sm font-semibold text-gray-900">Assigned Technicians</h4><span id="assignedCount" class="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">0</span></div><p class="text-xs text-gray-500 mb-4">Click to remove assigned technicians</p><div id="assignedTechniciansContainer" class="space-y-3 min-h-[500px] max-h-[500px] overflow-y-auto"><div class="flex items-center justify-center h-full min-h-[500px]"><p class="text-sm text-gray-400">No technicians assigned</p></div></div></div></div><div class="pt-6 mt-6 border-t border-gray-200"><div class="flex items-center justify-end"><div class="flex gap-3"><button onclick="closeModal()" class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium active:scale-95">Cancel</button><button onclick="salonTicketsConfirmAssign()" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">Save Assignment</button></div></div></div></div>';
     openModal(content, 'large', false);
     setTimeout(function() {
         var modalContainer = document.getElementById('modalContainer');
@@ -650,7 +696,7 @@ window.salonTicketsAssignCustomer = function(customerId, customerName) {
     }, 100);
 };
 window.salonTicketsLoadTechnicians = function() {
-    fetch(base + '/users.json').then(function(r) { return r.json(); }).then(function(data) {
+    fetch(base + '/users').then(function(r) { return r.json(); }).then(function(data) {
         availableTechnicians = (data.users || []).filter(function(u) { return u.role === 'technician' || u.userlevel === 'technician'; });
         originalTechnicianOrder = availableTechnicians.map(function(t) { return t.id; });
         salonTicketsRenderAvailableTechnicians();
@@ -701,10 +747,19 @@ window.salonTicketsRenderAvailableTechnicians = function() {
         var bIsAssigned = assignedTechnicianIds.indexOf(bIdStr) >= 0;
         if (aIsAssigned && !bIsAssigned) return 1;
         if (!aIsAssigned && bIsAssigned) return -1;
-        var aIndex = originalTechnicianOrder.indexOf(a.id);
-        var bIndex = originalTechnicianOrder.indexOf(b.id);
-        return aIndex - bIndex;
+        var aOnline = !!(a.clock_in && !a.clock_out);
+        var bOnline = !!(b.clock_in && !b.clock_out);
+        if (aOnline && !bOnline) return -1;
+        if (!aOnline && bOnline) return 1;
+        var aServices = typeof a.services === 'number' ? a.services : 0;
+        var bServices = typeof b.services === 'number' ? b.services : 0;
+        var diff = aServices - bServices;
+        if (diff !== 0) return diff;
+        var aTime = a.clock_in ? new Date(a.clock_in).getTime() : Infinity;
+        var bTime = b.clock_in ? new Date(b.clock_in).getTime() : Infinity;
+        return aTime - bTime;
     });
+    var badgeStyle = 'bottom: -5px; right: -5px;';
     var html = '';
     filtered.forEach(function(technician) {
         var techIdStr = technician.id.toString();
@@ -715,8 +770,10 @@ window.salonTicketsRenderAvailableTechnicians = function() {
         var avatarClasses = isAssigned ? 'w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center' : 'w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center';
         var initialClasses = isAssigned ? 'text-sm font-bold text-gray-500' : 'text-sm font-bold text-gray-600';
         var nameClasses = isAssigned ? 'text-base font-medium text-gray-400' : 'text-base font-medium text-gray-900';
-        var badgeClasses = isAssigned ? 'absolute -bottom-1 -right-1 w-5 h-5 bg-gray-400 text-white rounded-full flex items-center justify-center text-xs font-bold border-2 border-white' : 'absolute -bottom-1 -right-1 w-5 h-5 bg-[#003047] text-white rounded-full flex items-center justify-center text-xs font-bold border-2 border-white';
-        html += '<div onclick="' + (isAssigned ? 'salonTicketsRemoveAssignedTechnician(' + technician.id + ')' : 'salonTicketsAssignTechnician(' + technician.id + ')') + '" class="' + containerClasses + '"><div class="relative flex-shrink-0"><div class="' + avatarClasses + '"><span class="' + initialClasses + '">' + initials + '</span></div><div class="' + badgeClasses + '">0</div></div><div class="flex-1"><p class="' + nameClasses + '">' + fullName + '</p></div></div>';
+        var isOnline = !!(technician.clock_in && !technician.clock_out);
+        var badgeClasses = isAssigned ? 'absolute w-5 h-5 rounded-full border-2 border-white bg-gray-400' : (isOnline ? 'absolute w-5 h-5 rounded-full border-2 border-white bg-green-500' : 'absolute w-5 h-5 rounded-full border-2 border-white bg-gray-400');
+        var servicesNum = typeof technician.services === 'number' ? technician.services : 0;
+        html += '<div onclick="' + (isAssigned ? 'salonTicketsRemoveAssignedTechnician(' + technician.id + ')' : 'salonTicketsAssignTechnician(' + technician.id + ')') + '" class="' + containerClasses + '"><div class="relative flex-shrink-0"><div class="' + avatarClasses + '"><span class="' + initialClasses + '">' + initials + '</span></div><div class="' + badgeClasses + '" style="' + badgeStyle + '" title="' + (isOnline ? 'Online' : 'Offline') + '"></div></div><div class="flex-1 min-w-0"><p class="' + nameClasses + '">' + fullName + '</p></div><div class="flex-shrink-0 text-right"><div class="text-xs font-medium text-gray-500 uppercase">Services</div><div class="text-lg font-semibold text-gray-900">' + servicesNum + '</div></div></div>';
     });
     container.innerHTML = html;
 };
@@ -727,13 +784,17 @@ window.salonTicketsRenderAssignedTechnicians = function() {
         container.innerHTML = '<div class="flex items-center justify-center h-full min-h-[500px]"><p class="text-sm text-gray-400">No technicians assigned</p></div>';
         return;
     }
+    var badgeStyle = 'bottom: -5px; right: -5px;';
     var html = '';
     assignedTechnicianIds.forEach(function(techIdStr) {
         var technician = availableTechnicians.find(function(t) { return t.id.toString() === techIdStr; });
         if (!technician) return;
         var initials = technician.initials || (technician.firstName || '')[0] + (technician.lastName || '')[0];
         var fullName = technician.firstName + ' ' + technician.lastName;
-        html += '<div onclick="salonTicketsRemoveAssignedTechnician(' + technician.id + ')" class="flex items-center gap-3 cursor-pointer group hover:bg-gray-50 p-2 rounded-lg transition-colors"><div class="relative flex-shrink-0"><div class="w-12 h-12 bg-[#003047] rounded-full flex items-center justify-center"><span class="text-sm font-bold text-white">' + initials + '</span></div><div class="absolute -bottom-1 -right-1 w-5 h-5 bg-[#003047] text-white rounded-full flex items-center justify-center text-xs font-bold border-2 border-white">0</div></div><div class="flex-1"><p class="text-base font-medium text-gray-900">' + fullName + '</p></div></div>';
+        var isOnline = !!(technician.clock_in && !technician.clock_out);
+        var badgeClasses = isOnline ? 'absolute w-5 h-5 rounded-full border-2 border-white bg-green-500' : 'absolute w-5 h-5 rounded-full border-2 border-white bg-gray-400';
+        var servicesNum = typeof technician.services === 'number' ? technician.services : 0;
+        html += '<div onclick="salonTicketsRemoveAssignedTechnician(' + technician.id + ')" class="flex items-center gap-3 cursor-pointer group hover:bg-gray-50 p-2 rounded-lg transition-colors"><div class="relative flex-shrink-0"><div class="w-12 h-12 bg-[#003047] rounded-full flex items-center justify-center"><span class="text-sm font-bold text-white">' + initials + '</span></div><div class="' + badgeClasses + '" style="' + badgeStyle + '" title="' + (isOnline ? 'Online' : 'Offline') + '"></div></div><div class="flex-1 min-w-0"><p class="text-base font-medium text-gray-900">' + fullName + '</p></div><div class="flex-shrink-0 text-right"><div class="text-xs font-medium text-gray-500 uppercase">Services</div><div class="text-lg font-semibold text-gray-900">' + servicesNum + '</div></div></div>';
     });
     container.innerHTML = html;
 };
@@ -764,24 +825,43 @@ window.salonTicketsConfirmAssign = function() {
         alert('Please assign at least one technician');
         return;
     }
-    var assignedNames = assignedTechnicianIds.map(function(id) {
-        var tech = availableTechnicians.find(function(t) { return t.id.toString() === id; });
-        return tech ? tech.firstName + ' ' + tech.lastName : '';
-    }).filter(Boolean);
-    var message = currentCustomerName + ' assigned to ' + assignedNames.join(', ') + ' successfully!';
-    showSuccessMessage(message);
-    closeModal();
-    assignedTechnicianIds = [];
-    currentCustomerId = null;
-    currentCustomerName = '';
-    setTimeout(function() { location.reload(); }, 1500);
+    if (!currentAppointmentId) {
+        showErrorMessage('Appointment not found.');
+        return;
+    }
+    var payload = { assigned_technician: assignedTechnicianIds.map(function(id) { return parseInt(id, 10); }) };
+    var btn = document.querySelector('[onclick*="salonTicketsConfirmAssign"]');
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
+    salonApi.put(apiAppointmentsUrl + '/' + currentAppointmentId, payload).then(function(res) {
+        var data = res.data;
+        var idx = allAppointments.findIndex(function(a) { return a.id === currentAppointmentId; });
+        if (idx >= 0 && data) allAppointments[idx] = data;
+        else if (data) allAppointments.push(data);
+        mergeAppointmentsWithCustomers();
+        applyFilters();
+        var assignedNames = assignedTechnicianIds.map(function(id) {
+            var tech = availableTechnicians.find(function(t) { return t.id.toString() === id; });
+            return tech ? tech.firstName + ' ' + tech.lastName : '';
+        }).filter(Boolean);
+        var message = res.message || (currentCustomerName + ' assigned to ' + assignedNames.join(', ') + ' successfully.');
+        showSuccessMessage(message);
+        closeModal();
+        assignedTechnicianIds = [];
+        currentCustomerId = null;
+        currentCustomerName = '';
+        currentAppointmentId = null;
+    }).catch(function(err) {
+        showErrorMessage(err.message || 'Failed to save assignment.');
+    }).finally(function() {
+        if (btn) { btn.disabled = false; btn.textContent = 'Save Assignment'; }
+    });
 };
 async function fetchTickets() {
     try {
-        var custRes = await fetch(base + '/customers.json');
-        var aptRes = await fetch(base + '/appointments.json');
-        var techRes = await fetch(base + '/users.json');
-        var payRes = await fetch(base + '/payments.json');
+        var custRes = await fetch(base + '/customers');
+        var aptRes = await fetch(base + '/appointments');
+        var techRes = await fetch(base + '/users');
+        var payRes = await fetch(base + '/payments');
         var custData = await custRes.json();
         var aptData = await aptRes.json();
         var techData = await techRes.json();

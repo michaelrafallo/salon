@@ -3,6 +3,7 @@
 @section('content')
 @php
     $usersViewUrl = route('salon.users.view');
+    $apiUsersUrl = url('api/salon/users');
 @endphp
 <main class="flex-1 overflow-y-auto bg-gray-50 lg:ml-0 pt-16 lg:pt-0">
     <div class="p-4 sm:p-6 lg:p-8">
@@ -42,6 +43,7 @@
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Login</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="listViewBody" class="bg-white divide-y divide-gray-200"></tbody>
@@ -64,8 +66,9 @@
 @push('scripts')
 <script>
 (function() {
-var base = window.salonJsonBase || '{{ url("json") }}';
+var base = window.salonJsonBase || '{{ url("api/salon/data") }}';
 var viewUrl = '{{ $usersViewUrl }}';
+var apiUsersUrl = '{{ $apiUsersUrl }}';
 var allUsers = [], usersData = [], currentRoleFilter = 'all', currentSearchTerm = '', PAGE_SIZE = 15, currentPage = 1, totalPages = 1, currentView = localStorage.getItem('staffView') || 'grid';
 
 var roleColors = {
@@ -145,7 +148,7 @@ function renderGrid() {
         var technicianStatus = (u.role === 'technician' || u.userlevel === 'technician') && u.status ? u.status : statusText;
         var technicianStatusColor = (u.role === 'technician' || u.userlevel === 'technician') && u.status === 'Available' ? 'text-green-600' : (u.role === 'technician' || u.userlevel === 'technician') && u.status === 'Busy' ? 'text-[#003047]' : statusColor;
         var statsHTML = (u.role === 'technician' || u.userlevel === 'technician') && u.totalEarnings !== undefined ? '<div class="grid grid-cols-2 gap-3 mb-4 pt-4 border-t border-gray-200"><div><p class="text-xs text-gray-500">Status</p><p class="text-sm font-medium ' + technicianStatusColor + '">' + technicianStatus + '</p></div><div><p class="text-xs text-gray-500">Earnings</p><p class="text-sm font-medium text-gray-900">$' + (u.totalEarnings || 0).toFixed(2) + '</p></div></div>' : '<div class="grid grid-cols-2 gap-3 mb-4 pt-4 border-t border-gray-200"><div><p class="text-xs text-gray-500">Status</p><p class="text-sm font-medium ' + statusColor + '">' + statusText + '</p></div><div><p class="text-xs text-gray-500">Last Login</p><p class="text-sm font-medium text-gray-900">Today</p></div></div>';
-        return '<div data-role="' + roleDisplay + '" onclick="window.location.href=\'' + viewUrl + '?id=' + u.id + '\'" class="staff-card bg-white rounded-lg shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer active:scale-95"><div class="flex items-center gap-4 mb-4"><div class="w-16 h-16 ' + colors.bg + ' rounded-full flex items-center justify-center flex-shrink-0"><span class="text-2xl font-bold ' + colors.text + '">' + inits + '</span></div><div class="flex-1 min-w-0"><h3 class="font-semibold text-gray-900 text-lg truncate">' + name + '</h3><p class="text-sm text-gray-500 truncate">' + (u.email || '') + '</p><p class="text-xs ' + colors.text + ' font-medium mt-1">' + roleDisplay + '</p></div></div>' + statsHTML + '</div>';
+        return '<div data-role="' + roleDisplay + '" class="staff-card bg-white rounded-lg shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow relative"><div onclick="window.location.href=\'' + viewUrl + '?id=' + u.id + '\'" class="flex items-center gap-4 mb-4 cursor-pointer"><div class="w-16 h-16 ' + colors.bg + ' rounded-full flex items-center justify-center flex-shrink-0"><span class="text-2xl font-bold ' + colors.text + '">' + inits + '</span></div><div class="flex-1 min-w-0"><h3 class="font-semibold text-gray-900 text-lg truncate">' + name + '</h3><p class="text-sm text-gray-500 truncate">' + (u.email || '') + '</p><p class="text-xs ' + colors.text + ' font-medium mt-1">' + roleDisplay + '</p></div></div>' + statsHTML + '<div class="flex gap-2 pt-2 border-t border-gray-100" onclick="event.stopPropagation()"><button type="button" onclick="salonUsersOpenEditModal(' + u.id + ')" class="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">Edit</button><button type="button" onclick="salonUsersDelete(' + u.id + ', \'' + name.replace(/'/g, "\\'") + '\')" class="px-3 py-1.5 text-sm bg-red-50 text-red-600 rounded-lg hover:bg-red-100">Delete</button></div></div>';
     }).join('');
 }
 function renderList() {
@@ -153,7 +156,7 @@ function renderList() {
     if (!tbody) return;
     var list = getPaginated();
     if (list.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-12 text-center"><svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg><p class="text-gray-500 text-sm">No users found</p></td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-12 text-center"><svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg><p class="text-gray-500 text-sm">No users found</p></td></tr>';
         return;
     }
     tbody.innerHTML = list.map(function(u) {
@@ -161,7 +164,7 @@ function renderList() {
         var statusText = u.active ? 'Active' : 'Inactive', statusColor = u.active ? 'text-green-600' : 'text-gray-500';
         var technicianStatus = (u.role === 'technician' || u.userlevel === 'technician') && u.status ? u.status : statusText;
         var technicianStatusColor = (u.role === 'technician' || u.userlevel === 'technician') && u.status === 'Available' ? 'text-green-600' : (u.role === 'technician' || u.userlevel === 'technician') && u.status === 'Busy' ? 'text-[#003047]' : statusColor;
-        return '<tr data-role="' + roleDisplay + '" onclick="window.location.href=\'' + viewUrl + '?id=' + u.id + '\'" class="staff-row hover:bg-gray-50 cursor-pointer transition"><td class="px-6 py-4 whitespace-nowrap"><div class="flex items-center"><div class="w-10 h-10 ' + colors.bg + ' rounded-full flex items-center justify-center flex-shrink-0"><span class="text-sm font-bold ' + colors.text + '">' + inits + '</span></div><div class="ml-4"><div class="text-sm font-medium text-gray-900">' + name + '</div><div class="text-sm text-gray-500">' + (u.email || '') + '</div></div></div></td><td class="px-6 py-4 whitespace-nowrap"><span class="text-xs ' + colors.badgeText + ' font-medium px-2 py-1 ' + colors.badge + ' rounded">' + roleDisplay + '</span></td><td class="px-6 py-4 whitespace-nowrap"><span class="text-sm font-medium ' + technicianStatusColor + '">' + technicianStatus + '</span></td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Today</td></tr>';
+        return '<tr data-role="' + roleDisplay + '" class="staff-row hover:bg-gray-50 transition"><td onclick="window.location.href=\'' + viewUrl + '?id=' + u.id + '\'" class="px-6 py-4 whitespace-nowrap cursor-pointer"><div class="flex items-center"><div class="w-10 h-10 ' + colors.bg + ' rounded-full flex items-center justify-center flex-shrink-0"><span class="text-sm font-bold ' + colors.text + '">' + inits + '</span></div><div class="ml-4"><div class="text-sm font-medium text-gray-900">' + name + '</div><div class="text-sm text-gray-500">' + (u.email || '') + '</div></div></div></td><td class="px-6 py-4 whitespace-nowrap"><span class="text-xs ' + colors.badgeText + ' font-medium px-2 py-1 ' + colors.badge + ' rounded">' + roleDisplay + '</span></td><td class="px-6 py-4 whitespace-nowrap"><span class="text-sm font-medium ' + technicianStatusColor + '">' + technicianStatus + '</span></td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Today</td><td class="px-6 py-4 whitespace-nowrap text-sm"><button type="button" onclick="event.stopPropagation(); salonUsersOpenEditModal(' + u.id + ')" class="text-[#003047] hover:underline mr-2">Edit</button><button type="button" onclick="event.stopPropagation(); salonUsersDelete(' + u.id + ', \'' + name.replace(/'/g, "\\'") + '\')" class="text-red-600 hover:underline">Delete</button></td></tr>';
     }).join('');
 }
 function salonUsersRender() {
@@ -224,14 +227,68 @@ function initializeRoleFilter() {
     applyFilters();
 }
 window.salonUsersOpenNewUserModal = function() {
-    var content = '<div class="p-6"><div class="flex items-center justify-between mb-4"><h3 class="text-xl font-bold text-gray-900">New User</h3><button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><form onsubmit="salonUsersSaveUser(event)" class="space-y-4"><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">First Name</label><input type="text" name="first_name" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Last Name</label><input type="text" name="last_name" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">Email</label><input type="email" name="email" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Phone Number</label><input type="tel" name="phone" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Role</label><select name="role" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"><option value="">Select Role</option><option value="Admin">Admin</option><option value="Receptionist">Receptionist</option><option value="Technician">Technician</option></select></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Password</label><input type="password" name="password" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div><div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg"><div><label class="text-sm font-medium text-gray-900">Active</label></div><label class="relative inline-flex items-center cursor-pointer"><input type="checkbox" name="active" class="sr-only peer" checked><div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#b3d1d9] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[\'\'] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#003047]"></div></label></div><div class="flex justify-end gap-3 pt-4"><button type="submit" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">Save User</button></div></form></div>';
+    var content = '<div class="p-6"><div class="flex items-center justify-between mb-4"><h3 class="text-xl font-bold text-gray-900">New User</h3><button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><form onsubmit="salonUsersSaveUser(event)" class="space-y-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">Username</label><input type="text" name="username" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="e.g. jane.doe"></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">First Name</label><input type="text" name="first_name" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Last Name</label><input type="text" name="last_name" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">Email</label><input type="email" name="email" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Phone</label><input type="tel" name="phone" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Role</label><select name="role" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"><option value="">Select Role</option><option value="admin">Admin</option><option value="receptionist">Receptionist</option><option value="technician">Technician</option></select></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Password</label><input type="password" name="password" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div><div class="flex justify-end gap-3 pt-4"><button type="button" onclick="closeModal()" class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button><button type="submit" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium">Save User</button></div></form></div>';
     openModal(content);
 };
 window.salonUsersSaveUser = function(e) {
     e.preventDefault();
-    showSuccessMessage('User added successfully!');
-    closeModal();
-    setTimeout(function() { location.reload(); }, 1500);
+    var form = e.target;
+    var data = { username: form.username.value.trim(), first_name: form.first_name.value.trim(), last_name: form.last_name.value.trim(), email: form.email.value.trim(), password: form.password.value, phone: form.phone.value.trim() || null, role: form.role.value, status: 'active' };
+    var btn = form.querySelector('button[type="submit"]');
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
+    salonApi.post(apiUsersUrl, data).then(function(res) {
+        showSuccessMessage(res.message || 'User added successfully!');
+        closeModal();
+        allUsers.unshift(res.data);
+        applyFilters();
+        salonUsersRender();
+    }).catch(function(err) {
+        showErrorMessage(err.message || 'Failed to save user.');
+        if (btn) { btn.disabled = false; btn.textContent = 'Save User'; }
+    });
+};
+window.salonUsersOpenEditModal = function(id) {
+    var u = allUsers.find(function(x) { return x.id === id; });
+    if (!u) return;
+    var roleVal = (u.role || u.userlevel || 'technician').toLowerCase();
+    var content = '<div class="p-6"><div class="flex items-center justify-between mb-4"><h3 class="text-xl font-bold text-gray-900">Edit User</h3><button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><form onsubmit="salonUsersUpdateUser(event, ' + u.id + ')" class="space-y-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">Username</label><input type="text" name="username" value="' + (u.username || '').replace(/"/g, '&quot;') + '" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">First Name</label><input type="text" name="first_name" value="' + (u.firstName || '').replace(/"/g, '&quot;') + '" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Last Name</label><input type="text" name="last_name" value="' + (u.lastName || '').replace(/"/g, '&quot;') + '" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">Email</label><input type="email" name="email" value="' + (u.email || '').replace(/"/g, '&quot;') + '" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Phone</label><input type="tel" name="phone" value="' + (u.phone || '').replace(/"/g, '&quot;') + '" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Role</label><select name="role" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"><option value="admin"' + (roleVal === 'admin' ? ' selected' : '') + '>Admin</option><option value="receptionist"' + (roleVal === 'receptionist' ? ' selected' : '') + '>Receptionist</option><option value="technician"' + (roleVal === 'technician' ? ' selected' : '') + '>Technician</option></select></div><div><label class="block text-sm font-medium text-gray-700 mb-2">New Password (leave blank to keep)</label><input type="password" name="password" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="Leave blank to keep current"></div><div class="flex justify-end gap-3 pt-4"><button type="button" onclick="closeModal()" class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button><button type="submit" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium">Update User</button></div></form></div>';
+    openModal(content);
+};
+window.salonUsersUpdateUser = function(e, id) {
+    e.preventDefault();
+    var form = e.target;
+    var data = { username: form.username.value.trim(), first_name: form.first_name.value.trim(), last_name: form.last_name.value.trim(), email: form.email.value.trim(), phone: form.phone.value.trim() || null, role: form.role.value };
+    if (form.password.value) data.password = form.password.value;
+    var btn = form.querySelector('button[type="submit"]');
+    if (btn) { btn.disabled = true; btn.textContent = 'Updating...'; }
+    salonApi.put(apiUsersUrl + '/' + id, data).then(function(res) {
+        showSuccessMessage(res.message || 'User updated.');
+        closeModal();
+        var idx = allUsers.findIndex(function(x) { return x.id === parseInt(id, 10); });
+        if (idx >= 0) allUsers[idx] = res.data;
+        applyFilters();
+        salonUsersRender();
+    }).catch(function(err) {
+        showErrorMessage(err.message || 'Failed to update user.');
+        if (btn) { btn.disabled = false; btn.textContent = 'Update User'; }
+    });
+};
+window.salonUsersDelete = function(id, name) {
+    openConfirmModal({
+        title: 'Delete user',
+        message: 'You are about to permanently remove this user' + (name ? ': ' + (name || '').replace(/"/g, '\\"') : '') + '. Do you want to continue?',
+        confirmLabel: 'Delete',
+        onConfirm: function() {
+            salonApi.delete(apiUsersUrl + '/' + id).then(function() {
+                showSuccessMessage('User deleted.');
+                allUsers = allUsers.filter(function(u) { return u.id !== id && u.id !== parseInt(id, 10); });
+                applyFilters();
+                salonUsersRender();
+            }).catch(function(err) {
+                showErrorMessage(err.message || 'Failed to delete user.');
+            });
+        }
+    });
 };
 document.addEventListener('DOMContentLoaded', function() {
     var saved = localStorage.getItem('usersPerPage');
@@ -239,7 +296,7 @@ document.addEventListener('DOMContentLoaded', function() {
         var sel = document.getElementById('perPageSelect');
         if (sel) { sel.value = saved; PAGE_SIZE = saved === 'all' ? Infinity : parseInt(saved, 10); }
     }
-    fetch(base + '/users.json').then(function(r) { return r.json(); }).then(function(data) {
+    fetch(base + '/users').then(function(r) { return r.json(); }).then(function(data) {
         allUsers = data.users || [];
         initializeRoleFilter();
         salonUsersToggleView(currentView);
