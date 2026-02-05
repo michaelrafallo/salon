@@ -31,6 +31,7 @@ class SettingsSeeder extends Seeder
             'currency_code' => 'USD',
             'turn_tracker_order' => 'lowest',
             'discounts_enabled' => true,
+            'gift_cards_enabled' => true,
         ];
 
         foreach ($defaults as $key => $value) {

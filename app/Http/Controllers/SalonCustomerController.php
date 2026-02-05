@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreCustomerRequest;
+use App\Http\Requests\UpdateCustomerCreditRequest;
 use App\Http\Requests\UpdateCustomerRequest;
 use App\Models\Customer;
 use App\Services\Salon\CustomerService;
@@ -46,6 +47,33 @@ class SalonCustomerController extends Controller
                 'lastName' => $customer->last_name,
                 'email' => $customer->email,
                 'phone' => $customer->phone,
+            ],
+        ]);
+    }
+
+    public function updateCredits(UpdateCustomerCreditRequest $request, Customer $customer): JsonResponse
+    {
+        $validated = $request->validated();
+
+        try {
+            $customer = $this->customerService->adjustCredits(
+                $customer,
+                (float) $validated['amount'],
+                (string) $validated['operation']
+            );
+        } catch (\RuntimeException $exception) {
+            return response()->json([
+                'success' => false,
+                'message' => $exception->getMessage(),
+            ], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Credits updated successfully.',
+            'data' => [
+                'id' => $customer->id,
+                'creditBalance' => (float) $customer->credit_balance,
             ],
         ]);
     }

@@ -5,6 +5,7 @@ use App\Http\Controllers\SalonController;
 use App\Http\Controllers\SalonCouponController;
 use App\Http\Controllers\SalonCustomerController;
 use App\Http\Controllers\SalonDataController;
+use App\Http\Controllers\SalonGiftCardController;
 use App\Http\Controllers\SalonPaymentController;
 use App\Http\Controllers\SalonServiceController;
 use App\Http\Controllers\SalonSettingsController;
@@ -17,6 +18,7 @@ Route::middleware(['web', 'salon.auth'])->prefix('api/salon')->name('api.salon.'
     Route::put('profile', [SalonUserController::class, 'updateProfile'])->name('profile.update');
     Route::post('customers', [SalonCustomerController::class, 'store'])->name('customers.store');
     Route::put('customers/{customer}', [SalonCustomerController::class, 'update'])->name('customers.update');
+    Route::post('customers/{customer}/credits', [SalonCustomerController::class, 'updateCredits'])->name('customers.credits.update');
     Route::delete('customers/{customer}', [SalonCustomerController::class, 'destroy'])->name('customers.destroy');
     Route::post('users', [SalonUserController::class, 'store'])->name('users.store');
     Route::put('users/{user}', [SalonUserController::class, 'update'])->name('users.update');
@@ -24,6 +26,7 @@ Route::middleware(['web', 'salon.auth'])->prefix('api/salon')->name('api.salon.'
     Route::post('services', [SalonServiceController::class, 'store'])->name('services.store');
     Route::put('services/{service}', [SalonServiceController::class, 'update'])->name('services.update');
     Route::delete('services/{service}', [SalonServiceController::class, 'destroy'])->name('services.destroy');
+    Route::post('payments', [SalonPaymentController::class, 'store'])->name('payments.store');
     Route::put('payments/{payment}', [SalonPaymentController::class, 'update'])->name('payments.update');
     Route::post('appointments', [SalonAppointmentController::class, 'store'])->name('appointments.store');
     Route::put('appointments/{appointment}', [SalonAppointmentController::class, 'update'])->name('appointments.update');
@@ -39,6 +42,10 @@ Route::middleware(['web', 'salon.auth'])->prefix('api/salon')->name('api.salon.'
     Route::post('coupons', [SalonCouponController::class, 'store'])->name('coupons.store');
     Route::put('coupons/{coupon}', [SalonCouponController::class, 'update'])->name('coupons.update');
     Route::delete('coupons/{coupon}', [SalonCouponController::class, 'destroy'])->name('coupons.destroy');
+    Route::get('gift-cards', [SalonGiftCardController::class, 'index'])->name('gift-cards.index');
+    Route::post('gift-cards', [SalonGiftCardController::class, 'store'])->name('gift-cards.store');
+    Route::put('gift-cards/{gift_card}', [SalonGiftCardController::class, 'update'])->name('gift-cards.update');
+    Route::delete('gift-cards/{gift_card}', [SalonGiftCardController::class, 'destroy'])->name('gift-cards.destroy');
 });
 
 Route::prefix('api/salon/data')->name('api.salon.data.')->group(function () {

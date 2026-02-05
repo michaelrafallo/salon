@@ -15,6 +15,12 @@ class Payment extends Model
         'id',
         'appointment_id',
         'amount',
+        'sub_total',
+        'discount',
+        'credits',
+        'gift_card',
+        'tax',
+        'tip',
         'method',
         'status',
         'paid_at',
@@ -24,6 +30,12 @@ class Payment extends Model
     {
         return [
             'amount' => 'decimal:2',
+            'sub_total' => 'decimal:2',
+            'discount' => 'decimal:2',
+            'credits' => 'decimal:2',
+            'gift_card' => 'decimal:2',
+            'tax' => 'decimal:2',
+            'tip' => 'decimal:2',
             'paid_at' => 'date',
         ];
     }

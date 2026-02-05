@@ -173,7 +173,15 @@
                                         <span class="text-gray-900 font-medium text-red-600" id="checkoutDiscountDisplay">$0.00</span>
                                     </div>
                                     <div class="flex justify-between text-sm">
-                                        <span class="text-gray-600">Tax (5%)</span>
+                                        <span class="text-gray-600">Credits</span>
+                                        <span class="text-gray-900 font-medium text-red-600" id="checkoutCreditsDisplay">$0.00</span>
+                                    </div>
+                                    <div class="flex justify-between text-sm">
+                                        <span class="text-gray-600">Gift Card</span>
+                                        <span class="text-gray-900 font-medium text-red-600" id="checkoutGiftCardDisplay">$0.00</span>
+                                    </div>
+                                    <div class="flex justify-between text-sm">
+                                        <span class="text-gray-600" id="checkoutTaxLabel">Tax</span>
                                         <span class="text-gray-900 font-medium" id="checkoutTaxDisplay">$0.00</span>
                                     </div>
                                     <div class="flex justify-between text-sm">
@@ -291,19 +299,19 @@
                                     </svg>
                                     <span class="text-sm font-semibold text-gray-900">Card</span>
                                 </button>
-                                <button type="button" onclick="salonPayOpenGiftCardModal()" class="p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-[#003047] transition-all duration-200 text-left flex items-center gap-3">
+                                <button type="button" id="giftCardActionBtn" onclick="salonPayOpenGiftCardModal()" class="p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-[#003047] transition-all duration-200 text-left flex items-center gap-3">
                                     <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"></path>
                                     </svg>
                                     <span class="text-sm font-semibold text-gray-900">Gift Card</span>
                                 </button>
-                                <button type="button" onclick="salonPayOpenRedeemModal()" class="p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-[#003047] transition-all duration-200 text-left flex items-center gap-3">
+                                <button type="button" id="redeemActionBtn" onclick="salonPayOpenRedeemModal()" class="p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-[#003047] transition-all duration-200 text-left flex items-center gap-3">
                                     <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"></path>
                                     </svg>
                                     <span class="text-sm font-semibold text-gray-900">Redeem</span>
                                 </button>
-                                <button type="button" onclick="salonPayOpenDiscountModal()" class="p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-[#003047] transition-all duration-200 text-left flex items-center gap-3">
+                                <button type="button" id="discountActionBtn" onclick="salonPayOpenDiscountModal()" class="p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-[#003047] transition-all duration-200 text-left flex items-center gap-3">
                                     <svg class="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
                                     </svg>
@@ -315,6 +323,18 @@
                     </div>
                     <!-- Right Side: Payment Input -->
                     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex flex-col space-y-4 lg:pl-6 h-full">
+                        <!-- Pay Now Button -->
+                        <form onsubmit="salonPayProcessPayment(event)">
+                            <input type="hidden" name="tip_amount" id="tipAmountHidden" value="0">
+                            <input type="hidden" name="discount_amount" id="discountAmountHidden" value="0">
+                            <input type="hidden" name="credit_amount" id="creditAmountHidden" value="0">
+                            <input type="hidden" name="credit_customer_id" id="creditCustomerIdHidden" value="">
+                            <input type="hidden" name="gift_card_amount" id="giftCardAmountHidden" value="0">
+                            <input type="hidden" name="gift_card_code" id="giftCardCodeHidden" value="">
+                            <button type="submit" class="w-full px-6 py-4 text-lg font-semibold text-white bg-[#003047] rounded-lg hover:bg-[#002535] transition active:scale-95">
+                                Pay Now
+                            </button>
+                        </form>
                         <!-- Amount Display (always visible) -->
                         <div class="bg-gray-50 rounded-lg p-2 text-center">
                             <div class="text-5xl font-bold text-gray-900" id="paymentAmount">$0</div>
@@ -363,14 +383,6 @@
                                 </div>
                             </div>
                         </div>
-                        <!-- Pay Now Button -->
-                        <form onsubmit="salonPayProcessPayment(event)" class="mt-auto">
-                            <input type="hidden" name="tip_amount" id="tipAmountHidden" value="0">
-                            <input type="hidden" name="discount_amount" id="discountAmountHidden" value="0">
-                            <button type="submit" class="w-full px-6 py-4 text-lg font-semibold text-white bg-[#003047] rounded-lg hover:bg-[#002535] transition active:scale-95">
-                                Pay Now
-                            </button>
-                        </form>
                     </div>
                 </div>
             </div>
@@ -382,6 +394,7 @@
 window.salonJsonBase = '{{ url("api/salon/data") }}';
 window.salonTicketsUrl = '{{ $ticketsUrl }}';
 window.salonApiAppointmentsUrl = '{{ url("api/salon/appointments") }}';
+window.salonApiBase = '{{ url("api/salon") }}';
 </script>
 <script src="{{ asset('js/salon-pay.js') }}"></script>
 @endpush

@@ -1,7 +1,7 @@
 @extends('layouts.salon')
 
 @section('content')
-<main class="flex-1 overflow-y-auto bg-gray-50 lg:ml-0 pt-16 lg:pt-0" data-settings-url="{{ route('api.salon.settings.index') }}" data-settings-update-url="{{ route('api.salon.settings.update') }}" data-coupons-url="{{ route('api.salon.coupons.index') }}">
+<main class="flex-1 overflow-y-auto bg-gray-50 lg:ml-0 pt-16 lg:pt-0" data-settings-url="{{ route('api.salon.settings.index') }}" data-settings-update-url="{{ route('api.salon.settings.update') }}" data-coupons-url="{{ route('api.salon.coupons.index') }}" data-gift-cards-url="{{ route('api.salon.gift-cards.index') }}">
     <div class="p-4 sm:p-6 lg:p-8">
         <div class="mb-6">
             <h1 class="text-2xl sm:text-3xl font-bold text-gray-900">Settings</h1>
@@ -14,6 +14,7 @@
                 <button type="button" onclick="salonSettingsShowTab('ghl', this)" class="tab-button px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap border-b-2 border-transparent">Clickaio</button>
                 <button type="button" onclick="salonSettingsShowTab('tax', this)" class="tab-button px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap border-b-2 border-transparent">Tax & Currency</button>
                 <button type="button" onclick="salonSettingsShowTab('discounts', this)" class="tab-button px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap border-b-2 border-transparent">Discounts & Coupons</button>
+                <button type="button" onclick="salonSettingsShowTab('gift-cards', this)" class="tab-button px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap border-b-2 border-transparent">Gift Cards</button>
             </div>
         </div>
         <div id="tab-general" class="settings-tab hidden">
@@ -346,6 +347,37 @@
                 </div>
             </div>
         </div>
+        <div id="tab-gift-cards" class="settings-tab hidden">
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-semibold text-gray-900">Gift Card Settings</h2>
+                </div>
+                <form class="space-y-4 settings-form" data-settings-keys="gift_cards_enabled">
+                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div>
+                            <label class="text-sm font-medium text-gray-900">Enable Gift Cards</label>
+                            <p class="text-xs text-gray-500">Allow gift cards to be applied at checkout</p>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" name="gift_cards_enabled" value="1" class="sr-only peer settings-checkbox">
+                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#b3d1d9] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#003047]"></div>
+                        </label>
+                    </div>
+                    <div class="flex justify-end">
+                        <button type="submit" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">Save</button>
+                    </div>
+                </form>
+            </div>
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-semibold text-gray-900">Gift Cards</h2>
+                    <button type="button" onclick="salonSettingsOpenAddGiftCardModal()" class="px-4 py-2 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium text-sm active:scale-95">+ Add Gift Card</button>
+                </div>
+                <div id="settingsGiftCardsList" class="space-y-3">
+                    <div class="text-center py-6 text-gray-500 text-sm">Loading gift cards...</div>
+                </div>
+            </div>
+        </div>
     </div>
 </main>
 @push('scripts')
@@ -366,6 +398,8 @@ function salonSettingsShowTab(tabName, element) {
     var url = new URL(window.location);
     url.searchParams.set('tab', tabName);
     window.history.pushState({}, '', url);
+    if (tabName === 'discounts') salonSettingsLoadCoupons();
+    if (tabName === 'gift-cards') salonSettingsLoadGiftCards();
 }
 function salonSettingsLoad() {
     var main = document.querySelector('main[data-settings-url]');
@@ -412,7 +446,7 @@ function salonSettingsCollectFormPayload(form) {
 document.addEventListener('DOMContentLoaded', function() {
     var urlParams = new URLSearchParams(window.location.search);
     var tabParam = urlParams.get('tab');
-    var validTabs = ['general', 'payment', 'ghl', 'tax', 'discounts'];
+    var validTabs = ['general', 'payment', 'ghl', 'tax', 'discounts', 'gift-cards'];
     var tabToShow = validTabs.indexOf(tabParam) >= 0 ? tabParam : 'general';
     var tabButton = document.querySelector('button[onclick*="salonSettingsShowTab(\'' + tabToShow + '\'"]');
     if (tabButton) {
@@ -425,6 +459,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     salonSettingsLoad();
     if (tabToShow === 'discounts') salonSettingsLoadCoupons();
+    if (tabToShow === 'gift-cards') salonSettingsLoadGiftCards();
 });
 function salonSettingsLoadCoupons() {
     var main = document.querySelector('main[data-coupons-url]');
@@ -469,6 +504,52 @@ function salonSettingsLoadCoupons() {
         })
         .catch(function() {
             listEl.innerHTML = '<div class="text-center py-6 text-red-500 text-sm">Failed to load coupons.</div>';
+        });
+}
+
+function salonSettingsLoadGiftCards() {
+    var main = document.querySelector('main[data-gift-cards-url]');
+    var listEl = document.getElementById('settingsGiftCardsList');
+    if (!main || !listEl) return;
+    var url = main.getAttribute('data-gift-cards-url');
+    listEl.innerHTML = '<div class="text-center py-6 text-gray-500 text-sm">Loading gift cards...</div>';
+    fetch(url, { method: 'GET', headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(res) {
+            var cards = (res && res.data) ? res.data : [];
+            if (cards.length === 0) {
+                listEl.innerHTML = '<div class="text-center py-6 text-gray-500 text-sm">No gift cards yet. Click "+ Add Gift Card" to create one.</div>';
+                return;
+            }
+            var html = '';
+            cards.forEach(function(c) {
+                var codeEsc = (c.code || '').replace(/</g, '&lt;');
+                var descEsc = (c.description || '').replace(/</g, '&lt;');
+                var statusClass = c.active ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600';
+                var statusText = c.active ? 'Active' : 'Inactive';
+                var dataCard = (typeof JSON !== 'undefined' && JSON.stringify) ? JSON.stringify(c).replace(/&/g, '&amp;').replace(/"/g, '&quot;') : '';
+                html += '<div class="p-4 border border-gray-200 rounded-lg"><div class="flex items-center justify-between mb-2"><div><p class="font-medium text-gray-900">' + codeEsc + '</p><p class="text-xs text-gray-500">' + descEsc + ' &middot; Balance $' + Number(c.balance || 0).toFixed(2) + ' / Initial $' + Number(c.initial_value || 0).toFixed(2) + '</p></div><div class="flex items-center gap-2"><span class="px-2 py-1 ' + statusClass + ' text-xs font-medium rounded">' + statusText + '</span><button type="button" class="salon-settings-edit-gift-card text-[#003047] hover:text-[#002535] text-sm font-medium" data-gift-card="' + dataCard + '">Edit</button><button type="button" class="salon-settings-delete-gift-card text-red-600 hover:text-red-700 text-sm font-medium" data-id="' + c.id + '" data-code="' + codeEsc + '">Remove</button></div></div></div>';
+            });
+            listEl.innerHTML = html;
+            listEl.querySelectorAll('.salon-settings-edit-gift-card').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var raw = this.getAttribute('data-gift-card');
+                    if (raw) {
+                        try {
+                            var card = JSON.parse(raw.replace(/&quot;/g, '"').replace(/&amp;/g, '&'));
+                            salonSettingsOpenEditGiftCardModal(card);
+                        } catch (e) {}
+                    }
+                });
+            });
+            listEl.querySelectorAll('.salon-settings-delete-gift-card').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    salonSettingsDeleteGiftCard(parseInt(this.getAttribute('data-id'), 10), this.getAttribute('data-code') || '');
+                });
+            });
+        })
+        .catch(function() {
+            listEl.innerHTML = '<div class="text-center py-6 text-red-500 text-sm">Failed to load gift cards.</div>';
         });
 }
 document.querySelectorAll('form.settings-form').forEach(function(form) {
@@ -559,6 +640,85 @@ window.salonSettingsDeleteCoupon = function(id, codeDisplay) {
         openModal(confirmContent);
         var btn = document.getElementById('salon-settings-confirm-delete-btn');
         if (btn) btn.addEventListener('click', function() { salonSettingsConfirmDeleteCoupon(parseInt(this.getAttribute('data-id'), 10)); });
+    }
+};
+
+window.salonSettingsOpenAddGiftCardModal = function() {
+    var modalContent = '<div class="p-6"><div class="flex items-center justify-between mb-4"><h3 class="text-xl font-bold text-gray-900">Add Gift Card</h3><button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><form id="salon-gift-card-form" class="space-y-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">Gift Card Code</label><input type="text" name="code" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="GC-1000"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Description</label><input type="text" name="description" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="Holiday promo"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">PIN (optional)</label><input type="text" name="pin" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="1234"></div><div class="grid grid-cols-2 gap-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">Initial Value</label><input type="number" name="initial_value" required step="0.01" min="0" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="50.00"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Current Balance</label><input type="number" name="balance" step="0.01" min="0" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="50.00"></div></div><div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg"><div><label class="text-sm font-medium text-gray-900">Active</label><p class="text-xs text-gray-500">Enable this gift card immediately</p></div><label class="relative inline-flex items-center cursor-pointer"><input type="checkbox" name="active" value="1" class="sr-only peer" checked><div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#b3d1d9] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[\'\'] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#003047]"></div></label></div><div class="flex justify-end gap-3 pt-4"><button type="submit" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">Save Gift Card</button></div></form></div>';
+    if (typeof openModal === 'function') {
+        openModal(modalContent);
+        var form = document.getElementById('salon-gift-card-form');
+        if (form) form.addEventListener('submit', function(e) { salonSettingsSaveGiftCard(e, null); });
+    }
+};
+
+window.salonSettingsOpenEditGiftCardModal = function(card) {
+    if (!card || !card.id) return;
+    var code = (card.code || '').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    var desc = (card.description || '').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    var pin = (card.pin || '').replace(/</g, '&lt;').replace(/"/g, '&quot;');
+    var initialVal = card.initial_value != null ? card.initial_value : '';
+    var balanceVal = card.balance != null ? card.balance : '';
+    var activeChecked = card.active ? ' checked' : '';
+    var modalContent = '<div class="p-6"><div class="flex items-center justify-between mb-4"><h3 class="text-xl font-bold text-gray-900">Edit Gift Card</h3><button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><form id="salon-gift-card-form" class="space-y-4"><input type="hidden" name="id" value="' + card.id + '"><div><label class="block text-sm font-medium text-gray-700 mb-2">Gift Card Code</label><input type="text" name="code" required value="' + code + '" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Description</label><input type="text" name="description" value="' + desc + '" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">PIN (optional)</label><input type="text" name="pin" value="' + pin + '" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div><div class="grid grid-cols-2 gap-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">Initial Value</label><input type="number" name="initial_value" required step="0.01" min="0" value="' + initialVal + '" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Current Balance</label><input type="number" name="balance" step="0.01" min="0" value="' + balanceVal + '" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div></div><div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg"><div><label class="text-sm font-medium text-gray-900">Active</label></div><label class="relative inline-flex items-center cursor-pointer"><input type="checkbox" name="active" value="1" class="sr-only peer"' + activeChecked + '><div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#b3d1d9] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[\'\'] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#003047]"></div></label></div><div class="flex justify-end gap-3 pt-4"><button type="submit" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">Update Gift Card</button></div></form></div>';
+    if (typeof openModal === 'function') {
+        openModal(modalContent);
+        var form = document.getElementById('salon-gift-card-form');
+        if (form) form.addEventListener('submit', function(e) { salonSettingsSaveGiftCard(e, card.id); });
+    }
+};
+
+window.salonSettingsSaveGiftCard = function(event, editId) {
+    event.preventDefault();
+    var form = event.target;
+    var main = document.querySelector('main[data-gift-cards-url]');
+    if (!main || typeof salonApi === 'undefined') return;
+    var baseUrl = main.getAttribute('data-gift-cards-url');
+    var payload = {
+        code: (form.querySelector('[name="code"]') || {}).value || '',
+        description: (form.querySelector('[name="description"]') || {}).value || '',
+        pin: (form.querySelector('[name="pin"]') || {}).value || null,
+        initial_value: parseFloat((form.querySelector('[name="initial_value"]') || {}).value, 10) || 0,
+        balance: (function() { var v = (form.querySelector('[name="balance"]') || {}).value; return v === '' || v === null ? null : parseFloat(v, 10); })(),
+        active: form.querySelector('[name="active"]') ? form.querySelector('[name="active"]').checked : true
+    };
+    var btn = form.querySelector('button[type="submit"]');
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+    var req = editId
+        ? salonApi.put(baseUrl + '/' + editId, payload)
+        : salonApi.post(baseUrl, payload);
+    req.then(function() {
+        if (typeof closeModal === 'function') closeModal();
+        if (typeof showSuccessMessage === 'function') showSuccessMessage(editId ? 'Gift card updated successfully!' : 'Gift card added successfully!');
+        salonSettingsLoadGiftCards();
+    }).catch(function(err) {
+        if (btn) { btn.disabled = false; btn.textContent = editId ? 'Update Gift Card' : 'Save Gift Card'; }
+        if (typeof showErrorMessage === 'function') showErrorMessage(err && err.message ? err.message : 'Failed to save gift card.');
+    });
+};
+
+window.salonSettingsDeleteGiftCard = function(id, codeDisplay) {
+    var codeEsc = (codeDisplay || '').replace(/</g, '&lt;');
+    var confirmContent = '<div class="p-6"><div class="flex items-center gap-4 mb-4"><div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0"><svg class="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg></div><div class="flex-1"><h3 class="text-xl font-bold text-gray-900">Remove Gift Card</h3></div></div><p class="text-gray-700 mb-6 ml-16">Are you sure you want to remove gift card "<strong>' + codeEsc + '</strong>"? This action cannot be undone.</p><div class="flex justify-end gap-3 pt-4 border-t border-gray-200"><button onclick="closeModal()" class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium active:scale-95">Cancel</button><button type="button" id="salon-settings-confirm-delete-gift-card" data-id="' + id + '" class="px-6 py-3 text-white bg-red-500 rounded-lg hover:bg-red-600 transition font-medium active:scale-95">Yes, Remove</button></div></div>';
+    if (typeof openModal === 'function') {
+        openModal(confirmContent);
+        var confirmBtn = document.getElementById('salon-settings-confirm-delete-gift-card');
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', function() {
+                var main = document.querySelector('main[data-gift-cards-url]');
+                if (!main || typeof salonApi === 'undefined') return;
+                var baseUrl = main.getAttribute('data-gift-cards-url');
+                salonApi.delete(baseUrl + '/' + id)
+                    .then(function() {
+                        if (typeof closeModal === 'function') closeModal();
+                        if (typeof showSuccessMessage === 'function') showSuccessMessage('Gift card removed.');
+                        salonSettingsLoadGiftCards();
+                    })
+                    .catch(function(err) {
+                        if (typeof showErrorMessage === 'function') showErrorMessage(err && err.message ? err.message : 'Failed to remove gift card.');
+                    });
+            });
+        }
     }
 };
 window.salonSettingsConfirmDeleteCoupon = function(id) {

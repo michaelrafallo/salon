@@ -45,4 +45,32 @@ class CustomerService
             return (bool) $customer->delete();
         });
     }
+
+    public function adjustCredits(Customer $customer, float $amount, string $operation): Customer
+    {
+        return DB::transaction(function () use ($customer, $amount, $operation) {
+            $freshCustomer = Customer::query()
+                ->whereKey($customer->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $current = (float) $freshCustomer->credit_balance;
+            $newBalance = match ($operation) {
+                'add' => $current + $amount,
+                'subtract' => $current - $amount,
+                'set' => $amount,
+                default => $current,
+            };
+
+            if ($newBalance < 0) {
+                throw new \RuntimeException('Credit balance cannot be negative.');
+            }
+
+            $freshCustomer->update([
+                'credit_balance' => round($newBalance, 2),
+            ]);
+
+            return $freshCustomer->fresh();
+        });
+    }
 }

@@ -44,6 +44,7 @@ class Setting extends Model
             'currency_code',
             'turn_tracker_order',
             'discounts_enabled',
+            'gift_cards_enabled',
         ];
     }
 

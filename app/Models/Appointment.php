@@ -38,6 +38,7 @@ class Appointment extends Model
     public function technicians(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'appointment_technician')
+            ->withPivot('tip')
             ->withTimestamps();
     }
 

@@ -62,6 +62,7 @@ class User extends Authenticatable
     public function appointments(): BelongsToMany
     {
         return $this->belongsToMany(Appointment::class, 'appointment_technician')
+            ->withPivot('tip')
             ->withTimestamps();
     }
 

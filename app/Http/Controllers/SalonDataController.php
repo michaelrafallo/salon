@@ -71,6 +71,7 @@ class SalonDataController extends Controller
                 'createdAt' => $c->created_at?->format('Y-m-d'),
                 'totalBookings' => $c->appointments_count ?? 0,
                 'totalSpent' => round($totalSpent, 2),
+                'creditBalance' => (float) $c->credit_balance,
                 'profilePhoto' => $c->profile_photo ? Storage::disk('public')->url($c->profile_photo) : null,
             ];
         });
@@ -133,7 +134,7 @@ class SalonDataController extends Controller
     public function payments(): JsonResponse
     {
         $rows = Payment::query()
-            ->with('appointment.customer')
+            ->with(['appointment.customer', 'appointment.appointmentServices.service', 'appointment.appointmentServices.serviceCategory'])
             ->orderBy('paid_at')
             ->get();
 
@@ -141,14 +142,33 @@ class SalonDataController extends Controller
             $customer = $p->appointment?->customer;
             $name = $customer ? trim($customer->first_name.' '.$customer->last_name) : '';
             $initials = $customer ? strtoupper(mb_substr($customer->first_name, 0, 1).mb_substr($customer->last_name, 0, 1)) : '';
+            $services = $p->appointment?->appointmentServices?->map(function ($svc) {
+                $name = $svc->service?->name ?? $svc->serviceCategory?->name ?? 'Service';
+                $qty = (int) ($svc->quantity ?? 1);
+                $unitPrice = $svc->unit_price !== null ? (float) $svc->unit_price : 0.0;
+
+                return [
+                    'name' => $name,
+                    'quantity' => $qty,
+                    'unit_price' => $unitPrice,
+                    'line_total' => round($qty * $unitPrice, 2),
+                ];
+            })->values()->all() ?? [];
 
             return [
                 'id' => $p->id,
+                'appointmentId' => $p->appointment_id,
                 'customerName' => $name,
                 'customerInitials' => $initials,
                 'customerColor' => 'bg-[#e6f0f3]',
                 'customerTextColor' => 'text-[#003047]',
                 'amount' => (float) $p->amount,
+                'subTotal' => (float) $p->sub_total,
+                'discount' => (float) $p->discount,
+                'credits' => (float) $p->credits,
+                'giftCard' => (float) $p->gift_card,
+                'tax' => (float) $p->tax,
+                'tip' => (float) $p->tip,
                 'method' => $p->method,
                 'methodColor' => 'bg-[#e6f0f3]',
                 'methodTextColor' => 'text-[#003047]',
@@ -156,6 +176,7 @@ class SalonDataController extends Controller
                 'statusColor' => 'bg-green-100',
                 'statusTextColor' => 'text-green-700',
                 'date' => $p->paid_at?->format('Y-m-d'),
+                'services' => $services,
                 'bookingId' => 'ORDER'.$p->appointment_id,
             ];
         });

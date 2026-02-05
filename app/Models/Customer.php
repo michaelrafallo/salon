@@ -13,7 +13,15 @@ class Customer extends Model
         'last_name',
         'phone',
         'email',
+        'credit_balance',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'credit_balance' => 'decimal:2',
+        ];
+    }
 
     /**
      * @return HasMany<Appointment, $this>

@@ -56,13 +56,14 @@
                 </div>
                 <div class="flex gap-2">
                     <button type="button" onclick="openEditCustomerModal()" class="px-4 py-2 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95 text-sm">Edit Customer</button>
+                    <button type="button" onclick="openAdjustCreditsModal()" class="px-4 py-2 bg-[#e6f0f3] text-[#003047] rounded-lg hover:bg-[#b3d1d9] transition font-medium active:scale-95 text-sm">Adjust Credits</button>
                     <button type="button" onclick="deleteCustomerFromView()" class="px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 transition font-medium active:scale-95 text-sm">Delete Customer</button>
                 </div>
             </div>
         </div>
 
         <!-- Statistics (PHP-rendered) -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-6">
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <p class="text-sm text-gray-500 mb-2">Total Visits</p>
                 <p id="totalVisits" class="text-3xl font-bold text-gray-900">{{ $totalVisits }}</p>
@@ -77,6 +78,11 @@
                 <p class="text-sm text-gray-500 mb-2">Customer Since</p>
                 <p id="customerSince" class="text-3xl font-bold text-gray-900">{{ $customerSince ? \Carbon\Carbon::parse($customerSince)->format('M Y') : '—' }}</p>
                 <p id="memberFor" class="text-xs text-gray-500 mt-2">{{ $memberFor }}</p>
+            </div>
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <p class="text-sm text-gray-500 mb-2">Credit Balance</p>
+                <p id="creditBalanceDisplay" class="text-3xl font-bold text-gray-900">${{ number_format((float) ($customer->credit_balance ?? 0), 2) }}</p>
+                <p class="text-xs text-gray-500 mt-2">Available to redeem at checkout</p>
             </div>
         </div>
 
@@ -166,6 +172,7 @@
         'phone' => $customer->phone,
         'address' => $customer->address ?? null,
         'profilePhoto' => $profilePhotoUrl ?? null,
+        'creditBalance' => (float) ($customer->credit_balance ?? 0),
         'status' => 'active',
     ];
 @endphp
@@ -193,6 +200,15 @@ function renderCustomerInfo() {
     }
 }
 
+function renderCustomerCredits() {
+    if (!customerData) return;
+    var creditEl = document.getElementById('creditBalanceDisplay');
+    if (creditEl) {
+        var balance = parseFloat(customerData.creditBalance) || 0;
+        creditEl.textContent = '$' + balance.toFixed(2);
+    }
+}
+
 function openEditCustomerModal() {
     if (!customerData) return;
     var esc = function(s) {
@@ -204,6 +220,17 @@ function openEditCustomerModal() {
     var email = esc(customerData.email);
     var phone = esc(customerData.phone);
     var modalContent = '<div class="p-6"><div class="flex items-center justify-between mb-4"><h3 class="text-xl font-bold text-gray-900">Edit Customer</h3><button type="button" onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><form onsubmit="return window.updateCustomer(event)" class="space-y-4"><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">First Name</label><input type="text" name="first_name" value="' + firstName + '" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Last Name</label><input type="text" name="last_name" value="' + lastName + '" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">Email</label><input type="email" name="email" value="' + email + '" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Phone</label><input type="tel" name="phone" value="' + phone + '" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div></div><div class="flex justify-end gap-3 pt-4"><button type="button" onclick="closeModal()" class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium">Cancel</button><button type="submit" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium">Update Customer</button></div></form></div>';
+    if (typeof openModal === 'function') {
+        openModal(modalContent);
+    } else {
+        alert('Modal is not available. Please refresh the page.');
+    }
+}
+
+function openAdjustCreditsModal() {
+    if (!customerData) return;
+    var balance = parseFloat(customerData.creditBalance) || 0;
+    var modalContent = '<div class="p-6"><div class="flex items-center justify-between mb-4"><h3 class="text-xl font-bold text-gray-900">Adjust Credits</h3><button type="button" onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><form onsubmit="return window.updateCustomerCredits(event)" class="space-y-4"><div class="p-4 bg-gray-50 rounded-lg"><p class="text-sm text-gray-500 mb-1">Current Balance</p><p class="text-2xl font-bold text-gray-900">$' + balance.toFixed(2) + '</p></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">Operation</label><select name="operation" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent bg-white"><option value="add">Add Credits</option><option value="subtract">Subtract Credits</option><option value="set">Set Balance</option></select></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Amount</label><input type="number" name="amount" step="0.01" min="0" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="0.00"></div></div><div class="flex justify-end gap-3 pt-4"><button type="button" onclick="closeModal()" class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium">Cancel</button><button type="submit" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium">Save Credits</button></div></form></div>';
     if (typeof openModal === 'function') {
         openModal(modalContent);
     } else {
@@ -234,6 +261,34 @@ function updateCustomer(e) {
     }).catch(function(err) {
         if (typeof showErrorMessage === 'function') showErrorMessage(err.message || 'Failed to update customer.');
         if (btn) { btn.disabled = false; btn.textContent = 'Update Customer'; }
+    });
+    return false;
+}
+
+function updateCustomerCredits(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    var form = e.target;
+    var amountVal = parseFloat(form.amount.value);
+    var operation = form.operation.value;
+    if (isNaN(amountVal) || amountVal < 0) {
+        if (typeof showErrorMessage === 'function') showErrorMessage('Please enter a valid amount.');
+        return false;
+    }
+    var btn = form.querySelector('button[type="submit"]');
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
+    if (typeof salonApi === 'undefined' || !salonApi.post) {
+        if (typeof showErrorMessage === 'function') showErrorMessage('Unable to save. Please refresh and try again.');
+        if (btn) { btn.disabled = false; btn.textContent = 'Save Credits'; }
+        return false;
+    }
+    salonApi.post(apiCustomersUrl + '/' + customerData.id + '/credits', { amount: amountVal, operation: operation }).then(function(res) {
+        customerData.creditBalance = res.data.creditBalance;
+        renderCustomerCredits();
+        if (typeof showSuccessMessage === 'function') showSuccessMessage(res.message || 'Credits updated.');
+        if (typeof closeModal === 'function') closeModal();
+    }).catch(function(err) {
+        if (typeof showErrorMessage === 'function') showErrorMessage(err.message || 'Failed to update credits.');
+        if (btn) { btn.disabled = false; btn.textContent = 'Save Credits'; }
     });
     return false;
 }
@@ -274,6 +329,8 @@ function printTicket(bookingId) {
 // Expose to global so onclick/onsubmit in page and modal can call them (must be after all function definitions)
 window.openEditCustomerModal = openEditCustomerModal;
 window.updateCustomer = updateCustomer;
+window.openAdjustCreditsModal = openAdjustCreditsModal;
+window.updateCustomerCredits = updateCustomerCredits;
 window.deleteCustomerFromView = deleteCustomerFromView;
 })();
 </script>

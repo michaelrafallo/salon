@@ -19,10 +19,7 @@ This application is a Laravel application and its main Laravel ecosystems packag
 - laravel/pint (PINT) - v1
 - laravel/sail (SAIL) - v1
 - phpunit/phpunit (PHPUNIT) - v11
-
-## Skills Activation
-
-This project has domain-specific skills available. You MUST activate the relevant skill whenever you work in that domain—don't wait until you're stuck.
+- tailwindcss (TAILWINDCSS) - v4
 
 ## Conventions
 
@@ -210,8 +207,8 @@ protected function isAccessible(User $user, ?string $path = null): bool
 
 # Laravel Pint Code Formatter
 
-- You must run `vendor/bin/pint --dirty` before finalizing changes to ensure your code matches the project's expected style.
-- Do not run `vendor/bin/pint --test`, simply run `vendor/bin/pint` to fix any formatting issues.
+- You must run `vendor/bin/pint --dirty --format agent` before finalizing changes to ensure your code matches the project's expected style.
+- Do not run `vendor/bin/pint --test --format agent`, simply run `vendor/bin/pint --format agent` to fix any formatting issues.
 
 === phpunit/core rules ===
 
@@ -230,4 +227,12 @@ protected function isAccessible(User $user, ?string $path = null): bool
 - To run all tests: `php artisan test --compact`.
 - To run all tests in a file: `php artisan test --compact tests/Feature/ExampleTest.php`.
 - To filter on a particular test name: `php artisan test --compact --filter=testName` (recommended after making a change to a related file).
+
+=== tailwindcss/core rules ===
+
+# Tailwind CSS
+
+- Always use existing Tailwind conventions; check project patterns before adding new ones.
+- IMPORTANT: Always use `search-docs` tool for version-specific Tailwind CSS documentation and updated code examples. Never rely on training data.
+- IMPORTANT: Activate `tailwindcss-development` every time you're working with a Tailwind CSS or styling-related task.
 </laravel-boost-guidelines>

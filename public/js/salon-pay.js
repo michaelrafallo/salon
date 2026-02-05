@@ -2,14 +2,33 @@
 var base = window.salonJsonBase || '/json';
 var ticketsUrl = window.salonTicketsUrl || '/booking/tickets';
 var apiAppointmentsUrl = window.salonApiAppointmentsUrl || '';
+var apiBase = window.salonApiBase || '';
+if (!apiBase) {
+    if (base && base.indexOf('/api/salon/data') >= 0) {
+        apiBase = base.replace(/\/data\/?$/, '');
+    } else {
+        apiBase = '/api/salon';
+    }
+}
 var urlParams = new URLSearchParams(window.location.search);
 var appointmentId = urlParams.get('id');
 var appointmentData = null, customerData = null;
 var allServicesData = [], servicesData = [], categoriesMap = {}, selectedCategory = null;
 var cart = [], techniciansData = [], assignedTechnicianIds = [], selectedTechnicianId = null;
-var paymentSubtotal = 0, paymentTax = 0, paymentTip = 0, paymentDiscount = 0, paymentAmountStr = '';
+var paymentSubtotal = 0, paymentTax = 0, paymentTip = 0, paymentDiscount = 0, paymentCredits = 0, paymentGiftCard = 0, paymentAmountStr = '';
 var currentStep = 1, technicianTips = {}, tipSplitMode = 'percentage';
 var lastSavedCartSignature = null;
+var discountsEnabled = true;
+var couponsData = [];
+var couponsLoading = null;
+var giftCardsData = [];
+var giftCardsLoading = null;
+var appliedGiftCardCode = '';
+var giftCardsEnabled = true;
+var availableCredits = 0;
+var taxRate = 0;
+var taxName = 'Tax';
+var taxApplyToAll = true;
 var colorClasses = [
     { bg: 'bg-[#e6f0f3]', text: 'text-[#003047]' }, { bg: 'bg-purple-100', text: 'text-purple-600' },
     { bg: 'bg-teal-100', text: 'text-teal-600' }, { bg: 'bg-indigo-100', text: 'text-indigo-600' },
@@ -84,6 +103,7 @@ async function salonPayLoadPaymentData() {
             salonPayShowError('Customer not found');
             return;
         }
+        availableCredits = customerData.creditBalance != null ? parseFloat(customerData.creditBalance) || 0 : 0;
         if (appointmentData.assigned_technician && Array.isArray(appointmentData.assigned_technician)) {
             assignedTechnicianIds = appointmentData.assigned_technician.map(function(id) { return id.toString(); });
             if (assignedTechnicianIds.length > 0) selectedTechnicianId = assignedTechnicianIds[0];
@@ -92,6 +112,7 @@ async function salonPayLoadPaymentData() {
         await salonPayFetchTechnicians();
         salonPayBuildCartFromAppointmentServices();
         salonPayUpdateCustomerInfoHeader();
+        salonPayFetchDiscountSettings();
 
         // Deep-link support: /booking/pay?id=87&step=2
         var stepParam = parseInt(salonPayGetQueryParam('step') || '1', 10);
@@ -312,6 +333,222 @@ function salonPayEscapeHtml(str) {
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
 }
+
+function salonPayNormalizeCouponCode(code) {
+    return (code || '').toString().trim().toUpperCase();
+}
+
+function salonPayNormalizeGiftCardCode(code) {
+    return (code || '').toString().trim().toUpperCase();
+}
+
+function salonPayFetchDiscountSettings() {
+    return fetch(apiBase + '/settings').then(function(r) { return r.json(); }).then(function(payload) {
+        var data = payload && payload.data ? payload.data : {};
+        var enabled = data.discounts_enabled;
+        discountsEnabled = enabled === true || enabled === 1 || enabled === '1' || enabled === 'true';
+        var giftEnabled = data.gift_cards_enabled;
+        giftCardsEnabled = giftEnabled === true || giftEnabled === 1 || giftEnabled === '1' || giftEnabled === 'true';
+        var rate = parseFloat(data.tax_rate);
+        taxRate = isNaN(rate) ? 0 : rate;
+        taxName = data.tax_name ? String(data.tax_name) : 'Tax';
+        var applyAll = data.tax_apply_to_all;
+        taxApplyToAll = applyAll === true || applyAll === 1 || applyAll === '1' || applyAll === 'true';
+        salonPayUpdateTaxLabel();
+        salonPayUpdateActionButtonsState();
+        salonPayRefreshTotalsForTaxChange();
+        return discountsEnabled;
+    }).catch(function() {
+        discountsEnabled = true;
+        giftCardsEnabled = true;
+        taxRate = 0;
+        taxName = 'Tax';
+        taxApplyToAll = true;
+        salonPayUpdateTaxLabel();
+        salonPayUpdateActionButtonsState();
+        salonPayRefreshTotalsForTaxChange();
+        return discountsEnabled;
+    });
+}
+
+function salonPayFetchCoupons() {
+    return fetch(apiBase + '/coupons').then(function(r) { return r.json(); }).then(function(payload) {
+        var items = (payload && payload.data) ? payload.data : [];
+        couponsData = Array.isArray(items) ? items.filter(function(c) { return c && c.active !== false; }) : [];
+        return couponsData;
+    }).catch(function() {
+        couponsData = [];
+        return couponsData;
+    });
+}
+
+function salonPayFetchGiftCards() {
+    return fetch(apiBase + '/gift-cards').then(function(r) { return r.json(); }).then(function(payload) {
+        var items = (payload && payload.data) ? payload.data : [];
+        giftCardsData = Array.isArray(items) ? items.filter(function(c) { return c && c.active !== false; }) : [];
+        return giftCardsData;
+    }).catch(function() {
+        giftCardsData = [];
+        return giftCardsData;
+    });
+}
+
+function salonPayEnsureDiscountDataLoaded() {
+    if (couponsLoading) return couponsLoading;
+    couponsLoading = Promise.all([salonPayFetchDiscountSettings(), salonPayFetchCoupons()]).finally(function() {
+        couponsLoading = null;
+    });
+    return couponsLoading;
+}
+
+function salonPayEnsureGiftCardsLoaded() {
+    if (giftCardsLoading) return giftCardsLoading;
+    giftCardsLoading = salonPayFetchGiftCards().finally(function() {
+        giftCardsLoading = null;
+    });
+    return giftCardsLoading;
+}
+
+function salonPayFindCouponByCode(code) {
+    var normalized = salonPayNormalizeCouponCode(code);
+    if (!normalized) return null;
+    return couponsData.find(function(c) {
+        return salonPayNormalizeCouponCode(c.code) === normalized;
+    }) || null;
+}
+
+function salonPayFindGiftCardByCode(code) {
+    var normalized = salonPayNormalizeGiftCardCode(code);
+    if (!normalized) return null;
+    return giftCardsData.find(function(c) {
+        return salonPayNormalizeGiftCardCode(c.code) === normalized;
+    }) || null;
+}
+
+function salonPayCalculateDiscountFromCoupon(coupon) {
+    if (!coupon) return 0;
+    var discountAmount = 0;
+    if (coupon.discount_type === 'percent') {
+        discountAmount = paymentSubtotal * (Number(coupon.discount_value) / 100);
+    } else {
+        discountAmount = Number(coupon.discount_value) || 0;
+    }
+    if (discountAmount > paymentSubtotal) discountAmount = paymentSubtotal;
+    return discountAmount;
+}
+
+function salonPaySetDiscountMessage(message, isError) {
+    var msg = document.getElementById('discountCodeMessage');
+    if (!msg) return;
+    msg.textContent = message || '';
+    msg.classList.remove('text-red-500', 'text-gray-500', 'text-green-600');
+    if (isError) msg.classList.add('text-red-500');
+    else if (message) msg.classList.add('text-green-600');
+    else msg.classList.add('text-gray-500');
+}
+
+function salonPaySetGiftCardMessage(message, isError) {
+    var msg = document.getElementById('giftCardMessage');
+    if (!msg) return;
+    msg.textContent = message || '';
+    msg.classList.remove('text-red-500', 'text-gray-500', 'text-green-600');
+    if (isError) msg.classList.add('text-red-500');
+    else if (message) msg.classList.add('text-green-600');
+    else msg.classList.add('text-gray-500');
+}
+
+function salonPaySetRedeemMessage(message, isError) {
+    var msg = document.getElementById('redeemMessage');
+    if (!msg) return;
+    msg.textContent = message || '';
+    msg.classList.remove('text-red-500', 'text-gray-500', 'text-green-600');
+    if (isError) msg.classList.add('text-red-500');
+    else if (message) msg.classList.add('text-green-600');
+    else msg.classList.add('text-gray-500');
+}
+
+function salonPayGetEffectiveTaxRate() {
+    if (!taxApplyToAll) return 0;
+    return taxRate > 0 ? taxRate : 0;
+}
+
+function salonPayUpdateTaxLabel() {
+    var label = document.getElementById('checkoutTaxLabel');
+    if (!label) return;
+    var rate = salonPayGetEffectiveTaxRate();
+    if (rate > 0) label.textContent = taxName + ' (' + rate.toFixed(2).replace(/\.00$/, '') + '%)';
+    else label.textContent = taxName;
+}
+
+function salonPaySetActionButtonState(buttonId, isEnabled) {
+    var btn = document.getElementById(buttonId);
+    if (!btn) return;
+    btn.classList.remove('opacity-60', 'bg-gray-50', 'text-gray-400', 'border-gray-200', 'hover:border-[#003047]');
+    btn.classList.add('border-gray-200');
+    if (isEnabled) {
+        btn.classList.add('hover:border-[#003047]');
+        btn.removeAttribute('aria-disabled');
+        btn.setAttribute('data-disabled', '0');
+    } else {
+        btn.classList.add('opacity-60', 'bg-gray-50');
+        btn.setAttribute('aria-disabled', 'true');
+        btn.setAttribute('data-disabled', '1');
+    }
+    var text = btn.querySelector('span');
+    if (text) {
+        text.classList.remove('text-gray-400');
+        if (!isEnabled) text.classList.add('text-gray-400');
+    }
+    var icon = btn.querySelector('svg');
+    if (icon) {
+        icon.classList.remove('text-gray-400');
+        if (!isEnabled) icon.classList.add('text-gray-400');
+    }
+}
+
+function salonPayUpdateActionButtonsState() {
+    salonPaySetActionButtonState('discountActionBtn', discountsEnabled);
+    salonPaySetActionButtonState('redeemActionBtn', true);
+    salonPaySetActionButtonState('giftCardActionBtn', giftCardsEnabled);
+}
+
+function salonPayRefreshTotalsForTaxChange() {
+    var step2 = document.getElementById('step2Content');
+    if (step2 && !step2.classList.contains('hidden')) {
+        salonPayUpdatePaymentTotal();
+    }
+}
+
+function salonPayGetTotalBeforeGiftCard() {
+    var discountedSubtotal = paymentSubtotal - paymentDiscount;
+    var totalTipSplitAmount = salonPayCalculateTotalTipSplit();
+    paymentTax = discountedSubtotal * (salonPayGetEffectiveTaxRate() / 100);
+    var totalBeforeCredits = discountedSubtotal + paymentTax + totalTipSplitAmount;
+    return totalBeforeCredits - paymentCredits;
+}
+
+window.salonPayHandleDiscountCodeInput = function(value) {
+    var code = salonPayNormalizeCouponCode(value);
+    if (!discountsEnabled) {
+        salonPaySetDiscountMessage('Discounts are disabled in settings.', true);
+        return;
+    }
+    if (!code) {
+        salonPaySetDiscountMessage('', false);
+        return;
+    }
+    var coupon = salonPayFindCouponByCode(code);
+    if (!coupon) {
+        salonPaySetDiscountMessage('No matching discount code found.', true);
+        return;
+    }
+    if (coupon.min_order_amount && paymentSubtotal < Number(coupon.min_order_amount)) {
+        salonPaySetDiscountMessage('Minimum order is $' + Number(coupon.min_order_amount).toFixed(2) + '.', true);
+        return;
+    }
+    var discountAmount = salonPayCalculateDiscountFromCoupon(coupon);
+    salonPaySetDiscountMessage('Applied ' + coupon.code + ' for $' + discountAmount.toFixed(2) + ' off.', false);
+};
 
 // --- Assign Technicians Modal (copied from Waiting List UI/UX) ---
 var payAvailableTechnicians = [];
@@ -748,8 +985,11 @@ function salonPayRenderCheckoutStep() {
     paymentSubtotal = cart.reduce(function(sum, item) { return sum + (item.price * item.quantity); }, 0);
     paymentTip = 0;
     paymentDiscount = 0;
+    paymentCredits = 0;
+    paymentGiftCard = 0;
+    appliedGiftCardCode = '';
     var discountedSubtotal = paymentSubtotal - paymentDiscount;
-    paymentTax = discountedSubtotal * 0.05;
+    paymentTax = discountedSubtotal * (salonPayGetEffectiveTaxRate() / 100);
     var total = discountedSubtotal + paymentTax + paymentTip;
     var itemsList = document.getElementById('checkoutItemsList');
     if (itemsList) {
@@ -760,6 +1000,10 @@ function salonPayRenderCheckoutStep() {
     document.getElementById('checkoutSubtotalDisplay').textContent = '$' + paymentSubtotal.toFixed(2);
     document.getElementById('checkoutTaxDisplay').textContent = '$' + paymentTax.toFixed(2);
     document.getElementById('checkoutDiscountDisplay').textContent = '-$' + paymentDiscount.toFixed(2);
+    var creditsDisplay = document.getElementById('checkoutCreditsDisplay');
+    if (creditsDisplay) creditsDisplay.textContent = '-$' + paymentCredits.toFixed(2);
+    var giftCardDisplay = document.getElementById('checkoutGiftCardDisplay');
+    if (giftCardDisplay) giftCardDisplay.textContent = '-$' + paymentGiftCard.toFixed(2);
     paymentAmountStr = '';
     salonPayUpdatePaymentDisplay();
     salonPayRenderTechniciansTipSplit();
@@ -1048,21 +1292,42 @@ function salonPaySplitTipEvenly() {
 }
 function salonPayUpdatePaymentTotal() {
     var discountedSubtotal = paymentSubtotal - paymentDiscount;
-    paymentTax = discountedSubtotal * 0.05;
+    paymentTax = discountedSubtotal * (salonPayGetEffectiveTaxRate() / 100);
     var totalTipSplitAmount = salonPayCalculateTotalTipSplit();
-    var total = discountedSubtotal + paymentTax + totalTipSplitAmount;
+    var totalBeforeCredits = discountedSubtotal + paymentTax + totalTipSplitAmount;
+    var maxCredits = Math.min(availableCredits, totalBeforeCredits);
+    if (paymentCredits > maxCredits) {
+        paymentCredits = maxCredits;
+    }
+    var totalAfterCredits = totalBeforeCredits - paymentCredits;
+    if (paymentGiftCard > totalAfterCredits) {
+        paymentGiftCard = totalAfterCredits;
+    }
+    var total = totalAfterCredits - paymentGiftCard;
     var checkoutTipDisplay = document.getElementById('checkoutTipDisplay');
     var checkoutDiscountDisplay = document.getElementById('checkoutDiscountDisplay');
     var checkoutTaxDisplay = document.getElementById('checkoutTaxDisplay');
     var checkoutTotalDisplay = document.getElementById('checkoutTotalDisplay');
+    var checkoutGiftCardDisplay = document.getElementById('checkoutGiftCardDisplay');
+    var checkoutCreditsDisplay = document.getElementById('checkoutCreditsDisplay');
     if (checkoutTipDisplay) checkoutTipDisplay.textContent = '$' + totalTipSplitAmount.toFixed(2);
     if (checkoutDiscountDisplay) checkoutDiscountDisplay.textContent = '-$' + paymentDiscount.toFixed(2);
+    if (checkoutCreditsDisplay) checkoutCreditsDisplay.textContent = '-$' + paymentCredits.toFixed(2);
+    if (checkoutGiftCardDisplay) checkoutGiftCardDisplay.textContent = '-$' + paymentGiftCard.toFixed(2);
     if (checkoutTaxDisplay) checkoutTaxDisplay.textContent = '$' + paymentTax.toFixed(2);
     if (checkoutTotalDisplay) checkoutTotalDisplay.textContent = '$' + total.toFixed(2);
     var tipAmountHidden = document.getElementById('tipAmountHidden');
     if (tipAmountHidden) tipAmountHidden.value = totalTipSplitAmount.toFixed(2);
     var discountAmountHidden = document.getElementById('discountAmountHidden');
     if (discountAmountHidden) discountAmountHidden.value = paymentDiscount.toFixed(2);
+    var creditAmountHidden = document.getElementById('creditAmountHidden');
+    if (creditAmountHidden) creditAmountHidden.value = paymentCredits.toFixed(2);
+    var creditCustomerIdHidden = document.getElementById('creditCustomerIdHidden');
+    if (creditCustomerIdHidden) creditCustomerIdHidden.value = paymentCredits > 0 && customerData ? customerData.id : '';
+    var giftCardAmountHidden = document.getElementById('giftCardAmountHidden');
+    if (giftCardAmountHidden) giftCardAmountHidden.value = paymentGiftCard.toFixed(2);
+    var giftCardCodeHidden = document.getElementById('giftCardCodeHidden');
+    if (giftCardCodeHidden) giftCardCodeHidden.value = appliedGiftCardCode || '';
     var cardRadio = document.getElementById('paymentMethodCard');
     if (cardRadio && cardRadio.checked) {
         paymentAmountStr = total.toFixed(2);
@@ -1190,38 +1455,88 @@ window.salonPayFormatCardNumber = function(input) {
     input.value = formattedValue;
 };
 window.salonPayOpenGiftCardModal = function() {
-    var content = '<div class="p-6"><div class="flex items-center justify-between mb-4"><h3 class="text-xl font-bold text-gray-900">Gift Card</h3><button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><div class="space-y-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">Gift Card Number</label><input type="text" id="giftCardNumberInput" placeholder="Enter gift card number" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">PIN (if required)</label><input type="text" id="giftCardPinInput" placeholder="Enter PIN" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div><div class="flex gap-3 justify-end"><button type="button" onclick="closeModal()" class="px-6 py-3 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">Cancel</button><button type="button" onclick="salonPayApplyGiftCard()" class="px-6 py-3 text-sm font-medium text-white bg-[#003047] rounded-lg hover:bg-[#002535] transition">Apply</button></div></div></div>';
+    var content = '<div class="p-6"><div class="flex items-center justify-between mb-4"><h3 class="text-xl font-bold text-gray-900">Gift Card</h3><button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><div class="space-y-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">Gift Card Code</label><input type="text" id="giftCardNumberInput" placeholder="Enter gift card code" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">PIN (if required)</label><input type="text" id="giftCardPinInput" placeholder="Enter PIN" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div><div id="giftCardMessage" class="text-xs text-gray-500"></div><div class="flex gap-3 justify-end"><button type="button" onclick="closeModal()" class="px-6 py-3 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">Cancel</button><button type="button" onclick="salonPayApplyGiftCard()" class="px-6 py-3 text-sm font-medium text-white bg-[#003047] rounded-lg hover:bg-[#002535] transition">Apply</button></div></div></div>';
     openModal(content, 'default', false);
+    salonPayEnsureDiscountDataLoaded();
+    salonPayEnsureGiftCardsLoaded().then(function() {
+        if (!giftCardsEnabled) {
+            salonPaySetGiftCardMessage('Gift cards are disabled in settings.', true);
+        }
+    });
 };
 window.salonPayApplyGiftCard = function() {
     var giftCardNumberInput = document.getElementById('giftCardNumberInput');
     var giftCardPinInput = document.getElementById('giftCardPinInput');
     var number = giftCardNumberInput ? giftCardNumberInput.value.trim() : '';
     var pin = giftCardPinInput ? giftCardPinInput.value.trim() : '';
-    if (!number) {
-        alert('Please enter a gift card number');
+    if (!giftCardsEnabled) {
+        salonPaySetGiftCardMessage('Gift cards are disabled in settings.', true);
         return;
     }
-    console.log('Applying gift card:', { number: number, pin: pin });
-    closeModal();
+    if (!number) {
+        salonPaySetGiftCardMessage('Please enter a gift card code.', true);
+        return;
+    }
+    salonPayEnsureGiftCardsLoaded().then(function() {
+        var card = salonPayFindGiftCardByCode(number);
+        if (!card) {
+            salonPaySetGiftCardMessage('No matching gift card found.', true);
+            return;
+        }
+        if (card.pin && card.pin !== pin) {
+            salonPaySetGiftCardMessage('PIN does not match.', true);
+            return;
+        }
+        var balance = Number(card.balance || 0);
+        if (balance <= 0) {
+            salonPaySetGiftCardMessage('This gift card has no remaining balance.', true);
+            return;
+        }
+        var totalBeforeGift = salonPayGetTotalBeforeGiftCard();
+        paymentGiftCard = Math.min(balance, totalBeforeGift);
+        appliedGiftCardCode = card.code || salonPayNormalizeGiftCardCode(number);
+        salonPayUpdatePaymentTotal();
+        closeModal();
+    });
 };
 window.salonPayOpenRedeemModal = function() {
-    var content = '<div class="p-6"><div class="flex items-center justify-between mb-4"><h3 class="text-xl font-bold text-gray-900">Redeem</h3><button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><div class="space-y-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">Redeem Code</label><input type="text" id="redeemCodeInput" placeholder="Enter redeem code" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div><div class="flex gap-3 justify-end"><button type="button" onclick="closeModal()" class="px-6 py-3 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">Cancel</button><button type="button" onclick="salonPayApplyRedeem()" class="px-6 py-3 text-sm font-medium text-white bg-[#003047] rounded-lg hover:bg-[#002535] transition">Apply</button></div></div></div>';
+    var balance = availableCredits || 0;
+    var content = '<div class="p-6"><div class="flex items-center justify-between mb-4"><h3 class="text-xl font-bold text-gray-900">Redeem Credits</h3><button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><div class="space-y-4"><div class="p-4 bg-gray-50 rounded-lg"><p class="text-sm text-gray-500 mb-1">Available Credits</p><p class="text-2xl font-bold text-gray-900">$' + balance.toFixed(2) + '</p></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Amount to Redeem</label><input type="number" id="redeemAmountInput" step="0.01" min="0" placeholder="0.00" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div><div id="redeemMessage" class="text-xs text-gray-500"></div><div class="flex gap-3 justify-end"><button type="button" onclick="closeModal()" class="px-6 py-3 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">Cancel</button><button type="button" onclick="salonPayApplyRedeem()" class="px-6 py-3 text-sm font-medium text-white bg-[#003047] rounded-lg hover:bg-[#002535] transition">Apply</button></div></div></div>';
     openModal(content, 'default', false);
+    if (balance <= 0) {
+        salonPaySetRedeemMessage('No credits available for this customer.', true);
+    }
 };
 window.salonPayApplyRedeem = function() {
-    var redeemCodeInput = document.getElementById('redeemCodeInput');
-    var code = redeemCodeInput ? redeemCodeInput.value.trim() : '';
-    if (!code) {
-        alert('Please enter a redeem code');
+    var amountInput = document.getElementById('redeemAmountInput');
+    var amount = amountInput ? parseFloat(amountInput.value) : 0;
+    if (!amountInput || isNaN(amount) || amount <= 0) {
+        salonPaySetRedeemMessage('Please enter a valid amount.', true);
         return;
     }
-    console.log('Applying redeem code:', code);
+    if (availableCredits <= 0) {
+        salonPaySetRedeemMessage('No credits available for this customer.', true);
+        return;
+    }
+    var discountedSubtotal = paymentSubtotal - paymentDiscount;
+    var totalTipSplitAmount = salonPayCalculateTotalTipSplit();
+    paymentTax = discountedSubtotal * (salonPayGetEffectiveTaxRate() / 100);
+    var totalBeforeCredits = discountedSubtotal + paymentTax + totalTipSplitAmount;
+    var maxCredits = Math.min(availableCredits, totalBeforeCredits);
+    if (amount > maxCredits) {
+        salonPaySetRedeemMessage('Maximum redeemable amount is $' + maxCredits.toFixed(2) + '.', true);
+        return;
+    }
+    paymentCredits = amount;
+    salonPayUpdatePaymentTotal();
     closeModal();
 };
 window.salonPayOpenDiscountModal = function() {
-    var content = '<div class="p-6"><div class="flex items-center justify-between mb-4"><h3 class="text-xl font-bold text-gray-900">Discount</h3><button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><div class="space-y-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">Discount</label><div class="grid grid-cols-5 gap-2 mb-2"><button type="button" onclick="salonPaySetDiscountPercentage(5); salonPaySwitchToDiscountAmountView();" class="py-2 text-xs font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">5%</button><button type="button" onclick="salonPaySetDiscountPercentage(10); salonPaySwitchToDiscountAmountView();" class="py-2 text-xs font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">10%</button><button type="button" onclick="salonPaySetDiscountPercentage(15); salonPaySwitchToDiscountAmountView();" class="py-2 text-xs font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">15%</button><button type="button" onclick="salonPaySetDiscountPercentage(20); salonPaySwitchToDiscountAmountView();" class="py-2 text-xs font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">20%</button><button type="button" onclick="salonPaySwitchToDiscountCodeView();" class="py-2 text-xs font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">CODE</button></div><div id="discountAmountView"><input type="number" name="discount" id="discountInputModal" step="0.01" min="0" value="' + paymentDiscount.toFixed(2) + '" oninput="salonPayUpdateDiscountFromInputModal()" placeholder="0.00" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div><div id="discountCodeView" class="hidden"><label class="block text-sm font-medium text-gray-700 mb-2">Enter Discount Code</label><input type="text" id="discountCodeInputModal" placeholder="Enter Discount Code" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div></div><div class="flex gap-3 justify-end"><button type="button" onclick="closeModal()" class="px-6 py-3 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">Cancel</button><button type="button" onclick="closeModal()" class="px-6 py-3 text-sm font-medium text-white bg-[#003047] rounded-lg hover:bg-[#002535] transition">Apply</button></div></div>';
+    var content = '<div class="p-6"><div class="flex items-center justify-between mb-4"><h3 class="text-xl font-bold text-gray-900">Discount</h3><button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><div class="space-y-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">Discount</label><div class="grid grid-cols-5 gap-2 mb-2"><button type="button" onclick="salonPaySetDiscountPercentage(5); salonPaySwitchToDiscountAmountView();" class="py-2 text-xs font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">5%</button><button type="button" onclick="salonPaySetDiscountPercentage(10); salonPaySwitchToDiscountAmountView();" class="py-2 text-xs font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">10%</button><button type="button" onclick="salonPaySetDiscountPercentage(15); salonPaySwitchToDiscountAmountView();" class="py-2 text-xs font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">15%</button><button type="button" onclick="salonPaySetDiscountPercentage(20); salonPaySwitchToDiscountAmountView();" class="py-2 text-xs font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">20%</button><button type="button" onclick="salonPaySwitchToDiscountCodeView();" class="py-2 text-xs font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">CODE</button></div><div id="discountAmountView"><input type="number" name="discount" id="discountInputModal" step="0.01" min="0" value="' + paymentDiscount.toFixed(2) + '" oninput="salonPayUpdateDiscountFromInputModal()" placeholder="0.00" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div><div id="discountCodeView" class="hidden"><label class="block text-sm font-medium text-gray-700 mb-2">Enter Discount Code</label><input type="text" id="discountCodeInputModal" placeholder="Enter Discount Code" oninput="salonPayHandleDiscountCodeInput(this.value)" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"><div id="discountCodeMessage" class="mt-2 text-xs text-gray-500"></div></div></div><div class="flex gap-3 justify-end"><button type="button" onclick="closeModal()" class="px-6 py-3 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">Cancel</button><button type="button" onclick="salonPayApplyDiscountFromModal()" class="px-6 py-3 text-sm font-medium text-white bg-[#003047] rounded-lg hover:bg-[#002535] transition">Apply</button></div></div>';
     openModal(content, 'default', false);
+    salonPayEnsureDiscountDataLoaded().then(function() {
+        window.salonPayHandleDiscountCodeInput('');
+    });
 };
 window.salonPaySetDiscountPercentage = function(percentage) {
     var discountAmount = paymentSubtotal * (percentage / 100);
@@ -1239,6 +1554,36 @@ window.salonPayUpdateDiscountFromInputModal = function() {
         salonPayUpdatePaymentTotal();
     }
 };
+
+window.salonPayApplyDiscountFromModal = function() {
+    var codeView = document.getElementById('discountCodeView');
+    var amountView = document.getElementById('discountAmountView');
+    if (codeView && !codeView.classList.contains('hidden')) {
+        var input = document.getElementById('discountCodeInputModal');
+        var code = input ? input.value : '';
+        if (!discountsEnabled) {
+            salonPaySetDiscountMessage('Discounts are disabled in settings.', true);
+            return;
+        }
+        var coupon = salonPayFindCouponByCode(code);
+        if (!coupon) {
+            salonPaySetDiscountMessage('No matching discount code found.', true);
+            return;
+        }
+        if (coupon.min_order_amount && paymentSubtotal < Number(coupon.min_order_amount)) {
+            salonPaySetDiscountMessage('Minimum order is $' + Number(coupon.min_order_amount).toFixed(2) + '.', true);
+            return;
+        }
+        paymentDiscount = salonPayCalculateDiscountFromCoupon(coupon);
+        salonPayUpdatePaymentTotal();
+        closeModal();
+        return;
+    }
+    if (amountView && !amountView.classList.contains('hidden')) {
+        salonPayUpdateDiscountFromInputModal();
+        closeModal();
+    }
+};
 window.salonPaySwitchToDiscountCodeView = function() {
     var amountView = document.getElementById('discountAmountView');
     var codeView = document.getElementById('discountCodeView');
@@ -1246,6 +1591,10 @@ window.salonPaySwitchToDiscountCodeView = function() {
         amountView.classList.add('hidden');
         codeView.classList.remove('hidden');
     }
+    salonPayEnsureDiscountDataLoaded().then(function() {
+        var input = document.getElementById('discountCodeInputModal');
+        if (input) window.salonPayHandleDiscountCodeInput(input.value);
+    });
 };
 window.salonPaySwitchToDiscountAmountView = function() {
     var amountView = document.getElementById('discountAmountView');
@@ -1259,10 +1608,16 @@ window.salonPayProcessPayment = function(event) {
     event.preventDefault();
     var paymentMethod = document.getElementById('paymentMethod').value;
     var paymentAmount = parseFloat(document.getElementById('paymentAmountValue').value) || 0;
+    if (!appointmentId) {
+        alert('No appointment ID provided.');
+        return;
+    }
     var discountedSubtotal = paymentSubtotal - paymentDiscount;
-    var calculatedTax = discountedSubtotal * 0.05;
+    var calculatedTax = discountedSubtotal * (salonPayGetEffectiveTaxRate() / 100);
     var totalTipSplitAmount = salonPayCalculateTotalTipSplit();
-    var total = discountedSubtotal + calculatedTax + totalTipSplitAmount;
+    var totalBeforeCredits = discountedSubtotal + calculatedTax + totalTipSplitAmount;
+    var totalAfterCredits = totalBeforeCredits - paymentCredits;
+    var total = totalAfterCredits - paymentGiftCard;
     if (paymentAmount < total) {
         alert('Payment amount ($' + paymentAmount.toFixed(2) + ') is less than total ($' + total.toFixed(2) + '). Please enter the correct amount.');
         return;
@@ -1277,19 +1632,51 @@ window.salonPayProcessPayment = function(event) {
         tax: paymentTax,
         tip: totalTipSplitAmount,
         discount: paymentDiscount,
+        credits: paymentCredits,
+        gift_card: paymentGiftCard,
+        gift_card_code: appliedGiftCardCode,
         total: total,
         paymentMethod: paymentMethod,
         paymentAmount: paymentAmount,
         change: change
     });
-    if (typeof showSuccessMessage === 'function') {
-        showSuccessMessage('Payment processed successfully!');
-    } else {
-        alert('Payment processed successfully!');
+    if (typeof salonApi === 'undefined' || !salonApi.post) {
+        if (typeof showErrorMessage === 'function') showErrorMessage('Unable to process payment right now.');
+        else alert('Unable to process payment right now.');
+        return;
     }
-    setTimeout(function() {
-        window.location.href = ticketsUrl;
-    }, 1500);
+    var tipsByTechnician = assignedTechnicianIds.map(function(idStr) {
+        var tipInfo = technicianTips[idStr] || {};
+        return {
+            technician_id: parseInt(idStr, 10),
+            tip: tipInfo.amount != null ? Number(tipInfo.amount) : 0
+        };
+    }).filter(function(row) { return !isNaN(row.technician_id); });
+    salonApi.post(apiBase + '/payments', {
+        appointment_id: appointmentId ? parseInt(appointmentId, 10) : null,
+        method: paymentMethod,
+        amount: total,
+        sub_total: paymentSubtotal,
+        discount: paymentDiscount,
+        credits: paymentCredits,
+        gift_card: paymentGiftCard,
+        tax: paymentTax,
+        tip: totalTipSplitAmount,
+        status: 'Paid',
+        tips_by_technician: tipsByTechnician
+    }).then(function() {
+        if (typeof showSuccessMessage === 'function') {
+            showSuccessMessage('Payment processed successfully!');
+        } else {
+            alert('Payment processed successfully!');
+        }
+        setTimeout(function() {
+            window.location.href = ticketsUrl;
+        }, 1500);
+    }).catch(function(err) {
+        if (typeof showErrorMessage === 'function') showErrorMessage(err.message || 'Failed to save payment.');
+        else alert(err.message || 'Failed to save payment.');
+    });
 };
 document.addEventListener('DOMContentLoaded', function() {
     salonPayLoadPaymentData();

@@ -687,6 +687,8 @@ window.salonTicketsAssignCustomer = function(customerId, customerName) {
     setTimeout(function() {
         var modalContainer = document.getElementById('modalContainer');
         if (modalContainer) modalContainer.style.maxHeight = '95vh';
+        var modalContent = document.getElementById('modalContent');
+        if (modalContent) modalContent.style.overflowY = '';
     }, 50);
     salonTicketsLoadTechnicians();
     setTimeout(function() {
