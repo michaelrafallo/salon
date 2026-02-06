@@ -238,7 +238,7 @@ function stopDurationCounters() {
 function getPaymentDetails(customer) {
     if (!customer.payment) return '<span class="text-sm text-gray-400">No payment</span>';
     var payment = customer.payment;
-    var amount = payment.amount ? '$' + parseFloat(payment.amount).toFixed(2) : '$0.00';
+    var amount = payment.amount ? window.salonFormatMoney(parseFloat(payment.amount)) : window.salonFormatMoney(0);
     var method = payment.method || 'N/A';
     var status = payment.status || 'Pending';
     if (currentStatusFilter === 'unpaid' && status === 'Completed') status = 'Payment Failed';
@@ -509,7 +509,7 @@ window.salonTicketsViewDetails = function(appointmentId, customerName) {
     var customerPhone = customer ? (customer.phone || 'No phone') : (appointment.phone || 'No phone');
     var customerEmail = customer ? (customer.email || 'No email') : (appointment.email || 'No email');
     var payment = appointment.payment || null;
-    var paymentAmount = payment ? '$' + parseFloat(payment.amount).toFixed(2) : '$0.00';
+    var paymentAmount = payment ? window.salonFormatMoney(parseFloat(payment.amount)) : window.salonFormatMoney(0);
     var paymentMethod = payment ? payment.method : 'N/A';
     var paymentStatus = payment ? payment.status : 'N/A';
     var paymentDate = payment ? payment.date : 'N/A';
@@ -561,7 +561,7 @@ window.salonTicketsViewDetails = function(appointmentId, customerName) {
     openModal(content, 'medium');
 };
 window.salonTicketsConfirmRefund = function(appointmentId, customerName, amount) {
-    var amountValue = parseFloat(amount.replace('$', '').replace(',', ''));
+    var amountValue = parseFloat(amount.replace(/[^0-9.\-]/g, ''));
     var appointment = allMergedData.find(function(apt) {
         return (apt.appointmentId && apt.appointmentId.toString() === appointmentId.toString()) || (apt.id && apt.id.toString() === appointmentId.toString());
     });
@@ -609,7 +609,7 @@ window.salonTicketsProcessRefund = function(appointmentId, customerName, amount)
         applyFilters();
         closeNestedModal();
         closeModal();
-        showSuccessMessage('Refund of $' + amount.toFixed(2) + ' has been processed successfully for ' + customerName + '. The ticket has been moved to the "Refunded" tab.');
+        showSuccessMessage('Refund of ' + window.salonFormatMoney(amount) + ' has been processed successfully for ' + customerName + '. The ticket has been moved to the "Refunded" tab.');
     }).catch(function(err) {
         showErrorMessage(err.message || 'Failed to update status. Please try again.');
     });

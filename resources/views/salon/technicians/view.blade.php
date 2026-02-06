@@ -67,15 +67,15 @@
                 </div>
                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                     <p class="text-sm text-gray-500 mb-2">Total</p>
-                    <p id="statTotal" class="text-3xl font-bold text-gray-900">$0.00</p>
+                    <p id="statTotal" class="text-3xl font-bold text-gray-900">{{ $currencySymbol }}0.00</p>
                 </div>
                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                     <p class="text-sm text-gray-500 mb-2">Tip</p>
-                    <p id="statTip" class="text-3xl font-bold text-gray-900">$0.00</p>
+                    <p id="statTip" class="text-3xl font-bold text-gray-900">{{ $currencySymbol }}0.00</p>
                 </div>
                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                     <p class="text-sm text-gray-500 mb-2">Commission</p>
-                    <p id="statCommission" class="text-3xl font-bold text-gray-900">$0.00</p>
+                    <p id="statCommission" class="text-3xl font-bold text-gray-900">{{ $currencySymbol }}0.00</p>
                 </div>
                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                     <p class="text-sm text-gray-500 mb-2">Clock</p>
@@ -127,9 +127,10 @@
                         <thead>
                             <tr class="border-b border-gray-200">
                                 <th class="text-left py-3 px-4 text-sm font-semibold text-gray-700">Date</th>
-                                <th class="text-right py-3 px-4 text-sm font-semibold text-gray-700">Total</th>
+                                <th class="text-right py-3 px-4 text-sm font-semibold text-gray-700">Total Service</th>
                                 <th class="text-right py-3 px-4 text-sm font-semibold text-gray-700">Tip</th>
                                 <th class="text-right py-3 px-4 text-sm font-semibold text-gray-700">Commission</th>
+                                <th class="text-right py-3 px-4 text-sm font-semibold text-gray-700">Total</th>
                                 <th class="text-center py-3 px-4 text-sm font-semibold text-gray-700">Action</th>
                             </tr>
                         </thead>
@@ -148,10 +149,35 @@
     var apiSalonUrl = '{{ $apiSalonUrl }}';
     var technicianId = null;
     var technicianData = null;
-    var commissionsData = [];
     var filteredCommissionsData = [];
     var dateRangeFrom = null;
     var dateRangeTo = null;
+    var payoutTransactions = [];
+
+    function formatYmd(date) {
+        if (!date) return '';
+        var y = date.getFullYear();
+        var m = String(date.getMonth() + 1).padStart(2, '0');
+        var d = String(date.getDate()).padStart(2, '0');
+        return y + '-' + m + '-' + d;
+    }
+    function setActivePreset(range) {
+        document.querySelectorAll('.date-preset-btn').forEach(function(btn) {
+            btn.classList.remove('bg-[#003047]', 'text-white', 'border-[#003047]');
+            btn.classList.add('bg-white', 'text-gray-700', 'border-gray-300');
+        });
+        if (!range) return;
+        var activeBtn = null;
+        document.querySelectorAll('.date-preset-btn').forEach(function(btn) {
+            var on = btn.getAttribute('onclick') || '';
+            if (on.indexOf("'" + range + "'") >= 0) {
+                activeBtn = btn;
+            }
+        });
+        if (!activeBtn) return;
+        activeBtn.classList.remove('bg-white', 'text-gray-700', 'border-gray-300');
+        activeBtn.classList.add('bg-[#003047]', 'text-white', 'border-[#003047]');
+    }
 
     function getAvatarClasses(avatarColor) {
         var map = { pink: ['bg-[#e6f0f3]', 'text-[#003047]'], purple: ['bg-purple-100', 'text-purple-600'], teal: ['bg-teal-100', 'text-teal-600'], indigo: ['bg-indigo-100', 'text-indigo-600'], rose: ['bg-rose-100', 'text-rose-600'], blue: ['bg-blue-100', 'text-blue-600'] };
@@ -174,30 +200,11 @@
         document.getElementById('technicianEmail').textContent = t.email || '';
         document.getElementById('technicianPhone').textContent = t.phone || '';
         document.getElementById('statCustomers').textContent = t.customers ?? 0;
-        document.getElementById('statTotal').textContent = '$' + (t.total != null ? Number(t.total).toFixed(2) : '0.00');
-        document.getElementById('statTip').textContent = '$' + (t.tip != null ? Number(t.tip).toFixed(2) : '0.00');
-        document.getElementById('statCommission').textContent = '$' + (t.commission != null ? Number(t.commission).toFixed(2) : '0.00');
+        document.getElementById('statTotal').textContent = window.salonFormatMoney(t.total != null ? Number(t.total) : 0);
+        document.getElementById('statTip').textContent = window.salonFormatMoney(t.tip != null ? Number(t.tip) : 0);
+        document.getElementById('statCommission').textContent = window.salonFormatMoney(t.commission != null ? Number(t.commission) : 0);
         document.getElementById('clockIn').textContent = t.clock_in || '--';
         document.getElementById('clockOut').textContent = t.clock_out || '--';
-    }
-    function setDefaultDateRange() {
-        var today = new Date();
-        dateRangeFrom = today.toISOString().split('T')[0];
-        dateRangeTo = today.toISOString().split('T')[0];
-        var fromInput = document.getElementById('dateRangeFrom');
-        var toInput = document.getElementById('dateRangeTo');
-        if (fromInput) fromInput.value = dateRangeFrom;
-        if (toInput) toInput.value = dateRangeTo;
-        updateURLWithDateRange(dateRangeFrom, dateRangeTo, 'today');
-        var todayBtn = document.querySelector('button[onclick*="setDateRange(\'today\'"]');
-        if (todayBtn) {
-            document.querySelectorAll('.date-preset-btn').forEach(function(btn) {
-                btn.classList.remove('bg-[#003047]', 'text-white', 'border-[#003047]');
-                btn.classList.add('bg-white', 'text-gray-700', 'border-gray-300');
-            });
-            todayBtn.classList.remove('bg-white', 'text-gray-700', 'border-gray-300');
-            todayBtn.classList.add('bg-[#003047]', 'text-white', 'border-[#003047]');
-        }
     }
     function updateURLWithDateRange(from, to, dateType) {
         var url = new URL(window.location);
@@ -206,6 +213,20 @@
         if (dateType) url.searchParams.set('datetype', dateType);
         else url.searchParams.delete('datetype');
         window.history.replaceState({}, '', url);
+    }
+    function fetchPayoutTransactions() {
+        if (!technicianId) return Promise.resolve([]);
+        var url = base + '/payout?technician_id=' + encodeURIComponent(technicianId);
+        if (dateRangeFrom) url += '&from=' + encodeURIComponent(dateRangeFrom);
+        if (dateRangeTo) url += '&to=' + encodeURIComponent(dateRangeTo);
+        return fetch(url).then(function(r) { return r.json(); }).then(function(res) {
+            var tx = (res && res.transactions) ? res.transactions : [];
+            payoutTransactions = Array.isArray(tx) ? tx : [];
+            return payoutTransactions;
+        }).catch(function() {
+            payoutTransactions = [];
+            return payoutTransactions;
+        });
     }
     function setDateRange(range, buttonElement) {
         var today = new Date();
@@ -233,20 +254,12 @@
             default:
                 return;
         }
-        dateRangeFrom = fromDate.toISOString().split('T')[0];
-        dateRangeTo = toDate.toISOString().split('T')[0];
+        dateRangeFrom = formatYmd(fromDate);
+        dateRangeTo = formatYmd(toDate);
         document.getElementById('dateRangeFrom').value = dateRangeFrom;
         document.getElementById('dateRangeTo').value = dateRangeTo;
         updateURLWithDateRange(dateRangeFrom, dateRangeTo, range);
-        document.querySelectorAll('.date-preset-btn').forEach(function(btn) {
-            btn.classList.remove('bg-[#003047]', 'text-white', 'border-[#003047]');
-            btn.classList.add('bg-white', 'text-gray-700', 'border-gray-300');
-        });
-        var activeBtn = buttonElement || document.querySelector('button[onclick*="setDateRange(\'' + range + '\'"]');
-        if (activeBtn) {
-            activeBtn.classList.remove('bg-white', 'text-gray-700', 'border-gray-300');
-            activeBtn.classList.add('bg-[#003047]', 'text-white', 'border-[#003047]');
-        }
+        setActivePreset(range);
         applyDateRangeFilter(true);
     }
     function applyDateRangeFilter(preserveButtonState) {
@@ -255,64 +268,137 @@
         if (!fromInput || !toInput) return;
         dateRangeFrom = fromInput.value;
         dateRangeTo = toInput.value;
-        if (dateRangeFrom && dateRangeTo && !preserveButtonState) updateURLWithDateRange(dateRangeFrom, dateRangeTo, null);
+        if (dateRangeFrom && dateRangeTo && !preserveButtonState) {
+            updateURLWithDateRange(dateRangeFrom, dateRangeTo, null);
+            setActivePreset(null);
+        }
         if (!preserveButtonState) {
             document.querySelectorAll('.date-preset-btn').forEach(function(btn) {
                 btn.classList.remove('bg-[#003047]', 'text-white', 'border-[#003047]');
                 btn.classList.add('bg-white', 'text-gray-700', 'border-gray-300');
             });
         }
-        if (!dateRangeFrom || !dateRangeTo) {
-            filteredCommissionsData = commissionsData.slice();
+        fetchPayoutTransactions().then(function() {
             renderCommissions();
-            return;
-        }
-        var fromDate = new Date(dateRangeFrom + 'T00:00:00');
-        var toDate = new Date(dateRangeTo + 'T23:59:59');
-        var filtered = commissionsData.filter(function(c) {
-            if (!c.date) return false;
-            var d = new Date(c.date + 'T00:00:00');
-            return d >= fromDate && d <= toDate;
         });
-        var grouped = {};
-        filtered.forEach(function(c) {
-            if (!grouped[c.date]) grouped[c.date] = { date: c.date, total: 0, tip: 0, commission: 0 };
-            grouped[c.date].total += c.total;
-            grouped[c.date].tip += c.tip;
-            grouped[c.date].commission += c.commission;
-        });
-        filteredCommissionsData = Object.keys(grouped).sort(function(a, b) { return b.localeCompare(a); }).map(function(k) { return grouped[k]; });
-        renderCommissions();
     }
     function renderCommissions() {
         var tbody = document.getElementById('commissionsTableBody');
         if (!tbody) return;
+        var grouped = {};
+        payoutTransactions.forEach(function(t) {
+            if (!t || !t.date) return;
+            var dateKey = t.date;
+            if (!grouped[dateKey]) grouped[dateKey] = { date: dateKey, total: 0, tip: 0, commission: 0 };
+            grouped[dateKey].total += Number(t.amount || 0);
+            grouped[dateKey].tip += Number(t.tip || 0);
+            grouped[dateKey].commission += Number(t.commission || 0);
+        });
+        filteredCommissionsData = Object.keys(grouped).sort(function(a, b) { return b.localeCompare(a); }).map(function(k) { return grouped[k]; });
         if (!filteredCommissionsData || filteredCommissionsData.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-gray-500">No commissions found</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-gray-500">No commissions found</td></tr>';
             return;
         }
-        var totalTotal = 0, totalTip = 0, totalCommission = 0;
+        var totalService = 0, totalTip = 0, totalCommission = 0, totalTotal = 0;
         var html = '';
         filteredCommissionsData.forEach(function(c) {
             var dateStr = c.date ? new Date(c.date + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A';
-            totalTotal += c.total;
+            var serviceAmount = Number(c.total) || 0;
+            var tipAmount = Number(c.tip) || 0;
+            var commissionAmount = Number(c.commission) || 0;
+            var rowTotal = tipAmount + commissionAmount;
+            totalService += serviceAmount;
             totalTip += c.tip;
             totalCommission += c.commission;
+            totalTotal += rowTotal;
             html += '<tr class="border-b border-gray-100 hover:bg-gray-50 transition-colors">';
             html += '<td class="py-3 px-4 text-sm text-gray-900">' + dateStr + '</td>';
-            html += '<td class="py-3 px-4 text-sm text-gray-900 text-right font-medium">$' + Number(c.total).toFixed(2) + '</td>';
-            html += '<td class="py-3 px-4 text-sm text-gray-900 text-right font-medium">$' + Number(c.tip).toFixed(2) + '</td>';
-            html += '<td class="py-3 px-4 text-sm text-[#003047] text-right font-bold">$' + Number(c.commission).toFixed(2) + '</td>';
-            html += '<td class="py-3 px-4 text-center"><button type="button" onclick="openEditCommissionModal(\'' + c.date + '\', ' + c.total + ', ' + c.tip + ', ' + c.commission + ')" class="p-2 text-gray-600 hover:text-[#003047] hover:bg-gray-100 rounded-lg transition-colors" title="Edit Commission"><svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg></button></td>';
+            html += '<td class="py-3 px-4 text-sm text-gray-900 text-right font-medium">' + window.salonFormatMoney(serviceAmount) + '</td>';
+            html += '<td class="py-3 px-4 text-sm text-gray-900 text-right font-medium">' + window.salonFormatMoney(tipAmount) + '</td>';
+            html += '<td class="py-3 px-4 text-sm text-[#003047] text-right font-bold">' + window.salonFormatMoney(commissionAmount) + '</td>';
+            html += '<td class="py-3 px-4 text-sm text-gray-900 text-right font-semibold">' + window.salonFormatMoney(rowTotal) + '</td>';
+            html += '<td class="py-3 px-4 text-center"><button type="button" onclick="openCommissionsDateDetails(\'' + c.date + '\')" class="px-3 py-1.5 bg-gray-500 text-white text-xs font-medium rounded hover:bg-gray-600 transition active:scale-95">Open</button></td>';
             html += '</tr>';
         });
         html += '<tr class="border-t-2 border-gray-300 bg-gray-50"><td class="py-4 px-4 text-sm font-bold text-gray-900">Total</td>';
-        html += '<td class="py-4 px-4 text-sm font-bold text-gray-900 text-right">$' + totalTotal.toFixed(2) + '</td>';
-        html += '<td class="py-4 px-4 text-sm font-bold text-gray-900 text-right">$' + totalTip.toFixed(2) + '</td>';
-        html += '<td class="py-4 px-4 text-sm font-bold text-[#003047] text-right">$' + totalCommission.toFixed(2) + '</td>';
+        html += '<td class="py-4 px-4 text-sm font-bold text-gray-900 text-right">' + window.salonFormatMoney(totalService) + '</td>';
+        html += '<td class="py-4 px-4 text-sm font-bold text-gray-900 text-right">' + window.salonFormatMoney(totalTip) + '</td>';
+        html += '<td class="py-4 px-4 text-sm font-bold text-[#003047] text-right">' + window.salonFormatMoney(totalCommission) + '</td>';
+        html += '<td class="py-4 px-4 text-sm font-bold text-gray-900 text-right">' + window.salonFormatMoney(totalTotal) + '</td>';
         html += '<td class="py-4 px-4 text-center"><button type="button" onclick="showCommissionsPrintModal()" class="p-2 text-gray-600 hover:text-[#003047] hover:bg-gray-100 rounded-lg transition-colors" title="Print"><svg class="w-5 h-5 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg></button></td></tr>';
         tbody.innerHTML = html;
     }
+    window.openCommissionsDateDetails = function(dateKey) {
+        var dateTransactions = payoutTransactions.filter(function(t) { return t.date === dateKey; });
+        if (!dateTransactions.length) {
+            alert('No transactions found for this date');
+            return;
+        }
+        var dateTotal = 0, dateTip = 0, dateCommission = 0, dateGrandTotal = 0;
+        dateTransactions.forEach(function(t) {
+            dateTotal += Number(t.amount || 0);
+            dateTip += Number(t.tip || 0);
+            dateCommission += Number(t.commission || 0);
+            dateGrandTotal += Number(t.total != null ? t.total : (Number(t.tip || 0) + Number(t.commission || 0)));
+        });
+        var date = new Date(dateKey + 'T00:00:00');
+        var monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        var formattedDate = date.getDate() + '-' + monthNames[date.getMonth()] + '-' + date.getFullYear();
+        var name = (technicianData && ((technicianData.first_name || '') + ' ' + (technicianData.last_name || '')).trim()) || 'Technician';
+        var techNameUpper = name.toUpperCase();
+        var transactionsList = '';
+        dateTransactions.forEach(function(transaction) {
+            var time = transaction.time || '00:00';
+            var parts = time.split(':');
+            var formattedTime = parts[0].padStart(2, '0') + ':' + (parts[1] || '00').padStart(2, '0');
+            var amount = Number(transaction.amount || 0);
+            var tip = Number(transaction.tip || 0);
+            var commission = Number(transaction.commission || 0);
+            var total = Number(transaction.total != null ? transaction.total : (tip + commission));
+            transactionsList += '<tr class="border-b border-gray-200"><td class="py-2 px-4 text-sm text-gray-900 border-r border-gray-200">' + formattedTime + ' | ' + formattedDate + '</td><td class="py-2 px-4 text-sm text-gray-900 text-right">' + window.salonFormatMoney(amount) + ' | ' + window.salonFormatMoney(tip) + ' | ' + window.salonFormatMoney(commission) + ' | ' + window.salonFormatMoney(total) + '</td></tr>';
+        });
+        var modalContent = ''
+            + '<div class="p-6 bg-white border border-gray-300 rounded-lg">'
+            + '<div class="text-center mb-6 border-b border-gray-300 pb-4">'
+            + '<h1 class="text-3xl font-bold text-gray-900 mb-2">Dons Nail Spa</h1>'
+            + '<p class="text-sm text-gray-700">258 Hedrick St, Beckley, WV 25801</p>'
+            + '<p class="text-sm text-gray-700">Phone: 681-2077114</p>'
+            + '<p class="text-sm text-gray-700">Merchant ID (MID): 23420</p>'
+            + '</div>'
+            + '<div class="mb-4 border-b border-gray-200 pb-3 text-center">'
+            + '<h2 class="text-xl font-bold text-gray-900 mb-1">' + name + ' Daily Report</h2>'
+            + '<p class="text-sm text-gray-600">' + formattedDate + '</p>'
+            + '</div>'
+            + '<div class="mb-6 overflow-y-auto max-h-96 border border-gray-300 rounded-lg">'
+            + '<table class="w-full">'
+            + '<thead class="bg-gray-50 sticky top-0"><tr class="border-b border-gray-300">'
+            + '<th class="text-left py-3 px-4 text-sm font-semibold text-gray-500 uppercase border-r border-gray-300">' + techNameUpper + '</th>'
+            + '<th class="text-right py-3 px-4 text-sm font-semibold text-gray-500 uppercase">SERVICE | TIP | COMMISSION | TOTAL</th>'
+            + '</tr></thead>'
+            + '<tbody>' + transactionsList + '</tbody>'
+            + '</table>'
+            + '</div>'
+            + '<div class="border-t border-gray-200 pt-4 mb-6">'
+            + '<div class="flex justify-between items-center mb-2 pb-2 border-b border-gray-200"><span class="text-sm font-semibold text-gray-900">Total Service:</span><span class="text-sm font-semibold text-gray-900">' + window.salonFormatMoney(dateTotal) + '</span></div>'
+            + '<div class="flex justify-between items-center mb-2 pb-2 border-b border-gray-200"><span class="text-sm font-semibold text-gray-900">Total Tip:</span><span class="text-sm font-semibold text-gray-900">' + window.salonFormatMoney(dateTip) + '</span></div>'
+            + '<div class="flex justify-between items-center mb-2 pb-2 border-b border-gray-200"><span class="text-sm font-semibold text-gray-900">Total Commission:</span><span class="text-sm font-semibold text-gray-900">' + window.salonFormatMoney(dateCommission) + '</span></div>'
+            + '<div class="flex justify-between items-center"><span class="text-sm font-semibold text-gray-900">Total:</span><span class="text-sm font-semibold text-gray-900">' + window.salonFormatMoney(dateGrandTotal) + '</span></div>'
+            + '</div>'
+            + '<div class="flex justify-end gap-3 border-t border-gray-200 pt-4">'
+            + '<button onclick="window.print()" class="px-6 py-2 bg-[#003047] text-white rounded-lg hover:bg-[#004060] transition-colors font-medium">Print</button>'
+            + '<button onclick="closeModal()" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium">Close</button>'
+            + '</div>'
+            + '</div>';
+        if (typeof openModal === 'function') {
+            openModal(modalContent, 'medium');
+        }
+    };
+
+    // Needed for inline onclick/onchange handlers in the Blade markup.
+    window.setDateRange = setDateRange;
+    window.applyDateRangeFilter = function() {
+        applyDateRangeFilter(false);
+    };
     window.openEditTechnicianModal = function() {
         if (!technicianData) return;
         var t = technicianData;
@@ -373,32 +459,6 @@
             else alert(msg);
         });
     };
-    window.openEditCommissionModal = function(date, total, tip, commission) {
-        var formattedDate = new Date(date + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-        var content = '<div class="p-6"><div class="flex items-center justify-between mb-4"><h3 class="text-xl font-bold text-gray-900">Edit Commission</h3><button type="button" onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div>';
-        content += '<form onsubmit="updateCommission(event, \'' + date.replace(/'/g, "\\'") + '\')" class="space-y-4"><div class="bg-gray-50 p-4 rounded-lg mb-4"><p class="text-sm font-medium text-gray-700">Date: <span class="text-gray-900">' + formattedDate + '</span></p></div>';
-        content += '<div class="grid grid-cols-2 gap-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">Total ($)</label><p class="text-2xl font-bold text-gray-900">$' + Number(total).toFixed(2) + '</p></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Tip ($)</label><p class="text-2xl font-bold text-gray-900">$' + Number(tip).toFixed(2) + '</p></div></div>';
-        content += '<div><label class="block text-sm font-medium text-gray-700 mb-2">Commission ($)</label><input type="number" id="editCommissionInput" value="' + Number(commission).toFixed(2) + '" min="0" step="0.01" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div>';
-        content += '<div class="flex justify-end gap-3 pt-4"><button type="button" onclick="closeModal()" class="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition font-medium active:scale-95">Cancel</button><button type="submit" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">Update Commission</button></div></form></div>';
-        openModal(content, 'default', false);
-    };
-    window.updateCommission = function(event, date) {
-        event.preventDefault();
-        var input = document.getElementById('editCommissionInput');
-        var newCommission = parseFloat(input && input.value ? input.value : 0);
-        if (isNaN(newCommission) || newCommission < 0) {
-            if (typeof showErrorMessage === 'function') showErrorMessage('Please enter a valid positive number for commission');
-            else alert('Please enter a valid positive number for commission');
-            return;
-        }
-        var idx = filteredCommissionsData.findIndex(function(c) { return c.date === date; });
-        if (idx !== -1) {
-            filteredCommissionsData[idx].commission = newCommission;
-            renderCommissions();
-            showSuccessMessage('Commission updated successfully!');
-            closeModal();
-        }
-    };
     window.showCommissionsPrintModal = function() {
         if (!filteredCommissionsData || filteredCommissionsData.length === 0) {
             alert('No commissions data to print');
@@ -409,15 +469,21 @@
         var fromDate = dateRangeFrom ? new Date(dateRangeFrom + 'T00:00:00') : new Date();
         var toDate = dateRangeTo ? new Date(dateRangeTo + 'T23:59:59') : new Date();
         var dateRangeText = dateRangeFrom === dateRangeTo ? fromDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-') : fromDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-') + ' to ' + toDate.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-');
-        var totalAmount = 0, totalTip = 0, totalCommission = 0;
-        filteredCommissionsData.forEach(function(c) { totalAmount += c.total; totalTip += c.tip; totalCommission += c.commission; });
+        var totalAmount = 0, totalTip = 0, totalCommission = 0, totalGrand = 0;
+        filteredCommissionsData.forEach(function(c) {
+            totalAmount += Number(c.total || 0);
+            totalTip += Number(c.tip || 0);
+            totalCommission += Number(c.commission || 0);
+            totalGrand += (Number(c.tip || 0) + Number(c.commission || 0));
+        });
         var rows = filteredCommissionsData.map(function(c) {
             var d = new Date(c.date + 'T00:00:00');
             var time = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
             var dateStr = d.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: '2-digit' });
-            return '<tr class="border-b border-gray-200"><td class="px-2 py-2 text-sm text-gray-900">' + time + ' | ' + dateStr + '</td><td class="px-2 py-2 text-sm text-gray-900 text-right">$' + Number(c.total).toFixed(2) + ' | $' + Number(c.tip).toFixed(2) + '</td></tr>';
+            var total = Number(c.tip || 0) + Number(c.commission || 0);
+            return '<tr class="border-b border-gray-200"><td class="px-2 py-2 text-sm text-gray-900">' + time + ' | ' + dateStr + '</td><td class="px-2 py-2 text-sm text-gray-900 text-right">' + window.salonFormatMoney(Number(c.total || 0)) + ' | ' + window.salonFormatMoney(Number(c.tip || 0)) + ' | ' + window.salonFormatMoney(Number(c.commission || 0)) + ' | ' + window.salonFormatMoney(total) + '</td></tr>';
         }).join('');
-        var content = '<div class="p-6 mx-auto"><div class="bg-white border border-gray-300 rounded-lg p-6"><div class="text-center mb-6 border-b border-gray-300 pb-4"><h2 class="text-xl font-bold text-gray-900 mb-2">Dons Nail Spa</h2><p class="text-sm text-gray-600">258 Hedrick St, Beckley, WV 25801</p><p class="text-sm text-gray-600">Phone: 681-2077114</p><p class="text-sm text-gray-600">Merchant ID (MID): 23420</p></div><div class="text-center mb-4"><h3 class="text-lg font-semibold text-gray-900">' + technicianName + ' Daily Report</h3><p class="text-sm text-gray-600 mt-1">' + dateRangeText + '</p></div><div class="mb-6"><div class="max-h-96 overflow-y-auto border border-gray-200 rounded"><table class="w-full border-collapse"><thead class="sticky top-0 bg-white z-10"><tr class="border-b-2 border-gray-300"><th class="px-2 py-2 text-left text-xs font-semibold text-gray-700 uppercase">' + technicianName + '</th><th class="px-2 py-2 text-right text-xs font-semibold text-gray-700 uppercase">Amount</th></tr></thead><tbody>' + rows + '</tbody></table></div></div><div class="border-t-2 border-gray-300 pt-4 mt-4"><div class="flex justify-between items-center mb-2"><span class="text-sm font-semibold text-gray-900">Total Amount:</span><span class="text-sm font-bold text-gray-900">$' + totalAmount.toFixed(2) + '</span></div><div class="flex justify-between items-center"><span class="text-sm font-semibold text-gray-900">Total Tip:</span><span class="text-sm font-bold text-gray-900">$' + totalTip.toFixed(2) + '</span></div><div class="flex justify-between items-center mt-2 pt-2 border-t border-gray-200"><span class="text-sm font-semibold text-[#003047]">Total Commission:</span><span class="text-sm font-bold text-[#003047]">$' + totalCommission.toFixed(2) + '</span></div></div><div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200"><button type="button" onclick="window.print()" class="px-6 py-2 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium">Print</button><button type="button" onclick="closeModal()" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-medium">Close</button></div></div></div>';
+        var content = '<div class="p-6 mx-auto"><div class="bg-white border border-gray-300 rounded-lg p-6"><div class="text-center mb-6 border-b border-gray-300 pb-4"><h2 class="text-xl font-bold text-gray-900 mb-2">Dons Nail Spa</h2><p class="text-sm text-gray-600">258 Hedrick St, Beckley, WV 25801</p><p class="text-sm text-gray-600">Phone: 681-2077114</p><p class="text-sm text-gray-600">Merchant ID (MID): 23420</p></div><div class="text-center mb-4"><h3 class="text-lg font-semibold text-gray-900">' + technicianName + ' Daily Report</h3><p class="text-sm text-gray-600 mt-1">' + dateRangeText + '</p></div><div class="mb-6"><div class="max-h-96 overflow-y-auto border border-gray-200 rounded"><table class="w-full border-collapse"><thead class="sticky top-0 bg-white z-10"><tr class="border-b-2 border-gray-300"><th class="px-2 py-2 text-left text-xs font-semibold text-gray-700 uppercase">' + technicianName + '</th><th class="px-2 py-2 text-right text-xs font-semibold text-gray-700 uppercase">SERVICE | TIP | COMMISSION | TOTAL</th></tr></thead><tbody>' + rows + '</tbody></table></div></div><div class="border-t-2 border-gray-300 pt-4 mt-4"><div class="flex justify-between items-center mb-2"><span class="text-sm font-semibold text-gray-900">Total Service:</span><span class="text-sm font-bold text-gray-900">' + window.salonFormatMoney(totalAmount) + '</span></div><div class="flex justify-between items-center"><span class="text-sm font-semibold text-gray-900">Total Tip:</span><span class="text-sm font-bold text-gray-900">' + window.salonFormatMoney(totalTip) + '</span></div><div class="flex justify-between items-center mt-2 pt-2 border-t border-gray-200"><span class="text-sm font-semibold text-[#003047]">Total Commission:</span><span class="text-sm font-bold text-[#003047]">' + window.salonFormatMoney(totalCommission) + '</span></div><div class="flex justify-between items-center mt-2"><span class="text-sm font-semibold text-gray-900">Total:</span><span class="text-sm font-bold text-gray-900">' + window.salonFormatMoney(totalGrand) + '</span></div></div><div class="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-200"><button type="button" onclick="window.print()" class="px-6 py-2 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium">Print</button><button type="button" onclick="closeModal()" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition font-medium">Close</button></div></div></div>';
         openModal(content, 'medium');
     };
 
@@ -437,10 +503,8 @@
         }).then(function(data) {
             document.getElementById('technicianLoading').classList.add('hidden');
             technicianData = data.technician;
-            commissionsData = data.commissions || [];
             renderTechnician(technicianData);
             document.getElementById('technicianContent').classList.remove('hidden');
-            setDefaultDateRange();
             var urlFrom = params.get('from');
             var urlTo = params.get('to');
             var urlDateType = params.get('datetype');
@@ -449,17 +513,15 @@
                 dateRangeTo = urlTo;
                 document.getElementById('dateRangeFrom').value = dateRangeFrom;
                 document.getElementById('dateRangeTo').value = dateRangeTo;
-                if (urlDateType) {
-                    var presetBtn = document.querySelector('button[onclick*="setDateRange(\'' + urlDateType + '\'"]');
-                    if (presetBtn) {
-                        document.querySelectorAll('.date-preset-btn').forEach(function(btn) {
-                            btn.classList.remove('bg-[#003047]', 'text-white', 'border-[#003047]');
-                            btn.classList.add('bg-white', 'text-gray-700', 'border-gray-300');
-                        });
-                        presetBtn.classList.remove('bg-white', 'text-gray-700', 'border-gray-300');
-                        presetBtn.classList.add('bg-[#003047]', 'text-white', 'border-[#003047]');
-                    }
-                }
+                setActivePreset(urlDateType || null);
+            } else {
+                var today = new Date();
+                dateRangeFrom = formatYmd(today);
+                dateRangeTo = formatYmd(today);
+                document.getElementById('dateRangeFrom').value = dateRangeFrom;
+                document.getElementById('dateRangeTo').value = dateRangeTo;
+                updateURLWithDateRange(dateRangeFrom, dateRangeTo, 'today');
+                setActivePreset('today');
             }
             applyDateRangeFilter(true);
         }).catch(function() {

@@ -71,8 +71,8 @@
             </div>
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <p class="text-sm text-gray-500 mb-2">Total Spent</p>
-                <p id="totalSpent" class="text-3xl font-bold text-gray-900">${{ number_format($totalSpent, 2) }}</p>
-                <p id="averagePerVisit" class="text-xs text-gray-500 mt-2">Average per visit: ${{ $totalVisits > 0 ? number_format($totalSpent / $totalVisits, 2) : '0.00' }}</p>
+                <p id="totalSpent" class="text-3xl font-bold text-gray-900">{{ $currencySymbol ?? '$' }}{{ number_format($totalSpent, 2) }}</p>
+                <p id="averagePerVisit" class="text-xs text-gray-500 mt-2">Average per visit: {{ $currencySymbol ?? '$' }}{{ $totalVisits > 0 ? number_format($totalSpent / $totalVisits, 2) : '0.00' }}</p>
             </div>
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <p class="text-sm text-gray-500 mb-2">Customer Since</p>
@@ -81,82 +81,158 @@
             </div>
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <p class="text-sm text-gray-500 mb-2">Credit Balance</p>
-                <p id="creditBalanceDisplay" class="text-3xl font-bold text-gray-900">${{ number_format((float) ($customer->credit_balance ?? 0), 2) }}</p>
+                <p id="creditBalanceDisplay" class="text-3xl font-bold text-gray-900">{{ $currencySymbol ?? '$' }}{{ number_format((float) ($customer->credit_balance ?? 0), 2) }}</p>
                 <p class="text-xs text-gray-500 mt-2">Available to redeem at checkout</p>
             </div>
         </div>
 
-        <!-- Tickets (PHP-rendered) -->
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 class="text-xl font-semibold text-gray-900 mb-4">Tickets</h2>
-            <div id="ticketsContainer" class="space-y-4">
-                @forelse($bookings as $booking)
-                    @php
-                        $bookingDate = $booking->appointment_datetime?->format('Y-m-d') ?? $booking->created_at?->format('Y-m-d');
-                        $dateDisplay = $bookingDate ? \Carbon\Carbon::parse($bookingDate)->format('M j, Y') : '—';
-                        $totalAmount = 0;
-                        foreach ($booking->appointmentServices as $svc) {
-                            $totalAmount += (int)($svc->quantity ?? 1) * (float)($svc->unit_price ?? 0);
-                        }
-                        $techNames = $booking->technicians->map(fn ($u) => $u->first_name . ' ' . $u->last_name)->implode(', ');
-                        $status = $booking->status ?? 'Completed';
-                        $statusColor = match($status) {
-                            'Completed' => 'bg-green-100 text-green-700',
-                            'Paid' => 'bg-blue-100 text-blue-700',
-                            'Waiting' => 'bg-yellow-100 text-yellow-700',
-                            default => 'bg-gray-100 text-gray-700',
-                        };
-                    @endphp
-                    <div class="p-5 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
-                        <div class="flex justify-between items-start mb-3">
-                            <div class="flex-1">
-                                <div class="flex items-center gap-3 mb-2">
-                                    <p class="font-semibold text-gray-900 text-lg">Ticket #{{ $booking->id }}</p>
-                                    <span class="px-2 py-1 {{ $statusColor }} text-xs font-medium rounded">{{ $status }}</span>
+        <!-- Tabs: Tickets / Credit History (PHP-rendered) -->
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+            <div class="border-b border-gray-200 px-6">
+                <nav class="-mb-px flex gap-6" aria-label="Customer details tabs">
+                    <button id="customerTabTickets" type="button" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" aria-controls="customerTabPanelTickets">
+                        Tickets
+                    </button>
+                    <button id="customerTabCredits" type="button" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" aria-controls="customerTabPanelCredits">
+                        Credit History
+                    </button>
+                </nav>
+            </div>
+
+            <div id="customerTabPanelTickets" class="p-6">
+                <h2 class="sr-only">Tickets</h2>
+                <div id="ticketsContainer" class="space-y-4">
+                    @forelse($bookings as $booking)
+                        @php
+                            $bookingDate = $booking->appointment_datetime?->format('Y-m-d') ?? $booking->created_at?->format('Y-m-d');
+                            $dateDisplay = $bookingDate ? \Carbon\Carbon::parse($bookingDate)->format('M j, Y') : '—';
+                            $totalAmount = 0;
+                            foreach ($booking->appointmentServices as $svc) {
+                                $totalAmount += (int)($svc->quantity ?? 1) * (float)($svc->unit_price ?? 0);
+                            }
+                            $techNames = $booking->technicians->map(fn ($u) => $u->first_name . ' ' . $u->last_name)->implode(', ');
+                            $status = $booking->status ?? 'Completed';
+                            $statusColor = match($status) {
+                                'Completed' => 'bg-green-100 text-green-700',
+                                'Paid' => 'bg-blue-100 text-blue-700',
+                                'Waiting' => 'bg-yellow-100 text-yellow-700',
+                                default => 'bg-gray-100 text-gray-700',
+                            };
+                        @endphp
+                        <div class="p-5 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                            <div class="flex justify-between items-start mb-3">
+                                <div class="flex-1">
+                                    <div class="flex items-center gap-3 mb-2">
+                                        <p class="font-semibold text-gray-900 text-lg">Ticket #{{ $booking->id }}</p>
+                                        <span class="px-2 py-1 {{ $statusColor }} text-xs font-medium rounded">{{ $status }}</span>
+                                    </div>
+                                    <p class="text-sm text-gray-600 mb-3">Nail care service</p>
                                 </div>
-                                <p class="text-sm text-gray-600 mb-3">Nail care service</p>
-                            </div>
-                            <div class="flex items-center gap-3">
-                                <span class="text-2xl font-bold text-gray-900">${{ number_format($totalAmount, 2) }}</span>
-                                <button type="button" onclick="printTicket({{ $booking->id }})" class="px-3 py-1.5 bg-[#003047] text-white text-xs font-medium rounded hover:bg-[#002535] transition active:scale-95 flex items-center gap-1">
-                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-                                    Print
-                                </button>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-gray-200">
-                            <div>
-                                <p class="text-xs text-gray-500 mb-1">Date</p>
-                                <p class="text-sm font-medium text-gray-900">{{ $dateDisplay }}</p>
-                            </div>
-                            <div>
-                                <p class="text-xs text-gray-500 mb-1">Technicians</p>
-                                <p class="text-sm font-medium text-gray-900">{{ $techNames ?: 'Not Assigned' }}</p>
-                            </div>
-                            <div class="md:col-span-2">
-                                <p class="text-xs text-gray-500 mb-2">Services</p>
-                                <div class="space-y-1">
-                                    @forelse($booking->appointmentServices as $svc)
-                                        @php
-                                            $qty = (int)($svc->quantity ?? 1);
-                                            $unitPrice = (float)($svc->unit_price ?? 0);
-                                            $lineTotal = $qty * $unitPrice;
-                                            $serviceName = $svc->serviceCategory?->name ?? $svc->serviceCategory?->slug ?? 'Service';
-                                        @endphp
-                                        <div class="flex justify-between items-center">
-                                            <span class="text-sm text-gray-900">{{ $serviceName }}{{ $qty > 1 ? ' × ' . $qty : '' }}</span>
-                                            <span class="text-sm font-medium text-gray-900">${{ number_format($lineTotal, 2) }}</span>
-                                        </div>
-                                    @empty
-                                        <p class="text-sm text-gray-500">No services listed</p>
-                                    @endforelse
+                                <div class="flex items-center gap-3">
+                                    <span class="text-2xl font-bold text-gray-900">{{ $currencySymbol ?? '$' }}{{ number_format($totalAmount, 2) }}</span>
+                                    <button type="button" onclick="printTicket({{ $booking->id }})" class="px-3 py-1.5 bg-[#003047] text-white text-xs font-medium rounded hover:bg-[#002535] transition active:scale-95 flex items-center gap-1">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                                        Print
+                                    </button>
                                 </div>
                             </div>
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-gray-200">
+                                <div>
+                                    <p class="text-xs text-gray-500 mb-1">Date</p>
+                                    <p class="text-sm font-medium text-gray-900">{{ $dateDisplay }}</p>
+                                </div>
+                                <div>
+                                    <p class="text-xs text-gray-500 mb-1">Technicians</p>
+                                    <p class="text-sm font-medium text-gray-900">{{ $techNames ?: 'Not Assigned' }}</p>
+                                </div>
+                                <div class="md:col-span-2">
+                                    <p class="text-xs text-gray-500 mb-2">Services</p>
+                                    <div class="space-y-1">
+                                        @forelse($booking->appointmentServices as $svc)
+                                            @php
+                                                $qty = (int)($svc->quantity ?? 1);
+                                                $unitPrice = (float)($svc->unit_price ?? 0);
+                                                $lineTotal = $qty * $unitPrice;
+                                                $serviceName = $svc->serviceCategory?->name ?? $svc->serviceCategory?->slug ?? 'Service';
+                                            @endphp
+                                            <div class="flex justify-between items-center">
+                                                <span class="text-sm text-gray-900">{{ $serviceName }}{{ $qty > 1 ? ' × ' . $qty : '' }}</span>
+                                                <span class="text-sm font-medium text-gray-900">{{ $currencySymbol ?? '$' }}{{ number_format($lineTotal, 2) }}</span>
+                                            </div>
+                                        @empty
+                                            <p class="text-sm text-gray-500">No services listed</p>
+                                        @endforelse
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                @empty
-                    <p class="text-center text-gray-500 py-8">No tickets found for this customer.</p>
-                @endforelse
+                    @empty
+                        <p class="text-center text-gray-500 py-8">No tickets found for this customer.</p>
+                    @endforelse
+                </div>
+            </div>
+
+            <div id="customerTabPanelCredits" class="p-6 hidden">
+                <h2 class="sr-only">Credit History</h2>
+                <div class="w-full overflow-x-auto">
+                    <table class="w-full min-w-full">
+                        <thead class="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Operation</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Processed By</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Remaining</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">New Balance</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            @forelse($creditLedgers as $ledger)
+                                @php
+                                    $amountPrefix = match ($ledger->operation) {
+                                        'add' => '+',
+                                        'subtract', 'redeem' => '-',
+                                        default => '',
+                                    };
+
+                                    $processedBy = '—';
+                                    if ($ledger->user) {
+                                        $processedBy = trim(($ledger->user->first_name ?? '').' '.($ledger->user->last_name ?? ''));
+                                        if ($processedBy === '') {
+                                            $processedBy = $ledger->user->name ?? $ledger->user->email ?? '—';
+                                        }
+                                    }
+                                @endphp
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                        {{ $ledger->created_at?->format('M j, Y g:i A') ?? '—' }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                        {{ ucfirst($ledger->operation) }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                        {{ $processedBy }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-right">
+                                        {{ $amountPrefix }}{{ $currencySymbol ?? '$' }}{{ number_format((float) $ledger->amount, 2) }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700 text-right">
+                                        {{ $currencySymbol ?? '$' }}{{ number_format((float) $ledger->remaining_balance, 2) }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 text-right">
+                                        {{ $currencySymbol ?? '$' }}{{ number_format((float) $ledger->new_balance, 2) }}
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="6" class="px-6 py-6 text-center text-sm text-gray-500">
+                                        No credit history yet.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -205,8 +281,48 @@ function renderCustomerCredits() {
     var creditEl = document.getElementById('creditBalanceDisplay');
     if (creditEl) {
         var balance = parseFloat(customerData.creditBalance) || 0;
-        creditEl.textContent = '$' + balance.toFixed(2);
+        creditEl.textContent = window.salonFormatMoney(balance);
     }
+}
+
+function setCustomerViewTab(tab) {
+    var btnTickets = document.getElementById('customerTabTickets');
+    var btnCredits = document.getElementById('customerTabCredits');
+    var panelTickets = document.getElementById('customerTabPanelTickets');
+    var panelCredits = document.getElementById('customerTabPanelCredits');
+    if (!btnTickets || !btnCredits || !panelTickets || !panelCredits) return;
+
+    var activeClasses = 'border-[#003047] text-[#003047]';
+    var inactiveClasses = 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300';
+
+    var showTickets = tab !== 'credits';
+    panelTickets.classList.toggle('hidden', !showTickets);
+    panelCredits.classList.toggle('hidden', showTickets);
+
+    btnTickets.setAttribute('aria-selected', showTickets ? 'true' : 'false');
+    btnCredits.setAttribute('aria-selected', showTickets ? 'false' : 'true');
+
+    btnTickets.className = btnTickets.className.replace(activeClasses, '').replace(inactiveClasses, '').trim() + ' ' + (showTickets ? activeClasses : inactiveClasses);
+    btnCredits.className = btnCredits.className.replace(activeClasses, '').replace(inactiveClasses, '').trim() + ' ' + (showTickets ? inactiveClasses : activeClasses);
+
+    try { localStorage.setItem('customerViewTab', showTickets ? 'tickets' : 'credits'); } catch (e) {}
+}
+
+function initCustomerViewTabs() {
+    var btnTickets = document.getElementById('customerTabTickets');
+    var btnCredits = document.getElementById('customerTabCredits');
+    if (!btnTickets || !btnCredits) return;
+
+    btnTickets.addEventListener('click', function() { setCustomerViewTab('tickets'); });
+    btnCredits.addEventListener('click', function() { setCustomerViewTab('credits'); });
+
+    var initial = 'tickets';
+    if (window.location && window.location.hash === '#credits') initial = 'credits';
+    try {
+        var saved = localStorage.getItem('customerViewTab');
+        if (saved === 'credits' || saved === 'tickets') initial = saved;
+    } catch (e) {}
+    setCustomerViewTab(initial);
 }
 
 function openEditCustomerModal() {
@@ -230,7 +346,7 @@ function openEditCustomerModal() {
 function openAdjustCreditsModal() {
     if (!customerData) return;
     var balance = parseFloat(customerData.creditBalance) || 0;
-    var modalContent = '<div class="p-6"><div class="flex items-center justify-between mb-4"><h3 class="text-xl font-bold text-gray-900">Adjust Credits</h3><button type="button" onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><form onsubmit="return window.updateCustomerCredits(event)" class="space-y-4"><div class="p-4 bg-gray-50 rounded-lg"><p class="text-sm text-gray-500 mb-1">Current Balance</p><p class="text-2xl font-bold text-gray-900">$' + balance.toFixed(2) + '</p></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">Operation</label><select name="operation" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent bg-white"><option value="add">Add Credits</option><option value="subtract">Subtract Credits</option><option value="set">Set Balance</option></select></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Amount</label><input type="number" name="amount" step="0.01" min="0" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="0.00"></div></div><div class="flex justify-end gap-3 pt-4"><button type="button" onclick="closeModal()" class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium">Cancel</button><button type="submit" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium">Save Credits</button></div></form></div>';
+    var modalContent = '<div class="p-6"><div class="flex items-center justify-between mb-4"><h3 class="text-xl font-bold text-gray-900">Adjust Credits</h3><button type="button" onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><form onsubmit="return window.updateCustomerCredits(event)" class="space-y-4"><div class="p-4 bg-gray-50 rounded-lg"><p class="text-sm text-gray-500 mb-1">Current Balance</p><p class="text-2xl font-bold text-gray-900">' + window.salonFormatMoney(balance) + '</p></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">Operation</label><select name="operation" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent bg-white"><option value="add">Add Credits</option><option value="subtract">Subtract Credits</option><option value="set">Set Balance</option></select></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Amount</label><input type="number" name="amount" step="0.01" min="0" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="0.00"></div></div><div class="flex justify-end gap-3 pt-4"><button type="button" onclick="closeModal()" class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium">Cancel</button><button type="submit" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium">Save Credits</button></div></form></div>';
     if (typeof openModal === 'function') {
         openModal(modalContent);
     } else {
@@ -332,6 +448,9 @@ window.updateCustomer = updateCustomer;
 window.openAdjustCreditsModal = openAdjustCreditsModal;
 window.updateCustomerCredits = updateCustomerCredits;
 window.deleteCustomerFromView = deleteCustomerFromView;
+window.setCustomerViewTab = setCustomerViewTab;
+
+initCustomerViewTabs();
 })();
 </script>
 @endpush

@@ -4,6 +4,7 @@
 @php
     $usersViewUrl = route('salon.users.view');
     $apiUsersUrl = url('api/salon/users');
+    $dashboardUrl = route('salon.dashboard');
 @endphp
 <main class="flex-1 overflow-y-auto bg-gray-50 lg:ml-0 pt-16 lg:pt-0">
     <div class="p-4 sm:p-6 lg:p-8">
@@ -69,6 +70,7 @@
 var base = window.salonJsonBase || '{{ url("api/salon/data") }}';
 var viewUrl = '{{ $usersViewUrl }}';
 var apiUsersUrl = '{{ $apiUsersUrl }}';
+var dashboardUrl = '{{ $dashboardUrl }}';
 var allUsers = [], usersData = [], currentRoleFilter = 'all', currentSearchTerm = '', PAGE_SIZE = 15, currentPage = 1, totalPages = 1, currentView = localStorage.getItem('staffView') || 'grid';
 
 var roleColors = {
@@ -147,8 +149,9 @@ function renderGrid() {
         var statusText = u.active ? 'Active' : 'Inactive', statusColor = u.active ? 'text-green-600' : 'text-gray-500';
         var technicianStatus = (u.role === 'technician' || u.userlevel === 'technician') && u.status ? u.status : statusText;
         var technicianStatusColor = (u.role === 'technician' || u.userlevel === 'technician') && u.status === 'Available' ? 'text-green-600' : (u.role === 'technician' || u.userlevel === 'technician') && u.status === 'Busy' ? 'text-[#003047]' : statusColor;
-        var statsHTML = (u.role === 'technician' || u.userlevel === 'technician') && u.totalEarnings !== undefined ? '<div class="grid grid-cols-2 gap-3 mb-4 pt-4 border-t border-gray-200"><div><p class="text-xs text-gray-500">Status</p><p class="text-sm font-medium ' + technicianStatusColor + '">' + technicianStatus + '</p></div><div><p class="text-xs text-gray-500">Earnings</p><p class="text-sm font-medium text-gray-900">$' + (u.totalEarnings || 0).toFixed(2) + '</p></div></div>' : '<div class="grid grid-cols-2 gap-3 mb-4 pt-4 border-t border-gray-200"><div><p class="text-xs text-gray-500">Status</p><p class="text-sm font-medium ' + statusColor + '">' + statusText + '</p></div><div><p class="text-xs text-gray-500">Last Login</p><p class="text-sm font-medium text-gray-900">Today</p></div></div>';
-        return '<div data-role="' + roleDisplay + '" class="staff-card bg-white rounded-lg shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow relative"><div onclick="window.location.href=\'' + viewUrl + '?id=' + u.id + '\'" class="flex items-center gap-4 mb-4 cursor-pointer"><div class="w-16 h-16 ' + colors.bg + ' rounded-full flex items-center justify-center flex-shrink-0"><span class="text-2xl font-bold ' + colors.text + '">' + inits + '</span></div><div class="flex-1 min-w-0"><h3 class="font-semibold text-gray-900 text-lg truncate">' + name + '</h3><p class="text-sm text-gray-500 truncate">' + (u.email || '') + '</p><p class="text-xs ' + colors.text + ' font-medium mt-1">' + roleDisplay + '</p></div></div>' + statsHTML + '<div class="flex gap-2 pt-2 border-t border-gray-100" onclick="event.stopPropagation()"><button type="button" onclick="salonUsersOpenEditModal(' + u.id + ')" class="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">Edit</button><button type="button" onclick="salonUsersDelete(' + u.id + ', \'' + name.replace(/'/g, "\\'") + '\')" class="px-3 py-1.5 text-sm bg-red-50 text-red-600 rounded-lg hover:bg-red-100">Delete</button></div></div>';
+        var statsHTML = (u.role === 'technician' || u.userlevel === 'technician') && u.totalEarnings !== undefined ? '<div class="grid grid-cols-2 gap-3 mb-4 pt-4 border-t border-gray-200"><div><p class="text-xs text-gray-500">Status</p><p class="text-sm font-medium ' + technicianStatusColor + '">' + technicianStatus + '</p></div><div><p class="text-xs text-gray-500">Earnings</p><p class="text-sm font-medium text-gray-900">' + window.salonFormatMoney(u.totalEarnings || 0) + '</p></div></div>' : '<div class="grid grid-cols-2 gap-3 mb-4 pt-4 border-t border-gray-200"><div><p class="text-xs text-gray-500">Status</p><p class="text-sm font-medium ' + statusColor + '">' + statusText + '</p></div><div><p class="text-xs text-gray-500">Last Login</p><p class="text-sm font-medium text-gray-900">Today</p></div></div>';
+        var safeName = (name || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        return '<div data-role="' + roleDisplay + '" class="staff-card bg-white rounded-lg shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow relative"><div onclick="window.location.href=\'' + viewUrl + '?id=' + u.id + '\'" class="flex items-center gap-4 mb-4 cursor-pointer"><div class="w-16 h-16 ' + colors.bg + ' rounded-full flex items-center justify-center flex-shrink-0"><span class="text-2xl font-bold ' + colors.text + '">' + inits + '</span></div><div class="flex-1 min-w-0"><h3 class="font-semibold text-gray-900 text-lg truncate">' + name + '</h3><p class="text-sm text-gray-500 truncate">' + (u.email || '') + '</p><p class="text-xs ' + colors.text + ' font-medium mt-1">' + roleDisplay + '</p></div></div>' + statsHTML + '<div class="flex flex-wrap gap-2 pt-2 border-t border-gray-100" onclick="event.stopPropagation()"><button type="button" onclick="salonUsersLoginAs(' + u.id + ', \'' + safeName + '\')" class="px-3 py-1.5 text-sm bg-[#e6f0f3] text-[#003047] rounded-lg hover:bg-[#d1e4e9]">Login as</button><button type="button" onclick="salonUsersOpenEditModal(' + u.id + ')" class="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">Edit</button><button type="button" onclick="salonUsersDelete(' + u.id + ', \'' + safeName + '\')" class="px-3 py-1.5 text-sm bg-red-50 text-red-600 rounded-lg hover:bg-red-100">Delete</button></div></div>';
     }).join('');
 }
 function renderList() {
@@ -164,8 +167,39 @@ function renderList() {
         var statusText = u.active ? 'Active' : 'Inactive', statusColor = u.active ? 'text-green-600' : 'text-gray-500';
         var technicianStatus = (u.role === 'technician' || u.userlevel === 'technician') && u.status ? u.status : statusText;
         var technicianStatusColor = (u.role === 'technician' || u.userlevel === 'technician') && u.status === 'Available' ? 'text-green-600' : (u.role === 'technician' || u.userlevel === 'technician') && u.status === 'Busy' ? 'text-[#003047]' : statusColor;
-        return '<tr data-role="' + roleDisplay + '" class="staff-row hover:bg-gray-50 transition"><td onclick="window.location.href=\'' + viewUrl + '?id=' + u.id + '\'" class="px-6 py-4 whitespace-nowrap cursor-pointer"><div class="flex items-center"><div class="w-10 h-10 ' + colors.bg + ' rounded-full flex items-center justify-center flex-shrink-0"><span class="text-sm font-bold ' + colors.text + '">' + inits + '</span></div><div class="ml-4"><div class="text-sm font-medium text-gray-900">' + name + '</div><div class="text-sm text-gray-500">' + (u.email || '') + '</div></div></div></td><td class="px-6 py-4 whitespace-nowrap"><span class="text-xs ' + colors.badgeText + ' font-medium px-2 py-1 ' + colors.badge + ' rounded">' + roleDisplay + '</span></td><td class="px-6 py-4 whitespace-nowrap"><span class="text-sm font-medium ' + technicianStatusColor + '">' + technicianStatus + '</span></td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Today</td><td class="px-6 py-4 whitespace-nowrap text-sm"><button type="button" onclick="event.stopPropagation(); salonUsersOpenEditModal(' + u.id + ')" class="text-[#003047] hover:underline mr-2">Edit</button><button type="button" onclick="event.stopPropagation(); salonUsersDelete(' + u.id + ', \'' + name.replace(/'/g, "\\'") + '\')" class="text-red-600 hover:underline">Delete</button></td></tr>';
+        var safeName = (name || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        return '<tr data-role="' + roleDisplay + '" class="staff-row hover:bg-gray-50 transition"><td onclick="window.location.href=\'' + viewUrl + '?id=' + u.id + '\'" class="px-6 py-4 whitespace-nowrap cursor-pointer"><div class="flex items-center"><div class="w-10 h-10 ' + colors.bg + ' rounded-full flex items-center justify-center flex-shrink-0"><span class="text-sm font-bold ' + colors.text + '">' + inits + '</span></div><div class="ml-4"><div class="text-sm font-medium text-gray-900">' + name + '</div><div class="text-sm text-gray-500">' + (u.email || '') + '</div></div></div></td><td class="px-6 py-4 whitespace-nowrap"><span class="text-xs ' + colors.badgeText + ' font-medium px-2 py-1 ' + colors.badge + ' rounded">' + roleDisplay + '</span></td><td class="px-6 py-4 whitespace-nowrap"><span class="text-sm font-medium ' + technicianStatusColor + '">' + technicianStatus + '</span></td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Today</td><td class="px-6 py-4 whitespace-nowrap text-sm"><button type="button" onclick="event.stopPropagation(); salonUsersLoginAs(' + u.id + ', \'' + safeName + '\')" class="text-[#003047] hover:underline mr-2">Login as</button><button type="button" onclick="event.stopPropagation(); salonUsersOpenEditModal(' + u.id + ')" class="text-[#003047] hover:underline mr-2">Edit</button><button type="button" onclick="event.stopPropagation(); salonUsersDelete(' + u.id + ', \'' + safeName + '\')" class="text-red-600 hover:underline">Delete</button></td></tr>';
     }).join('');
+}
+
+window.salonUsersLoginAs = function(id, name) {
+    var label = (name || 'this user') + '';
+    if (typeof openConfirmModal === 'function') {
+        openConfirmModal({
+            title: 'Login as user',
+            message: 'You are about to login as ' + label + '. Do you want to continue?',
+            confirmLabel: 'Login as',
+            onConfirm: function() { salonUsersDoLoginAs(id, label); }
+        });
+        return;
+    }
+    if (confirm('Login as ' + label + '?')) {
+        salonUsersDoLoginAs(id, label);
+    }
+};
+
+function salonUsersDoLoginAs(id, name) {
+    if (!id) return;
+    if (typeof salonApi === 'undefined' || !salonApi.post) {
+        showErrorMessage('Unable to login as right now.');
+        return;
+    }
+    salonApi.post(apiUsersUrl + '/' + id + '/login-as', {}).then(function(res) {
+        showSuccessMessage(res.message || ('Logged in as ' + name + '.'));
+        setTimeout(function() { window.location.href = dashboardUrl; }, 300);
+    }).catch(function(err) {
+        showErrorMessage((err && err.message) ? err.message : 'Failed to login as user.');
+    });
 }
 function salonUsersRender() {
     updatePaginationState();

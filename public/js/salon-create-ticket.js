@@ -85,7 +85,7 @@ function initializeServicesList() {
         var isInCart = selectedTechnicianId ? cart.find(function(item) {
             return item.name === service.name && item.technician_id === selectedTechnicianId;
         }) : null;
-        return '<div class="service-item bg-white border border-gray-200 rounded-lg overflow-hidden hover:border-[#003047] hover:shadow-md transition-all flex flex-col h-full"><div class="w-full h-32 ' + color.bg + ' flex items-center justify-center flex-shrink-0"><svg class="w-12 h-12 ' + color.text + '" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg></div><div class="p-4 flex flex-col flex-1"><div class="flex-1"><h3 class="text-sm font-semibold text-gray-900 mb-1">' + (service.name || '') + '</h3><p class="text-lg font-bold text-[#003047] mb-3">$' + (parseFloat(service.price || 0).toFixed(2)) + '</p></div><button type="button" onclick="salonTicketAddServiceToCart(\'' + (service.name || '').replace(/'/g, "\\'") + '\', ' + (service.price || 0) + ')" class="w-full px-6 py-3 ' + (!selectedTechnicianId ? 'bg-gray-400 cursor-not-allowed' : isInCart ? 'bg-green-600 hover:bg-green-700' : 'bg-[#003047] hover:bg-[#002535]') + ' text-white rounded-lg transition font-medium text-sm active:scale-95 flex items-center justify-center gap-2 mt-auto" ' + (!selectedTechnicianId ? 'disabled title="Please select a technician first"' : '') + '><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>' + (!selectedTechnicianId ? 'Select Technician First' : isInCart ? 'In Cart (' + isInCart.quantity + 'x)' : 'Add to Cart') + '</button></div></div>';
+        return '<div class="service-item bg-white border border-gray-200 rounded-lg overflow-hidden hover:border-[#003047] hover:shadow-md transition-all flex flex-col h-full"><div class="w-full h-32 ' + color.bg + ' flex items-center justify-center flex-shrink-0"><svg class="w-12 h-12 ' + color.text + '" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg></div><div class="p-4 flex flex-col flex-1"><div class="flex-1"><h3 class="text-sm font-semibold text-gray-900 mb-1">' + (service.name || '') + '</h3><p class="text-lg font-bold text-[#003047] mb-3">' + window.salonFormatMoney(parseFloat(service.price || 0)) + '</p></div><button type="button" onclick="salonTicketAddServiceToCart(\'' + (service.name || '').replace(/'/g, "\\'") + '\', ' + (service.price || 0) + ')" class="w-full px-6 py-3 ' + (!selectedTechnicianId ? 'bg-gray-400 cursor-not-allowed' : isInCart ? 'bg-green-600 hover:bg-green-700' : 'bg-[#003047] hover:bg-[#002535]') + ' text-white rounded-lg transition font-medium text-sm active:scale-95 flex items-center justify-center gap-2 mt-auto" ' + (!selectedTechnicianId ? 'disabled title="Please select a technician first"' : '') + '><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>' + (!selectedTechnicianId ? 'Select Technician First' : isInCart ? 'In Cart (' + isInCart.quantity + 'x)' : 'Add to Cart') + '</button></div></div>';
     }).join('');
 }
 window.salonTicketFilterServices = function(val) { initializeServicesList(); };
@@ -129,7 +129,7 @@ function renderTechniciansList() {
         if (techServices.length > 0) {
             html += '<div class="mt-2 pt-2 border-t border-gray-300"><div class="space-y-2">';
             techServices.forEach(function(service) {
-                html += '<div class="bg-gray-50 rounded-lg p-3 border border-gray-200"><div class="flex items-center justify-between gap-3"><div class="flex-1 min-w-0"><p class="text-sm font-semibold text-gray-900">' + service.name + '</p><p class="text-xs text-gray-500">$' + (service.price || 0).toFixed(2) + ' each</p></div><div class="flex items-center gap-2"><button onclick="event.stopPropagation(); salonTicketUpdateServiceQuantity(\'' + (service.name || '').replace(/'/g, "\\'") + '\', ' + (service.price || 0) + ', \'' + idStr + '\', ' + (service.quantity - 1) + ')" class="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-200 rounded border border-gray-300 transition">-</button><span class="text-sm font-medium text-gray-900 min-w-[2rem] text-center">' + service.quantity + '</span><button onclick="event.stopPropagation(); salonTicketUpdateServiceQuantity(\'' + (service.name || '').replace(/'/g, "\\'") + '\', ' + (service.price || 0) + ', \'' + idStr + '\', ' + (service.quantity + 1) + ')" class="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-200 rounded border border-gray-300 transition">+</button></div><div class="text-sm font-semibold text-gray-900 min-w-[4rem] text-right">$' + ((service.price || 0) * service.quantity).toFixed(2) + '</div><button onclick="event.stopPropagation(); salonTicketRemoveServiceFromCart(\'' + (service.name || '').replace(/'/g, "\\'") + '\', \'' + idStr + '\')" class="w-8 h-8 flex items-center justify-center text-red-500 hover:bg-red-50 rounded transition">×</button></div></div>';
+                html += '<div class="bg-gray-50 rounded-lg p-3 border border-gray-200"><div class="flex items-center justify-between gap-3"><div class="flex-1 min-w-0"><p class="text-sm font-semibold text-gray-900">' + service.name + '</p><p class="text-xs text-gray-500">' + window.salonFormatMoney(service.price || 0) + ' each</p></div><div class="flex items-center gap-2"><button onclick="event.stopPropagation(); salonTicketUpdateServiceQuantity(\'' + (service.name || '').replace(/'/g, "\\'") + '\', ' + (service.price || 0) + ', \'' + idStr + '\', ' + (service.quantity - 1) + ')" class="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-200 rounded border border-gray-300 transition">-</button><span class="text-sm font-medium text-gray-900 min-w-[2rem] text-center">' + service.quantity + '</span><button onclick="event.stopPropagation(); salonTicketUpdateServiceQuantity(\'' + (service.name || '').replace(/'/g, "\\'") + '\', ' + (service.price || 0) + ', \'' + idStr + '\', ' + (service.quantity + 1) + ')" class="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-200 rounded border border-gray-300 transition">+</button></div><div class="text-sm font-semibold text-gray-900 min-w-[4rem] text-right">' + window.salonFormatMoney((service.price || 0) * service.quantity) + '</div><button onclick="event.stopPropagation(); salonTicketRemoveServiceFromCart(\'' + (service.name || '').replace(/'/g, "\\'") + '\', \'' + idStr + '\')" class="w-8 h-8 flex items-center justify-center text-red-500 hover:bg-red-50 rounded transition">×</button></div></div>';
             });
             html += '</div></div>';
         } else {
@@ -297,7 +297,7 @@ function renderCheckoutStep() {
     var container = document.getElementById('checkoutItemsList');
     if (container) {
         container.innerHTML = cart.map(function(item) {
-            return '<div class="grid grid-cols-12 gap-4"><div class="col-span-6"><span class="text-sm text-gray-900">' + (item.name || '') + '</span></div><div class="col-span-3 text-center"><span class="text-sm text-gray-900">' + (item.quantity || 1) + '</span></div><div class="col-span-3 text-right"><span class="text-sm font-semibold text-gray-900">$' + (((item.price || 0) * (item.quantity || 1)).toFixed(2)) + '</span></div></div>';
+            return '<div class="grid grid-cols-12 gap-4"><div class="col-span-6"><span class="text-sm text-gray-900">' + (item.name || '') + '</span></div><div class="col-span-3 text-center"><span class="text-sm text-gray-900">' + (item.quantity || 1) + '</span></div><div class="col-span-3 text-right"><span class="text-sm font-semibold text-gray-900">' + window.salonFormatMoney((item.price || 0) * (item.quantity || 1)) + '</span></div></div>';
         }).join('');
     }
     var subtotalEl = document.getElementById('checkoutSubtotalDisplay');
@@ -305,10 +305,10 @@ function renderCheckoutStep() {
     var discountEl = document.getElementById('checkoutDiscountDisplay');
     var tipEl = document.getElementById('checkoutTipDisplay');
     var totalEl = document.getElementById('checkoutTotalDisplay');
-    if (subtotalEl) subtotalEl.textContent = '$' + paymentSubtotal.toFixed(2);
-    if (taxEl) taxEl.textContent = '$' + paymentTax.toFixed(2);
-    if (discountEl) discountEl.textContent = '-$' + paymentDiscount.toFixed(2);
-    if (tipEl) tipEl.textContent = '$' + paymentTip.toFixed(2);
+    if (subtotalEl) subtotalEl.textContent = window.salonFormatMoney(paymentSubtotal);
+    if (taxEl) taxEl.textContent = window.salonFormatMoney(paymentTax);
+    if (discountEl) discountEl.textContent = window.salonFormatMoney(-paymentDiscount);
+    if (tipEl) tipEl.textContent = window.salonFormatMoney(paymentTip);
     paymentAmountStr = '';
     updatePaymentDisplay();
     renderTechniciansTipSplit();
@@ -334,7 +334,7 @@ function renderTechniciansTipSplit() {
         var idStr = tech.id.toString();
         var tip = technicianTips[idStr] || { percentage: 0, amount: 0 };
         var name = tech.firstName + ' ' + tech.lastName;
-        return '<div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg"><div class="flex-1"><p class="text-sm font-medium text-gray-900">' + name + '</p><p class="text-xs text-gray-500">' + (tip.percentage || 0).toFixed(1) + '%</p></div><div class="text-sm font-semibold text-gray-900">$' + (tip.amount || 0).toFixed(2) + '</div></div>';
+        return '<div class="flex items-center justify-between p-2 bg-gray-50 rounded-lg"><div class="flex-1"><p class="text-sm font-medium text-gray-900">' + name + '</p><p class="text-xs text-gray-500">' + (tip.percentage || 0).toFixed(1) + '%</p></div><div class="text-sm font-semibold text-gray-900">' + window.salonFormatMoney(tip.amount || 0) + '</div></div>';
     }).join('');
     if (listEl) listEl.innerHTML = html;
     if (listEvenEl) listEvenEl.innerHTML = html;
@@ -342,9 +342,9 @@ function renderTechniciansTipSplit() {
     var totalEl = document.getElementById('totalTipSplitDisplay');
     var totalEvenEl = document.getElementById('totalTipSplitDisplayEven');
     var totalCustomEl = document.getElementById('totalTipSplitDisplayCustom');
-    if (totalEl) totalEl.textContent = '$' + totalTip.toFixed(2);
-    if (totalEvenEl) totalEvenEl.textContent = '$' + totalTip.toFixed(2);
-    if (totalCustomEl) totalCustomEl.textContent = '$' + totalTip.toFixed(2);
+    if (totalEl) totalEl.textContent = window.salonFormatMoney(totalTip);
+    if (totalEvenEl) totalEvenEl.textContent = window.salonFormatMoney(totalTip);
+    if (totalCustomEl) totalCustomEl.textContent = window.salonFormatMoney(totalTip);
 }
 function calculateTotalTipSplit() {
     return Object.values(technicianTips).reduce(function(sum, tip) { return sum + (tip.amount || 0); }, 0);
@@ -459,7 +459,7 @@ function updatePaymentDisplay() {
     var el = document.getElementById('paymentAmount');
     var valEl = document.getElementById('paymentAmountValue');
     var val = parseFloat(paymentAmountStr || '0');
-    if (el) el.textContent = '$' + val.toFixed(2);
+    if (el) el.textContent = window.salonFormatMoney(val);
     if (valEl) valEl.value = val.toFixed(2);
 }
 function updatePaymentTotal() {
@@ -469,8 +469,8 @@ function updatePaymentTotal() {
     var total = discounted + paymentTax + totalTip;
     var tipEl = document.getElementById('checkoutTipDisplay');
     var totalEl = document.getElementById('checkoutTotalDisplay');
-    if (tipEl) tipEl.textContent = '$' + totalTip.toFixed(2);
-    if (totalEl) totalEl.textContent = '$' + total.toFixed(2);
+    if (tipEl) tipEl.textContent = window.salonFormatMoney(totalTip);
+    if (totalEl) totalEl.textContent = window.salonFormatMoney(total);
 }
 window.salonTicketOpenDiscountModal = function() {
     var content = '<div class="p-6"><div class="flex items-center justify-between mb-4"><h3 class="text-xl font-bold text-gray-900">Discount</h3><button onclick="closeModal()" class="text-gray-400 hover:text-gray-600">×</button></div><div class="space-y-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">Discount</label><div class="grid grid-cols-5 gap-2 mb-2"><button type="button" onclick="salonTicketSetDiscountPercentage(5)" class="py-2 text-xs font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">5%</button><button type="button" onclick="salonTicketSetDiscountPercentage(10)" class="py-2 text-xs font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">10%</button><button type="button" onclick="salonTicketSetDiscountPercentage(15)" class="py-2 text-xs font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">15%</button><button type="button" onclick="salonTicketSetDiscountPercentage(20)" class="py-2 text-xs font-medium text-gray-700 bg-[#e6f0f3] rounded-lg hover:bg-[#b3d1d9] transition active:scale-95 border border-[#b3d1d9]">20%</button></div><input type="number" name="discount" id="discountInputModal" step="0.01" min="0" value="' + paymentDiscount.toFixed(2) + '" oninput="salonTicketUpdateDiscountFromInput()" placeholder="0.00" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047]" /></div><div class="flex gap-3 justify-end"><button type="button" onclick="closeModal()" class="px-6 py-3 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition">Cancel</button><button type="button" onclick="closeModal()" class="px-6 py-3 text-sm font-medium text-white bg-[#003047] rounded-lg hover:bg-[#002535] transition">Apply</button></div></div></div>';

@@ -226,8 +226,8 @@ function convertAppointmentsToEvents(appointments) {
             services = appointment.services.map(s => s.service || 'Service').join(', ');
         }
         
-        // Format price - not available in appointments, set to $0.00
-        const price = '$0.00';
+        // Format price - not available in appointments
+        const price = window.salonFormatMoney(0);
         
         // Check if technician is assigned to determine event styling
         const hasTechnician = appointment.assigned_technician && 

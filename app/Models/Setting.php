@@ -15,6 +15,10 @@ class Setting extends Model
         'option_value',
     ];
 
+    protected static ?string $cachedCurrencyCode = null;
+
+    protected static ?string $cachedCurrencySymbol = null;
+
     /**
      * All allowed option keys (whitelist for secure updates).
      *
@@ -29,19 +33,11 @@ class Setting extends Model
             'business_address',
             'receipt_print_enabled',
             'receipt_include_business_info',
-            'payment_authorize_net_enabled',
-            'payment_authorize_net_api_login_id',
-            'payment_authorize_net_transaction_key',
-            'payment_authorize_net_tokenization',
-            'payment_authorize_net_environment',
-            'payment_nmi_enabled',
-            'payment_nmi_username',
-            'payment_nmi_password',
-            'payment_nmi_fraud_detection',
             'tax_rate',
             'tax_name',
             'tax_apply_to_all',
             'currency_code',
+            'commission_rate',
             'turn_tracker_order',
             'discounts_enabled',
             'gift_cards_enabled',
@@ -78,5 +74,90 @@ class Setting extends Model
             ['option_key' => $key],
             ['option_value' => $value, 'updated_at' => now()]
         );
+    }
+
+    public static function currencyCode(): string
+    {
+        if (static::$cachedCurrencyCode !== null) {
+            return static::$cachedCurrencyCode;
+        }
+
+        $code = static::query()
+            ->where('option_key', 'currency_code')
+            ->value('option_value');
+
+        if (! is_string($code) || trim($code) === '') {
+            static::$cachedCurrencyCode = 'USD';
+
+            return static::$cachedCurrencyCode;
+        }
+
+        static::$cachedCurrencyCode = strtoupper(trim($code));
+
+        return static::$cachedCurrencyCode;
+    }
+
+    public static function currencySymbol(?string $currencyCode = null): string
+    {
+        if ($currencyCode === null && static::$cachedCurrencySymbol !== null) {
+            return static::$cachedCurrencySymbol;
+        }
+
+        $code = strtoupper(trim($currencyCode ?: static::currencyCode()));
+
+        $symbols = [
+            'USD' => '$',
+            'EUR' => '€',
+            'GBP' => '£',
+            'JPY' => '¥',
+            'AUD' => 'A$',
+            'CAD' => 'C$',
+            'CHF' => 'CHF',
+            'CNY' => '¥',
+            'INR' => '₹',
+            'MXN' => '$',
+            'BRL' => 'R$',
+            'RUB' => '₽',
+            'KRW' => '₩',
+            'SGD' => 'S$',
+            'HKD' => 'HK$',
+            'NZD' => 'NZ$',
+            'SEK' => 'kr',
+            'NOK' => 'kr',
+            'DKK' => 'kr',
+            'PLN' => 'zł',
+            'TRY' => '₺',
+            'ZAR' => 'R',
+            'AED' => 'د.إ',
+            'SAR' => '﷼',
+            'THB' => '฿',
+            'MYR' => 'RM',
+            'IDR' => 'Rp',
+            'PHP' => '₱',
+            'VND' => '₫',
+            'ILS' => '₪',
+            'EGP' => '£',
+            'PKR' => '₨',
+            'BDT' => '৳',
+            'NGN' => '₦',
+            'ARS' => '$',
+            'CLP' => '$',
+            'COP' => '$',
+            'PEN' => 'S/',
+            'CZK' => 'Kč',
+            'HUF' => 'Ft',
+            'RON' => 'lei',
+            'BGN' => 'лв',
+            'HRK' => 'kn',
+            'ISK' => 'kr',
+        ];
+
+        $symbol = $symbols[$code] ?? '$';
+
+        if ($currencyCode === null) {
+            static::$cachedCurrencySymbol = $symbol;
+        }
+
+        return $symbol;
     }
 }

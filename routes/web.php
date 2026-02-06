@@ -23,6 +23,7 @@ Route::middleware(['web', 'salon.auth'])->prefix('api/salon')->name('api.salon.'
     Route::post('users', [SalonUserController::class, 'store'])->name('users.store');
     Route::put('users/{user}', [SalonUserController::class, 'update'])->name('users.update');
     Route::delete('users/{user}', [SalonUserController::class, 'destroy'])->name('users.destroy');
+    Route::post('users/{user}/login-as', [SalonUserController::class, 'loginAs'])->name('users.login-as');
     Route::post('services', [SalonServiceController::class, 'store'])->name('services.store');
     Route::put('services/{service}', [SalonServiceController::class, 'update'])->name('services.update');
     Route::delete('services/{service}', [SalonServiceController::class, 'destroy'])->name('services.destroy');
@@ -56,6 +57,7 @@ Route::prefix('api/salon/data')->name('api.salon.data.')->group(function () {
     Route::get('services', [SalonDataController::class, 'services']);
     Route::get('service-categories', [SalonDataController::class, 'serviceCategories']);
     Route::get('booking', [SalonDataController::class, 'bookings']);
+    Route::get('payout', [SalonDataController::class, 'payout']);
     Route::get('technicians/{id}', [SalonDataController::class, 'technician'])->whereNumber('id');
 });
 
@@ -69,6 +71,7 @@ Route::name('salon.')->group(function () {
 
     Route::middleware('salon.auth')->group(function () {
         Route::get('dashboard', [SalonController::class, 'dashboard'])->name('dashboard');
+        Route::post('impersonation/stop', [SalonUserController::class, 'stopImpersonating'])->name('impersonation.stop');
 
         Route::prefix('booking')->name('booking.')->group(function () {
             Route::get('/', [SalonController::class, 'booking'])->name('index');

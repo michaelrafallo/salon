@@ -5,19 +5,47 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StorePaymentRequest;
 use App\Http\Requests\UpdatePaymentRequest;
 use App\Models\Appointment;
+use App\Models\AppointmentService;
 use App\Models\Payment;
+use App\Models\Setting;
+use App\Models\User;
+use App\Services\Salon\CustomerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class SalonPaymentController extends Controller
 {
+    public function __construct(
+        protected CustomerService $customerService
+    ) {}
+
     public function store(StorePaymentRequest $request): JsonResponse
     {
         $validated = $request->validated();
 
+        $email = $request->session()->get('salon_user_email');
+        $processedByUserId = $email
+            ? User::query()->where('email', $email)->value('id')
+            : null;
+
+        if (! $processedByUserId) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
+        }
+
+        $settings = Setting::getAllAsKeyValue();
+        $commissionRatePercent = (float) ($settings['commission_rate'] ?? 30);
+        if ($commissionRatePercent < 0 || $commissionRatePercent > 100) {
+            $commissionRatePercent = 30;
+        }
+        $commissionRate = $commissionRatePercent / 100;
+        $currency = strtoupper(trim((string) ($settings['currency_code'] ?? 'USD')));
+        if ($currency === '' || strlen($currency) !== 3) {
+            $currency = 'USD';
+        }
+
         try {
-            $payment = DB::transaction(function () use ($validated) {
+            $payment = DB::transaction(function () use ($validated, $processedByUserId, $commissionRate, $currency) {
                 $appointment = Appointment::query()->with('customer')->lockForUpdate()->findOrFail($validated['appointment_id']);
 
                 $paymentId = strtoupper(Str::random(20));
@@ -27,6 +55,7 @@ class SalonPaymentController extends Controller
                     'id' => $paymentId,
                     'appointment_id' => $appointment->id,
                     'amount' => $validated['amount'],
+                    'currency' => $currency,
                     'sub_total' => $validated['sub_total'],
                     'discount' => $validated['discount'],
                     'credits' => $validated['credits'],
@@ -38,24 +67,65 @@ class SalonPaymentController extends Controller
                     'paid_at' => now()->toDateString(),
                 ]);
 
+                AppointmentService::query()
+                    ->where('appointment_id', $appointment->id)
+                    ->update(['currency' => $currency]);
+
                 if (($validated['credits'] ?? 0) > 0) {
                     $customer = $appointment->customer;
                     if ($customer) {
-                        $newBalance = (float) $customer->credit_balance - (float) $validated['credits'];
-                        if ($newBalance < 0) {
-                            throw new \RuntimeException('Customer credits are insufficient.');
-                        }
-                        $customer->update(['credit_balance' => round($newBalance, 2)]);
+                        $this->customerService->adjustCredits(
+                            $customer,
+                            (float) $validated['credits'],
+                            'redeem',
+                            (int) $processedByUserId
+                        );
                     }
                 }
 
-                if (! empty($validated['tips_by_technician'])) {
-                    $tips = collect($validated['tips_by_technician'])
-                        ->filter(fn ($row) => isset($row['technician_id']))
-                        ->mapWithKeys(fn ($row) => [(int) $row['technician_id'] => ['tip' => (float) $row['tip']]]);
-                    if ($tips->isNotEmpty()) {
-                        $appointment->technicians()->syncWithoutDetaching($tips->all());
-                    }
+                $serviceTotalsByTechnician = AppointmentService::query()
+                    ->where('appointment_id', $appointment->id)
+                    ->selectRaw('user_id, SUM(COALESCE(quantity, 1) * COALESCE(unit_price, 0)) AS total_service')
+                    ->groupBy('user_id')
+                    ->pluck('total_service', 'user_id')
+                    ->all();
+
+                $tipsByTechnician = collect($validated['tips_by_technician'] ?? [])
+                    ->filter(fn ($row) => isset($row['technician_id']))
+                    ->mapWithKeys(fn ($row) => [(int) $row['technician_id'] => round((float) ($row['tip'] ?? 0), 2)]);
+
+                $existingTechnicianIds = $appointment->technicians()
+                    ->pluck('users.id')
+                    ->map(fn ($id) => (int) $id)
+                    ->all();
+
+                $technicianIds = collect(array_merge(
+                    array_map(fn ($id) => (int) $id, array_keys($serviceTotalsByTechnician)),
+                    $tipsByTechnician->keys()->all(),
+                    $existingTechnicianIds
+                ))->unique()->values();
+
+                $pivotUpdates = $technicianIds
+                    ->mapWithKeys(function (int $technicianId) use ($serviceTotalsByTechnician, $tipsByTechnician, $commissionRate, $currency) {
+                        $tip = (float) ($tipsByTechnician[$technicianId] ?? 0);
+                        $totalService = round((float) ($serviceTotalsByTechnician[$technicianId] ?? 0), 2);
+                        $commission = round($totalService * $commissionRate, 2);
+                        $total = round($tip + $commission, 2);
+
+                        return [
+                            $technicianId => [
+                                'total_service' => $totalService,
+                                'tip' => round($tip, 2),
+                                'commission' => $commission,
+                                'total' => $total,
+                                'currency' => $currency,
+                            ],
+                        ];
+                    })
+                    ->all();
+
+                if (! empty($pivotUpdates)) {
+                    $appointment->technicians()->syncWithoutDetaching($pivotUpdates);
                 }
 
                 $appointment->update(['status' => $status]);
@@ -81,8 +151,20 @@ class SalonPaymentController extends Controller
 
     public function update(UpdatePaymentRequest $request, Payment $payment): JsonResponse
     {
-        if ($request->filled('status')) {
-            $payment->update(['status' => $request->input('status')]);
+        $validated = $request->validated();
+
+        if (array_key_exists('status', $validated)) {
+            $payment->status = $validated['status'];
+        }
+
+        if (($validated['status'] ?? null) === 'Refunded') {
+            if (array_key_exists('refund_notes', $validated)) {
+                $payment->refund_notes = $validated['refund_notes'];
+            }
+        }
+
+        if ($payment->isDirty()) {
+            $payment->save();
         }
 
         return response()->json([

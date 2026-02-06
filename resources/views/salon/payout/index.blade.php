@@ -3,6 +3,7 @@
 @section('content')
 @php
     $isTechnician = session('salon_role', 'admin') === 'technician';
+    $loggedInUserId = $loggedInUserId ?? null;
 @endphp
 <main class="flex-1 overflow-y-auto bg-gray-50 lg:ml-0 pt-16 lg:pt-0">
     <div class="p-4 sm:p-6 lg:p-8">
@@ -59,7 +60,11 @@
                         </tr>
                     </thead>
                     <tbody id="payoutTableBody">
-                        <tr><td colspan="6" class="text-center py-8 text-gray-500"><p>Please select a technician to view payouts</p></td></tr>
+                        @if($isTechnician)
+                            <tr><td colspan="6" class="text-center py-8 text-gray-500"><p>Loading payouts...</p></td></tr>
+                        @else
+                            <tr><td colspan="6" class="text-center py-8 text-gray-500"><p>Please select a technician to view payouts</p></td></tr>
+                        @endif
                     </tbody>
                 </table>
             </div>
@@ -71,155 +76,84 @@
 (function() {
 var base = window.salonJsonBase || '{{ url("api/salon/data") }}';
 var isTechnicianUser = {{ $isTechnician ? 'true' : 'false' }};
-var payoutData = [], filteredPayoutData = [], dateRangeFrom = null, dateRangeTo = null, selectedTechnicianId = isTechnicianUser ? '1' : null, techniciansList = [];
+var loggedInUserId = @json($loggedInUserId);
+var payoutData = [], filteredPayoutData = [], dateRangeFrom = null, dateRangeTo = null, selectedTechnicianId = isTechnicianUser ? (loggedInUserId ? String(loggedInUserId) : null) : null, techniciansList = [];
+function salonPayoutFormatYmd(date) {
+    if (!date) return '';
+    var y = date.getFullYear();
+    var m = String(date.getMonth() + 1).padStart(2, '0');
+    var d = String(date.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + d;
+}
 async function salonPayoutFetchPayouts() {
     try {
-        var bookingsRes = await fetch(base + '/booking');
-        var techRes = await fetch(base + '/users');
-        var bookingsData = await bookingsRes.json();
-        var techniciansData = await techRes.json();
-        var bookings = bookingsData.bookings || [];
-        var technicians = techniciansData.users || [];
-        techniciansList = technicians.filter(function(t) { return t.role === 'technician'; });
-        if (!selectedTechnicianId) {
-            var urlParams = new URLSearchParams(window.location.search);
-            var urlTech = urlParams.get('technician');
-            if (urlTech) selectedTechnicianId = urlTech;
-        }
-        var technicianMap = {};
-        techniciansList.forEach(function(t) {
-            var fullName = t.firstName + ' ' + t.lastName;
-            technicianMap[fullName] = t;
-        });
-        salonPayoutPopulateTechnicianDropdown(techniciansList);
-        if (!selectedTechnicianId) {
-            payoutData = [];
-            filteredPayoutData = [];
-            salonPayoutRenderPayouts();
-            return;
-        }
-        var transactions = [];
-        bookings.forEach(function(booking) {
-            if (!booking.technician || !booking.bookingDate) return;
-            var techs = Array.isArray(booking.technician) ? booking.technician : [booking.technician];
-            var total = parseFloat(booking.total) || 0;
-            var tip = parseFloat(booking.tip) || (total * 0.15);
-            techs.forEach(function(techName) {
-                var tech = technicianMap[techName];
-                if (!tech || tech.id.toString() !== selectedTechnicianId.toString()) return;
-                transactions.push({ time: booking.bookingTime || '00:00', date: booking.bookingDate, amount: total, tip: tip });
-            });
-        });
-        payoutData = transactions.sort(function(a, b) {
-            var dateA = new Date(a.date), dateB = new Date(b.date);
-            if (dateB.getTime() !== dateA.getTime()) return dateB - dateA;
-            var timeA = a.time.split(':').map(Number), timeB = b.time.split(':').map(Number);
-            var timeAValue = timeA[0] * 60 + timeA[1], timeBValue = timeB[0] * 60 + timeB[1];
-            return timeBValue - timeAValue;
-        });
-        var today = new Date(), december1 = new Date(today.getFullYear(), 11, 1);
-        var sampleTemplates = [
-            { time: '19:23', amount: 70.00, tip: 0.00 }, { time: '17:28', amount: 45.00, tip: 10.00 },
-            { time: '16:34', amount: 50.00, tip: 0.00 }, { time: '15:41', amount: 60.00, tip: 0.00 },
-            { time: '14:59', amount: 45.00, tip: 0.00 }, { time: '13:31', amount: 70.00, tip: 0.00 },
-            { time: '12:00', amount: 145.00, tip: 0.00 }, { time: '11:15', amount: 55.00, tip: 8.25 },
-            { time: '10:30', amount: 80.00, tip: 12.00 }, { time: '09:45', amount: 40.00, tip: 6.00 }
-        ];
-        var currentDate = new Date(december1);
-        while (currentDate <= today) {
-            var dateStr = currentDate.toISOString().split('T')[0];
-            var hasData = payoutData.some(function(t) { return t.date === dateStr; });
-            if (!hasData && Math.random() > 0.2) {
-                var numTrans = Math.floor(Math.random() * 5) + 1;
-                for (var i = 0; i < numTrans; i++) {
-                    var template = sampleTemplates[Math.floor(Math.random() * sampleTemplates.length)];
-                    var variation = 0.8 + (Math.random() * 0.4);
-                    var amount = Math.round(template.amount * variation * 100) / 100;
-                    var tip = template.tip > 0 ? Math.round(template.amount * 0.15 * variation * 100) / 100 : 0;
-                    payoutData.push({ time: template.time, date: dateStr, amount: amount, tip: tip });
-                }
-            }
-            currentDate.setDate(currentDate.getDate() + 1);
-        }
-        payoutData = payoutData.sort(function(a, b) {
-            var dateA = new Date(a.date), dateB = new Date(b.date);
-            if (dateB.getTime() !== dateA.getTime()) return dateB - dateA;
-            var timeA = a.time.split(':').map(Number), timeB = b.time.split(':').map(Number);
-            var timeAValue = timeA[0] * 60 + timeA[1], timeBValue = timeB[0] * 60 + timeB[1];
-            return timeBValue - timeAValue;
-        });
         var urlParams = new URLSearchParams(window.location.search);
-        var urlFrom = urlParams.get('from'), urlTo = urlParams.get('to'), urlDateType = urlParams.get('datetype');
+        var urlFrom = urlParams.get('from');
+        var urlTo = urlParams.get('to');
+        var urlDateType = urlParams.get('datetype');
+        var urlTech = urlParams.get('technician');
+
+        if (!isTechnicianUser && urlTech) {
+            selectedTechnicianId = urlTech;
+            var dropdown = document.getElementById('technicianFilter');
+            if (dropdown) dropdown.value = urlTech;
+        }
+
         if (urlFrom && urlTo) {
             dateRangeFrom = urlFrom;
             dateRangeTo = urlTo;
             var fromEl = document.getElementById('dateRangeFrom'), toEl = document.getElementById('dateRangeTo');
             if (fromEl) fromEl.value = dateRangeFrom;
             if (toEl) toEl.value = dateRangeTo;
-            if (urlDateType) {
-                setTimeout(function() {
-                    document.querySelectorAll('.date-preset-btn').forEach(function(btn) {
-                        btn.classList.remove('bg-[#003047]', 'text-white', 'border-[#003047]');
-                        btn.classList.add('bg-white', 'text-gray-700', 'border-gray-300');
-                    });
-                    var activeBtn = document.querySelector('button[onclick*="setDateRange(\'' + urlDateType + '\'"]');
-                    if (activeBtn) {
-                        activeBtn.classList.remove('bg-white', 'text-gray-700', 'border-gray-300');
-                        activeBtn.classList.add('bg-[#003047]', 'text-white', 'border-[#003047]');
-                    }
-                }, 100);
-            }
         } else {
             var today = new Date();
-            dateRangeFrom = today.toISOString().split('T')[0];
-            dateRangeTo = today.toISOString().split('T')[0];
+            dateRangeFrom = salonPayoutFormatYmd(today);
+            dateRangeTo = salonPayoutFormatYmd(today);
             var fromEl = document.getElementById('dateRangeFrom'), toEl = document.getElementById('dateRangeTo');
             if (fromEl) fromEl.value = dateRangeFrom;
             if (toEl) toEl.value = dateRangeTo;
-            salonPayoutUpdateURLWithDateRange(dateRangeFrom, dateRangeTo, 'today');
-            setTimeout(function() {
-                var todayBtn = document.querySelector('button[onclick*="today"]');
-                if (todayBtn) {
-                    todayBtn.classList.remove('bg-white', 'text-gray-700', 'border-gray-300');
-                    todayBtn.classList.add('bg-[#003047]', 'text-white', 'border-[#003047]');
-                }
-            }, 100);
-        }
-        salonPayoutApplyDateRangeFilter(true);
-    } catch (err) {
-        console.error('Error fetching payouts:', err);
-        var today = new Date(), december1 = new Date(today.getFullYear(), 11, 1);
-        var sampleTemplates = [
-            { time: '19:23', amount: 70.00, tip: 0.00 }, { time: '17:28', amount: 45.00, tip: 10.00 },
-            { time: '16:34', amount: 50.00, tip: 0.00 }, { time: '15:41', amount: 60.00, tip: 0.00 },
-            { time: '14:59', amount: 45.00, tip: 0.00 }, { time: '13:31', amount: 70.00, tip: 0.00 },
-            { time: '12:00', amount: 145.00, tip: 0.00 }, { time: '11:15', amount: 55.00, tip: 8.25 },
-            { time: '10:30', amount: 80.00, tip: 12.00 }, { time: '09:45', amount: 40.00, tip: 6.00 }
-        ];
-        payoutData = [];
-        var currentDate = new Date(december1);
-        while (currentDate <= today) {
-            var dateStr = currentDate.toISOString().split('T')[0];
-            if (Math.random() > 0.2) {
-                var numTrans = Math.floor(Math.random() * 5) + 1;
-                for (var i = 0; i < numTrans; i++) {
-                    var template = sampleTemplates[Math.floor(Math.random() * sampleTemplates.length)];
-                    var variation = 0.8 + (Math.random() * 0.4);
-                    var amount = Math.round(template.amount * variation * 100) / 100;
-                    var tip = template.tip > 0 ? Math.round(template.amount * 0.15 * variation * 100) / 100 : 0;
-                    payoutData.push({ time: template.time, date: dateStr, amount: amount, tip: tip });
-                }
+            if (!isTechnicianUser) {
+                salonPayoutUpdateURLWithDateRange(dateRangeFrom, dateRangeTo, 'today');
             }
-            currentDate.setDate(currentDate.getDate() + 1);
         }
-        payoutData = payoutData.sort(function(a, b) {
+
+        if (urlDateType) {
+            setTimeout(function() {
+                salonPayoutSetActivePreset(urlDateType);
+            }, 50);
+        } else if (!urlFrom || !urlTo) {
+            setTimeout(function() {
+                salonPayoutSetActivePreset('today');
+            }, 50);
+        }
+
+        if (!selectedTechnicianId) {
+            payoutData = [];
+            filteredPayoutData = [];
+            salonPayoutRenderPayouts();
+            return;
+        }
+
+        var payoutUrl = base + '/payout?technician_id=' + encodeURIComponent(selectedTechnicianId);
+        if (dateRangeFrom) payoutUrl += '&from=' + encodeURIComponent(dateRangeFrom);
+        if (dateRangeTo) payoutUrl += '&to=' + encodeURIComponent(dateRangeTo);
+
+        var res = await fetch(payoutUrl);
+        var data = await res.json();
+        payoutData = (data.transactions || []).sort(function(a, b) {
             var dateA = new Date(a.date), dateB = new Date(b.date);
             if (dateB.getTime() !== dateA.getTime()) return dateB - dateA;
-            var timeA = a.time.split(':').map(Number), timeB = b.time.split(':').map(Number);
+            var timeA = (a.time || '00:00').split(':').map(Number), timeB = (b.time || '00:00').split(':').map(Number);
             var timeAValue = timeA[0] * 60 + timeA[1], timeBValue = timeB[0] * 60 + timeB[1];
             return timeBValue - timeAValue;
         });
+
         filteredPayoutData = payoutData;
+        salonPayoutRenderPayouts();
+    } catch (err) {
+        console.error('Error fetching payouts:', err);
+        payoutData = [];
+        filteredPayoutData = [];
         salonPayoutRenderPayouts();
     }
 }
@@ -231,6 +165,23 @@ function salonPayoutUpdateURLWithDateRange(from, to, dateType) {
     else url.searchParams.delete('datetype');
     if (selectedTechnicianId) url.searchParams.set('technician', selectedTechnicianId);
     window.history.pushState({}, '', url);
+}
+function salonPayoutSetActivePreset(range) {
+    document.querySelectorAll('.date-preset-btn').forEach(function(btn) {
+        btn.classList.remove('bg-[#003047]', 'text-white', 'border-[#003047]');
+        btn.classList.add('bg-white', 'text-gray-700', 'border-gray-300');
+    });
+    if (!range) return;
+    var activeBtn = null;
+    document.querySelectorAll('.date-preset-btn').forEach(function(btn) {
+        var on = btn.getAttribute('onclick') || '';
+        if (on.indexOf("'" + range + "'") >= 0) {
+            activeBtn = btn;
+        }
+    });
+    if (!activeBtn) return;
+    activeBtn.classList.remove('bg-white', 'text-gray-700', 'border-gray-300');
+    activeBtn.classList.add('bg-[#003047]', 'text-white', 'border-[#003047]');
 }
 window.salonPayoutSetDateRange = function(range, buttonElement) {
     var today = new Date(), fromDate, toDate;
@@ -252,21 +203,13 @@ window.salonPayoutSetDateRange = function(range, buttonElement) {
             break;
         default: return;
     }
-    dateRangeFrom = fromDate.toISOString().split('T')[0];
-    dateRangeTo = toDate.toISOString().split('T')[0];
+    dateRangeFrom = salonPayoutFormatYmd(fromDate);
+    dateRangeTo = salonPayoutFormatYmd(toDate);
     var fromEl = document.getElementById('dateRangeFrom'), toEl = document.getElementById('dateRangeTo');
     if (fromEl) fromEl.value = dateRangeFrom;
     if (toEl) toEl.value = dateRangeTo;
     salonPayoutUpdateURLWithDateRange(dateRangeFrom, dateRangeTo, range);
-    document.querySelectorAll('.date-preset-btn').forEach(function(btn) {
-        btn.classList.remove('bg-[#003047]', 'text-white', 'border-[#003047]');
-        btn.classList.add('bg-white', 'text-gray-700', 'border-gray-300');
-    });
-    var activeButton = buttonElement || document.querySelector('button[onclick*="setDateRange(\'' + range + '\'")]');
-    if (activeButton) {
-        activeButton.classList.remove('bg-white', 'text-gray-700', 'border-gray-300');
-        activeButton.classList.add('bg-[#003047]', 'text-white', 'border-[#003047]');
-    }
+    salonPayoutSetActivePreset(range);
     salonPayoutApplyDateRangeFilter(true);
 };
 window.salonPayoutOnTechnicianChange = function() {
@@ -314,7 +257,7 @@ function salonPayoutApplyDateRangeFilter(preserveButtonState) {
     dateRangeFrom = fromInput.value;
     dateRangeTo = toInput.value;
     if (isTechnicianUser) {
-        if (!selectedTechnicianId) selectedTechnicianId = '1';
+        if (!selectedTechnicianId && loggedInUserId) selectedTechnicianId = String(loggedInUserId);
     } else {
         selectedTechnicianId = techSelect ? techSelect.value : null;
     }
@@ -332,6 +275,7 @@ function salonPayoutApplyDateRangeFilter(preserveButtonState) {
     }
     if (dateRangeFrom && dateRangeTo && !preserveButtonState) {
         salonPayoutUpdateURLWithDateRange(dateRangeFrom, dateRangeTo, null);
+        salonPayoutSetActivePreset(null);
     }
     var url = new URL(window.location);
     url.searchParams.set('technician', selectedTechnicianId);
@@ -342,18 +286,7 @@ function salonPayoutApplyDateRangeFilter(preserveButtonState) {
             btn.classList.add('bg-white', 'text-gray-700', 'border-gray-300');
         });
     }
-    if (dateRangeFrom && dateRangeTo && payoutData.length > 0) {
-        var fromDate = new Date(dateRangeFrom);
-        var toDate = new Date(dateRangeTo);
-        toDate.setHours(23, 59, 59, 999);
-        filteredPayoutData = payoutData.filter(function(t) {
-            var tDate = new Date(t.date);
-            return tDate >= fromDate && tDate <= toDate;
-        });
-    } else {
-        filteredPayoutData = payoutData;
-    }
-    salonPayoutRenderPayouts();
+    salonPayoutFetchPayouts();
 }
 window.salonPayoutViewPayoutDetails = function(dateKey) {
     var dateTransactions = filteredPayoutData.filter(function(t) { return t.date === dateKey; });
@@ -361,10 +294,12 @@ window.salonPayoutViewPayoutDetails = function(dateKey) {
         alert('No transactions found for this date');
         return;
     }
-    var dateTotal = 0, dateTip = 0;
+    var dateTotal = 0, dateTip = 0, dateCommission = 0, dateGrandTotal = 0;
     dateTransactions.forEach(function(t) {
-        dateTotal += t.amount;
-        dateTip += t.tip;
+        dateTotal += Number(t.amount || 0);
+        dateTip += Number(t.tip || 0);
+        dateCommission += Number(t.commission || 0);
+        dateGrandTotal += Number(t.total != null ? t.total : ((t.tip || 0) + (t.commission || 0)));
     });
     var date = new Date(dateKey);
     var monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -385,9 +320,13 @@ window.salonPayoutViewPayoutDetails = function(dateKey) {
         var transDay = String(transDate.getDate()).padStart(2, '0');
         var transYear = String(transDate.getFullYear()).slice(-2);
         var formattedTransDate = transMonth + '/' + transDay + '/' + transYear;
-        transactionsList += '<tr class="border-b border-gray-200"><td class="py-2 px-4 text-sm text-gray-900 border-r border-gray-200">' + formattedTime + ' | ' + formattedTransDate + '</td><td class="py-2 px-4 text-sm text-gray-900 text-right">$' + transaction.amount.toFixed(2) + ' | $' + transaction.tip.toFixed(2) + '</td></tr>';
+        var amount = Number(transaction.amount || 0);
+        var tip = Number(transaction.tip || 0);
+        var commission = Number(transaction.commission || 0);
+        var total = Number(transaction.total != null ? transaction.total : (tip + commission));
+        transactionsList += '<tr class="border-b border-gray-200"><td class="py-2 px-4 text-sm text-gray-900 border-r border-gray-200">' + formattedTime + ' | ' + formattedTransDate + '</td><td class="py-2 px-4 text-sm text-gray-900 text-right">' + window.salonFormatMoney(amount) + ' | ' + window.salonFormatMoney(tip) + ' | ' + window.salonFormatMoney(commission) + ' | ' + window.salonFormatMoney(total) + '</td></tr>';
     });
-    var modalContent = '<div class="p-6 bg-white border border-gray-300 rounded-lg"><div class="text-center mb-6 border-b border-gray-300 pb-4"><h1 class="text-3xl font-bold text-gray-900 mb-2">Dons Nail Spa</h1><p class="text-sm text-gray-700">258 Hedrick St, Beckley, WV 25801</p><p class="text-sm text-gray-700">Phone: 681-2077114</p><p class="text-sm text-gray-700">Merchant ID (MID): 23420</p></div><div class="mb-4 border-b border-gray-200 pb-3 text-center"><h2 class="text-xl font-bold text-gray-900 mb-1">' + techName + ' Daily Report</h2><p class="text-sm text-gray-600">' + formattedDate + '</p></div><div class="mb-6 overflow-y-auto max-h-96 border border-gray-300 rounded-lg"><table class="w-full"><thead class="bg-gray-50 sticky top-0"><tr class="border-b border-gray-300"><th class="text-left py-3 px-4 text-sm font-semibold text-gray-500 uppercase border-r border-gray-300">' + techNameUpper + '</th><th class="text-right py-3 px-4 text-sm font-semibold text-gray-500 uppercase">AMOUNT</th></tr></thead><tbody>' + transactionsList + '</tbody></table></div><div class="border-t border-gray-200 pt-4 mb-6"><div class="flex justify-between items-center mb-2 pb-2 border-b border-gray-200"><span class="text-sm font-semibold text-gray-900">Total Amount:</span><span class="text-sm font-semibold text-gray-900">$' + dateTotal.toFixed(2) + '</span></div><div class="flex justify-between items-center"><span class="text-sm font-semibold text-gray-900">Total Tip:</span><span class="text-sm font-semibold text-gray-900">$' + dateTip.toFixed(2) + '</span></div></div><div class="flex justify-end gap-3 border-t border-gray-200 pt-4"><button onclick="window.print()" class="px-6 py-2 bg-[#003047] text-white rounded-lg hover:bg-[#004060] transition-colors font-medium">Print</button><button onclick="closeModal()" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium">Close</button></div></div>';
+    var modalContent = '<div class="p-6 bg-white border border-gray-300 rounded-lg"><div class="text-center mb-6 border-b border-gray-300 pb-4"><h1 class="text-3xl font-bold text-gray-900 mb-2">Dons Nail Spa</h1><p class="text-sm text-gray-700">258 Hedrick St, Beckley, WV 25801</p><p class="text-sm text-gray-700">Phone: 681-2077114</p><p class="text-sm text-gray-700">Merchant ID (MID): 23420</p></div><div class="mb-4 border-b border-gray-200 pb-3 text-center"><h2 class="text-xl font-bold text-gray-900 mb-1">' + techName + ' Daily Report</h2><p class="text-sm text-gray-600">' + formattedDate + '</p></div><div class="mb-6 overflow-y-auto max-h-96 border border-gray-300 rounded-lg"><table class="w-full"><thead class="bg-gray-50 sticky top-0"><tr class="border-b border-gray-300"><th class="text-left py-3 px-4 text-sm font-semibold text-gray-500 uppercase border-r border-gray-300">' + techNameUpper + '</th><th class="text-right py-3 px-4 text-sm font-semibold text-gray-500 uppercase">SERVICE | TIP | COMMISSION | TOTAL</th></tr></thead><tbody>' + transactionsList + '</tbody></table></div><div class="border-t border-gray-200 pt-4 mb-6"><div class="flex justify-between items-center mb-2 pb-2 border-b border-gray-200"><span class="text-sm font-semibold text-gray-900">Total Service:</span><span class="text-sm font-semibold text-gray-900">' + window.salonFormatMoney(dateTotal) + '</span></div><div class="flex justify-between items-center mb-2 pb-2 border-b border-gray-200"><span class="text-sm font-semibold text-gray-900">Total Tip:</span><span class="text-sm font-semibold text-gray-900">' + window.salonFormatMoney(dateTip) + '</span></div><div class="flex justify-between items-center mb-2 pb-2 border-b border-gray-200"><span class="text-sm font-semibold text-gray-900">Total Commission:</span><span class="text-sm font-semibold text-gray-900">' + window.salonFormatMoney(dateCommission) + '</span></div><div class="flex justify-between items-center"><span class="text-sm font-semibold text-gray-900">Total:</span><span class="text-sm font-semibold text-gray-900">' + window.salonFormatMoney(dateGrandTotal) + '</span></div></div><div class="flex justify-end gap-3 border-t border-gray-200 pt-4"><button onclick="window.print()" class="px-6 py-2 bg-[#003047] text-white rounded-lg hover:bg-[#004060] transition-colors font-medium">Print</button><button onclick="closeModal()" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium">Close</button></div></div>';
     if (typeof openModal === 'function') {
         openModal(modalContent, 'medium');
     }
@@ -408,22 +347,24 @@ function salonPayoutRenderPayouts() {
         return;
     }
     var dailyTotals = {};
-    var grandTotal = 0, grandTip = 0, grandCommission = 0, grandTotalTipCommission = 0;
+    var grandTotalService = 0, grandTip = 0, grandCommission = 0, grandTotal = 0;
     filteredPayoutData.forEach(function(t) {
         var dateKey = t.date;
         if (!dailyTotals[dateKey]) {
-            dailyTotals[dateKey] = { date: dateKey, total: 0, tip: 0, commission: 0, totalTipCommission: 0 };
+            dailyTotals[dateKey] = { date: dateKey, total_service: 0, tip: 0, commission: 0, total: 0 };
         }
-        dailyTotals[dateKey].total += t.amount;
-        dailyTotals[dateKey].tip += t.tip;
-        grandTotal += t.amount;
-        grandTip += t.tip;
-    });
-    Object.keys(dailyTotals).forEach(function(dateKey) {
-        dailyTotals[dateKey].commission = dailyTotals[dateKey].total * 0.30;
-        dailyTotals[dateKey].totalTipCommission = dailyTotals[dateKey].tip + dailyTotals[dateKey].commission;
-        grandCommission += dailyTotals[dateKey].commission;
-        grandTotalTipCommission += dailyTotals[dateKey].totalTipCommission;
+        var amount = Number(t.amount || 0);
+        var tip = Number(t.tip || 0);
+        var commission = Number(t.commission || 0);
+        var total = Number(t.total != null ? t.total : (tip + commission));
+        dailyTotals[dateKey].total_service += amount;
+        dailyTotals[dateKey].tip += tip;
+        dailyTotals[dateKey].commission += commission;
+        dailyTotals[dateKey].total += total;
+        grandTotalService += amount;
+        grandTip += tip;
+        grandCommission += commission;
+        grandTotal += total;
     });
     var sortedDates = Object.keys(dailyTotals).sort(function(a, b) { return new Date(b) - new Date(a); });
     var html = '';
@@ -435,9 +376,9 @@ function salonPayoutRenderPayouts() {
         var day = date.getDate();
         var year = date.getFullYear();
         var formattedDate = month + ' ' + day + ', ' + year;
-        html += '<tr class="border-b border-gray-100 hover:bg-gray-50"><td class="py-3 px-4 text-sm text-gray-900">' + formattedDate + '</td><td class="py-3 px-4 text-sm text-gray-900 text-right">$' + daily.total.toFixed(2) + '</td><td class="py-3 px-4 text-sm text-gray-900 text-right">$' + daily.tip.toFixed(2) + '</td><td class="py-3 px-4 text-sm font-semibold text-[#003047] text-right">$' + daily.commission.toFixed(2) + '</td><td class="py-3 px-4 text-sm font-semibold text-gray-900 text-right">$' + daily.totalTipCommission.toFixed(2) + '</td><td class="py-3 px-4"><button onclick="salonPayoutViewPayoutDetails(\'' + dateKey + '\')" class="px-3 py-1.5 bg-gray-500 text-white text-xs font-medium rounded hover:bg-gray-600 transition active:scale-95 flex items-center gap-1 ml-auto">Open</button></td></tr>';
+        html += '<tr class="border-b border-gray-100 hover:bg-gray-50"><td class="py-3 px-4 text-sm text-gray-900">' + formattedDate + '</td><td class="py-3 px-4 text-sm text-gray-900 text-right">' + window.salonFormatMoney(daily.total_service) + '</td><td class="py-3 px-4 text-sm text-gray-900 text-right">' + window.salonFormatMoney(daily.tip) + '</td><td class="py-3 px-4 text-sm font-semibold text-[#003047] text-right">' + window.salonFormatMoney(daily.commission) + '</td><td class="py-3 px-4 text-sm font-semibold text-gray-900 text-right">' + window.salonFormatMoney(daily.total) + '</td><td class="py-3 px-4"><button onclick="salonPayoutViewPayoutDetails(\'' + dateKey + '\')" class="px-3 py-1.5 bg-gray-500 text-white text-xs font-medium rounded hover:bg-gray-600 transition active:scale-95 flex items-center gap-1 ml-auto">Open</button></td></tr>';
     });
-    html += '<tr class="bg-gray-50 border-t-2 border-gray-300"><td class="py-3 px-4 text-sm font-semibold text-gray-900">Total</td><td class="py-3 px-4 text-sm font-semibold text-gray-900 text-right">$' + grandTotal.toFixed(2) + '</td><td class="py-3 px-4 text-sm font-semibold text-gray-900 text-right">$' + grandTip.toFixed(2) + '</td><td class="py-3 px-4 text-sm font-semibold text-[#003047] text-right">$' + grandCommission.toFixed(2) + '</td><td class="py-3 px-4 text-sm font-semibold text-gray-900 text-right">$' + grandTotalTipCommission.toFixed(2) + '</td><td class="py-3 px-4"></td></tr>';
+    html += '<tr class="bg-gray-50 border-t-2 border-gray-300"><td class="py-3 px-4 text-sm font-semibold text-gray-900">Total</td><td class="py-3 px-4 text-sm font-semibold text-gray-900 text-right">' + window.salonFormatMoney(grandTotalService) + '</td><td class="py-3 px-4 text-sm font-semibold text-gray-900 text-right">' + window.salonFormatMoney(grandTip) + '</td><td class="py-3 px-4 text-sm font-semibold text-[#003047] text-right">' + window.salonFormatMoney(grandCommission) + '</td><td class="py-3 px-4 text-sm font-semibold text-gray-900 text-right">' + window.salonFormatMoney(grandTotal) + '</td><td class="py-3 px-4"></td></tr>';
     tbody.innerHTML = html;
 }
 window.salonPayoutPrintReport = function() {
@@ -469,19 +410,26 @@ window.salonPayoutPrintReport = function() {
         }
     }
     var dailyTotals = {};
-    var totalAmount = 0, totalTip = 0;
+    var totalAmount = 0, totalTip = 0, totalCommission = 0, totalGrand = 0;
     filteredPayoutData.forEach(function(t) {
         var dateKey = t.date;
         if (!dailyTotals[dateKey]) {
-            dailyTotals[dateKey] = { date: dateKey, amount: 0, tip: 0, transactions: [] };
+            dailyTotals[dateKey] = { date: dateKey, amount: 0, tip: 0, commission: 0, total: 0, transactions: [] };
         }
-        dailyTotals[dateKey].amount += t.amount;
-        dailyTotals[dateKey].tip += t.tip;
+        var amount = Number(t.amount || 0);
+        var tip = Number(t.tip || 0);
+        var commission = Number(t.commission || 0);
+        var total = Number(t.total != null ? t.total : (tip + commission));
+        dailyTotals[dateKey].amount += amount;
+        dailyTotals[dateKey].tip += tip;
+        dailyTotals[dateKey].commission += commission;
+        dailyTotals[dateKey].total += total;
         dailyTotals[dateKey].transactions.push(t);
-        totalAmount += t.amount;
-        totalTip += t.tip;
+        totalAmount += amount;
+        totalTip += tip;
+        totalCommission += commission;
+        totalGrand += total;
     });
-    var totalCommission = totalAmount * 0.30;
     var sortedDailyTotals = Object.values(dailyTotals).sort(function(a, b) { return new Date(b.date) - new Date(a.date); });
     var transactionsHtml = '';
     sortedDailyTotals.forEach(function(daily) {
@@ -497,9 +445,9 @@ window.salonPayoutPrintReport = function() {
         var day = String(date.getDate()).padStart(2, '0');
         var year = String(date.getFullYear()).slice(-2);
         var formattedDate = month + '/' + day + '/' + year;
-        transactionsHtml += '<tr class="border-b border-gray-200"><td class="py-2 px-4 text-sm text-gray-900 border-r border-gray-200">' + formattedTime + ' | ' + formattedDate + '</td><td class="py-2 px-4 text-sm text-gray-900 text-right">$' + daily.amount.toFixed(2) + ' | $' + daily.tip.toFixed(2) + '</td></tr>';
+        transactionsHtml += '<tr class="border-b border-gray-200"><td class="py-2 px-4 text-sm text-gray-900 border-r border-gray-200">' + formattedTime + ' | ' + formattedDate + '</td><td class="py-2 px-4 text-sm text-gray-900 text-right">' + window.salonFormatMoney(daily.amount) + ' | ' + window.salonFormatMoney(daily.tip) + ' | ' + window.salonFormatMoney(daily.commission) + ' | ' + window.salonFormatMoney(daily.total) + '</td></tr>';
     });
-    var modalContent = '<div class="p-6 bg-white border border-gray-300 rounded-lg"><div class="text-center mb-6 border-b border-gray-300 pb-4"><h1 class="text-3xl font-bold text-gray-900 mb-2">Dons Nail Spa</h1><p class="text-sm text-gray-700">258 Hedrick St, Beckley, WV 25801</p><p class="text-sm text-gray-700">681-2077114</p><p class="text-sm text-gray-700">MID: 23420</p></div><div class="mb-4 border-b border-gray-200 pb-3"><h2 class="text-xl font-bold text-gray-900 mb-1">' + techName + ' Daily Report</h2><p class="text-sm text-gray-600">' + dateRangeText + '</p></div><div class="mb-6 overflow-y-auto max-h-96 border border-gray-300 rounded-lg"><table class="w-full"><thead class="bg-gray-50 sticky top-0"><tr class="border-b border-gray-300"><th class="text-left py-3 px-4 text-sm font-semibold text-gray-900 border-r border-gray-300">' + techName + '</th><th class="text-right py-3 px-4 text-sm font-semibold text-gray-900">AMOUNT</th></tr></thead><tbody id="printTransactionsBody">' + transactionsHtml + '</tbody></table></div><div class="border border-gray-300 rounded-lg p-4 mb-6 bg-gray-50"><div class="flex justify-between items-center mb-2 pb-2 border-b border-gray-200"><span class="text-sm font-semibold text-gray-900">Total Amount:</span><span class="text-sm font-semibold text-gray-900">$' + totalAmount.toFixed(2) + '</span></div><div class="flex justify-between items-center mb-2 pb-2 border-b border-gray-200"><span class="text-sm font-semibold text-gray-900">Total Tip:</span><span class="text-sm font-semibold text-gray-900">$' + totalTip.toFixed(2) + '</span></div><div class="flex justify-between items-center"><span class="text-sm font-semibold text-gray-900">Total Commission:</span><span class="text-sm font-semibold text-gray-900">$' + totalCommission.toFixed(2) + '</span></div></div><div class="flex justify-end gap-3 border-t border-gray-200 pt-4"><button onclick="window.print()" class="px-6 py-2 bg-[#003047] text-white rounded-lg hover:bg-[#004060] transition-colors font-medium">Print</button><button onclick="closeModal()" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium">Close</button></div></div>';
+    var modalContent = '<div class="p-6 bg-white border border-gray-300 rounded-lg"><div class="text-center mb-6 border-b border-gray-300 pb-4"><h1 class="text-3xl font-bold text-gray-900 mb-2">Dons Nail Spa</h1><p class="text-sm text-gray-700">258 Hedrick St, Beckley, WV 25801</p><p class="text-sm text-gray-700">681-2077114</p><p class="text-sm text-gray-700">MID: 23420</p></div><div class="mb-4 border-b border-gray-200 pb-3"><h2 class="text-xl font-bold text-gray-900 mb-1">' + techName + ' Daily Report</h2><p class="text-sm text-gray-600">' + dateRangeText + '</p></div><div class="mb-6 overflow-y-auto max-h-96 border border-gray-300 rounded-lg"><table class="w-full"><thead class="bg-gray-50 sticky top-0"><tr class="border-b border-gray-300"><th class="text-left py-3 px-4 text-sm font-semibold text-gray-900 border-r border-gray-300">' + techName + '</th><th class="text-right py-3 px-4 text-sm font-semibold text-gray-900">SERVICE | TIP | COMMISSION | TOTAL</th></tr></thead><tbody id="printTransactionsBody">' + transactionsHtml + '</tbody></table></div><div class="border border-gray-300 rounded-lg p-4 mb-6 bg-gray-50"><div class="flex justify-between items-center mb-2 pb-2 border-b border-gray-200"><span class="text-sm font-semibold text-gray-900">Total Service:</span><span class="text-sm font-semibold text-gray-900">' + window.salonFormatMoney(totalAmount) + '</span></div><div class="flex justify-between items-center mb-2 pb-2 border-b border-gray-200"><span class="text-sm font-semibold text-gray-900">Total Tip:</span><span class="text-sm font-semibold text-gray-900">' + window.salonFormatMoney(totalTip) + '</span></div><div class="flex justify-between items-center mb-2 pb-2 border-b border-gray-200"><span class="text-sm font-semibold text-gray-900">Total Commission:</span><span class="text-sm font-semibold text-gray-900">' + window.salonFormatMoney(totalCommission) + '</span></div><div class="flex justify-between items-center"><span class="text-sm font-semibold text-gray-900">Total:</span><span class="text-sm font-semibold text-gray-900">' + window.salonFormatMoney(totalGrand) + '</span></div></div><div class="flex justify-end gap-3 border-t border-gray-200 pt-4"><button onclick="window.print()" class="px-6 py-2 bg-[#003047] text-white rounded-lg hover:bg-[#004060] transition-colors font-medium">Print</button><button onclick="closeModal()" class="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium">Close</button></div></div>';
     if (typeof openModal === 'function') {
         openModal(modalContent, 'medium');
     }
@@ -523,9 +471,10 @@ document.addEventListener('DOMContentLoaded', function() {
     var urlParams = new URLSearchParams(window.location.search);
     var urlFrom = urlParams.get('from');
     var urlTo = urlParams.get('to');
+    var urlDateType = urlParams.get('datetype');
     var today = new Date();
-    dateRangeFrom = today.toISOString().split('T')[0];
-    dateRangeTo = today.toISOString().split('T')[0];
+    dateRangeFrom = salonPayoutFormatYmd(today);
+    dateRangeTo = salonPayoutFormatYmd(today);
     var fromInput = document.getElementById('dateRangeFrom');
     var toInput = document.getElementById('dateRangeTo');
     if (fromInput) fromInput.value = dateRangeFrom;
@@ -535,16 +484,16 @@ document.addEventListener('DOMContentLoaded', function() {
             salonPayoutUpdateURLWithDateRange(dateRangeFrom, dateRangeTo, 'today');
         }
         setTimeout(function() {
-            var todayBtn = document.querySelector('button[onclick*="setDateRange(\'today\'"]');
-            if (todayBtn) {
-                document.querySelectorAll('.date-preset-btn').forEach(function(btn) {
-                    btn.classList.remove('bg-[#003047]', 'text-white', 'border-[#003047]');
-                    btn.classList.add('bg-white', 'text-gray-700', 'border-gray-300');
-                });
-                todayBtn.classList.remove('bg-white', 'text-gray-700', 'border-gray-300');
-                todayBtn.classList.add('bg-[#003047]', 'text-white', 'border-[#003047]');
-            }
-        }, 100);
+            salonPayoutSetActivePreset('today');
+        }, 50);
+    } else if (urlDateType) {
+        setTimeout(function() {
+            salonPayoutSetActivePreset(urlDateType);
+        }, 50);
+    } else {
+        setTimeout(function() {
+            salonPayoutSetActivePreset(null);
+        }, 50);
     }
     salonPayoutLoadTechnicians().then(function() {
         if (isTechnicianUser) {
@@ -563,6 +512,9 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('popstate', function(event) {
         var urlParams = new URLSearchParams(window.location.search);
         var urlTech = urlParams.get('technician');
+        var urlDateType = urlParams.get('datetype');
+        var urlFrom = urlParams.get('from');
+        var urlTo = urlParams.get('to');
         if (urlTech) {
             selectedTechnicianId = urlTech;
             var dropdown = document.getElementById('technicianFilter');
@@ -573,6 +525,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 var dropdown = document.getElementById('technicianFilter');
                 if (dropdown) dropdown.value = '';
             }
+        }
+        if (urlDateType) {
+            salonPayoutSetActivePreset(urlDateType);
+        } else if (!urlFrom || !urlTo) {
+            salonPayoutSetActivePreset('today');
+        } else {
+            salonPayoutSetActivePreset(null);
         }
         salonPayoutFetchPayouts();
     });

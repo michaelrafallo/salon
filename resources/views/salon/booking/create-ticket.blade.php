@@ -96,13 +96,13 @@
                                 </div>
                                 <div id="checkoutItemsList" class="overflow-y-auto space-y-2 pr-2 max-h-[400px]" style="scrollbar-width: thin;"></div>
                                 <div class="space-y-2 border-t border-gray-200 pt-3 mt-auto">
-                                    <div class="flex justify-between text-sm"><span class="text-gray-600">Sub Total</span><span class="text-gray-900 font-medium" id="checkoutSubtotalDisplay">$0.00</span></div>
-                                    <div class="flex justify-between text-sm"><span class="text-gray-600">Discount</span><span class="text-gray-900 font-medium text-red-600" id="checkoutDiscountDisplay">$0.00</span></div>
-                                    <div class="flex justify-between text-sm"><span class="text-gray-600">Tax (5%)</span><span class="text-gray-900 font-medium" id="checkoutTaxDisplay">$0.00</span></div>
-                                    <div class="flex justify-between text-sm"><span class="text-gray-600">Tip</span><span class="text-gray-900 font-medium" id="checkoutTipDisplay">$0.00</span></div>
+                                    <div class="flex justify-between text-sm"><span class="text-gray-600">Sub Total</span><span class="text-gray-900 font-medium" id="checkoutSubtotalDisplay">{{ $currencySymbol }}0.00</span></div>
+                                    <div class="flex justify-between text-sm"><span class="text-gray-600">Discount</span><span class="text-gray-900 font-medium text-red-600" id="checkoutDiscountDisplay">{{ $currencySymbol }}0.00</span></div>
+                                    <div class="flex justify-between text-sm"><span class="text-gray-600">Tax (5%)</span><span class="text-gray-900 font-medium" id="checkoutTaxDisplay">{{ $currencySymbol }}0.00</span></div>
+                                    <div class="flex justify-between text-sm"><span class="text-gray-600">Tip</span><span class="text-gray-900 font-medium" id="checkoutTipDisplay">{{ $currencySymbol }}0.00</span></div>
                                     <div class="flex justify-between items-center pt-2 border-t border-gray-200">
                                         <span class="text-lg font-semibold text-gray-900">Total</span>
-                                        <span class="text-2xl font-bold text-gray-900" id="checkoutTotalDisplay">$0.00</span>
+                                        <span class="text-2xl font-bold text-gray-900" id="checkoutTotalDisplay">{{ $currencySymbol }}0.00</span>
                                     </div>
                                 </div>
                             </div>
@@ -130,7 +130,7 @@
                                     <div class="mt-3 pt-3 border-t border-gray-200">
                                         <div class="flex justify-between items-center">
                                             <span class="text-sm font-medium text-gray-700">Total Split:</span>
-                                            <span class="text-sm font-bold text-gray-900" id="totalTipSplitDisplay">$0.00</span>
+                                            <span class="text-sm font-bold text-gray-900" id="totalTipSplitDisplay">{{ $currencySymbol }}0.00</span>
                                         </div>
                                     </div>
                                 </div>
@@ -151,7 +151,7 @@
                                     <div class="mt-3 pt-3 border-t border-gray-200">
                                         <div class="flex justify-between items-center">
                                             <span class="text-sm font-medium text-gray-700">Total Split:</span>
-                                            <span class="text-sm font-bold text-gray-900" id="totalTipSplitDisplayEven">$0.00</span>
+                                            <span class="text-sm font-bold text-gray-900" id="totalTipSplitDisplayEven">{{ $currencySymbol }}0.00</span>
                                         </div>
                                     </div>
                                 </div>
@@ -162,7 +162,7 @@
                                     <div class="mt-3 pt-3 border-t border-gray-200">
                                         <div class="flex justify-between items-center">
                                             <span class="text-sm font-medium text-gray-700">Total Split:</span>
-                                            <span class="text-sm font-bold text-gray-900" id="totalTipSplitDisplayCustom">$0.00</span>
+                                            <span class="text-sm font-bold text-gray-900" id="totalTipSplitDisplayCustom">{{ $currencySymbol }}0.00</span>
                                         </div>
                                     </div>
                                 </div>
@@ -192,16 +192,16 @@
                     </div>
                     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex flex-col space-y-4 lg:pl-6 h-full">
                         <div class="bg-gray-50 rounded-lg p-2 text-center">
-                            <div class="text-5xl font-bold text-gray-900" id="paymentAmount">$0</div>
+                            <div class="text-5xl font-bold text-gray-900" id="paymentAmount">{{ $currencySymbol }}0</div>
                             <input type="hidden" id="paymentAmountValue" value="0">
                         </div>
                         <div id="cashPaymentContent" class="flex flex-col space-y-4 flex-1">
                             <div class="grid grid-cols-5 gap-2">
-                                <button type="button" onclick="salonTicketAddPaymentAmount(5)" class="px-4 py-3 text-sm font-medium text-gray-700 bg-teal-50 rounded-lg hover:bg-teal-100 transition active:scale-95 border border-teal-200">$5</button>
-                                <button type="button" onclick="salonTicketAddPaymentAmount(10)" class="px-4 py-3 text-sm font-medium text-gray-700 bg-teal-50 rounded-lg hover:bg-teal-100 transition active:scale-95 border border-teal-200">$10</button>
-                                <button type="button" onclick="salonTicketAddPaymentAmount(20)" class="px-4 py-3 text-sm font-medium text-gray-700 bg-teal-50 rounded-lg hover:bg-teal-100 transition active:scale-95 border border-teal-200">$20</button>
-                                <button type="button" onclick="salonTicketAddPaymentAmount(50)" class="px-4 py-3 text-sm font-medium text-gray-700 bg-teal-50 rounded-lg hover:bg-teal-100 transition active:scale-95 border border-teal-200">$50</button>
-                                <button type="button" onclick="salonTicketAddPaymentAmount(100)" class="px-4 py-3 text-sm font-medium text-gray-700 bg-teal-50 rounded-lg hover:bg-teal-100 transition active:scale-95 border border-teal-200">$100</button>
+                                <button type="button" onclick="salonTicketAddPaymentAmount(5)" class="px-4 py-3 text-sm font-medium text-gray-700 bg-teal-50 rounded-lg hover:bg-teal-100 transition active:scale-95 border border-teal-200">{{ $currencySymbol }}5</button>
+                                <button type="button" onclick="salonTicketAddPaymentAmount(10)" class="px-4 py-3 text-sm font-medium text-gray-700 bg-teal-50 rounded-lg hover:bg-teal-100 transition active:scale-95 border border-teal-200">{{ $currencySymbol }}10</button>
+                                <button type="button" onclick="salonTicketAddPaymentAmount(20)" class="px-4 py-3 text-sm font-medium text-gray-700 bg-teal-50 rounded-lg hover:bg-teal-100 transition active:scale-95 border border-teal-200">{{ $currencySymbol }}20</button>
+                                <button type="button" onclick="salonTicketAddPaymentAmount(50)" class="px-4 py-3 text-sm font-medium text-gray-700 bg-teal-50 rounded-lg hover:bg-teal-100 transition active:scale-95 border border-teal-200">{{ $currencySymbol }}50</button>
+                                <button type="button" onclick="salonTicketAddPaymentAmount(100)" class="px-4 py-3 text-sm font-medium text-gray-700 bg-teal-50 rounded-lg hover:bg-teal-100 transition active:scale-95 border border-teal-200">{{ $currencySymbol }}100</button>
                             </div>
                             <div class="grid grid-cols-3 gap-2">
                                 <button type="button" onclick="salonTicketAddPaymentDigit('1')" class="px-4 py-4 text-lg font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition active:scale-95">1</button>

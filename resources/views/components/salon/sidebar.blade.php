@@ -17,8 +17,6 @@
     $canAccess = function ($key) use ($menuItems, $currentRole) {
         return isset($menuItems[$key]) && in_array($currentRole, $menuItems[$key]);
     };
-    $dashboardUrl = route('salon.dashboard');
-    $roleSwitchUrl = $dashboardUrl . '?userlevel=';
 @endphp
 
 <aside class="w-64 bg-white border-r border-gray-200 flex flex-col fixed lg:relative h-screen lg:h-auto lg:translate-x-0 transform -translate-x-full transition-transform duration-300 z-50" id="sidebar">
@@ -30,12 +28,6 @@
                 </svg>
             </div>
             <span class="text-gray-900 font-bold text-xl">Nail Salon POS</span>
-        </div>
-        <p class="text-xs font-medium text-gray-500 mb-2 mt-4">User Access Demo</p>
-        <div class="flex flex-wrap gap-2">
-            <a href="{{ $roleSwitchUrl }}admin" class="px-3 py-1.5 text-xs font-medium rounded-lg transition {{ $currentRole === 'admin' ? 'bg-[#003047] text-white hover:bg-[#004d6b]' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">Admin</a>
-            <a href="{{ $roleSwitchUrl }}receptionist" class="px-3 py-1.5 text-xs font-medium rounded-lg transition {{ $currentRole === 'receptionist' ? 'bg-[#003047] text-white hover:bg-[#004d6b]' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">Receptionist</a>
-            <a href="{{ $roleSwitchUrl }}technician" class="px-3 py-1.5 text-xs font-medium rounded-lg transition {{ $currentRole === 'technician' ? 'bg-[#003047] text-white hover:bg-[#004d6b]' : 'bg-gray-100 text-gray-700 hover:bg-gray-200' }}">Technician</a>
         </div>
     </div>
 

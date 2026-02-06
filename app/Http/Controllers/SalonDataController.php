@@ -11,6 +11,7 @@ use App\Models\TurnTracker;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class SalonDataController extends Controller
@@ -18,12 +19,27 @@ class SalonDataController extends Controller
     /**
      * Return appointments in same shape as appointments.json.
      */
-    public function appointments(): JsonResponse
+    public function appointments(Request $request): JsonResponse
     {
-        $rows = Appointment::query()
+        $query = Appointment::query()
             ->with(['customer', 'technicians', 'appointmentServices.serviceCategory', 'appointmentServices.service'])
-            ->orderBy('appointment_datetime')
-            ->get();
+            ->orderBy('appointment_datetime');
+
+        $currentRole = (string) $request->session()->get('salon_role', 'admin');
+        if ($currentRole === 'technician') {
+            $email = (string) $request->session()->get('salon_user_email', '');
+            $technicianId = $email !== ''
+                ? User::query()->where('email', $email)->value('id')
+                : null;
+
+            if (! $technicianId) {
+                return response()->json(['appointments' => []]);
+            }
+
+            $query->whereHas('technicians', fn ($q) => $q->where('users.id', (int) $technicianId));
+        }
+
+        $rows = $query->get();
 
         $appointments = $rows->map(function (Appointment $apt) {
             return [
@@ -172,9 +188,10 @@ class SalonDataController extends Controller
                 'method' => $p->method,
                 'methodColor' => 'bg-[#e6f0f3]',
                 'methodTextColor' => 'text-[#003047]',
-                'status' => $p->status ?? 'Completed',
-                'statusColor' => 'bg-green-100',
-                'statusTextColor' => 'text-green-700',
+                'status' => $status = ($p->status ?? 'Completed'),
+                'refund_notes' => $p->refund_notes,
+                'statusColor' => in_array($status, ['Refunded', 'Voided'], true) ? 'bg-gray-100' : ($status === 'Pending' ? 'bg-amber-100' : 'bg-green-100'),
+                'statusTextColor' => in_array($status, ['Refunded', 'Voided'], true) ? 'text-gray-700' : ($status === 'Pending' ? 'text-amber-700' : 'text-green-700'),
                 'date' => $p->paid_at?->format('Y-m-d'),
                 'services' => $services,
                 'bookingId' => 'ORDER'.$p->appointment_id,
@@ -262,6 +279,73 @@ class SalonDataController extends Controller
     }
 
     /**
+     * Return payout transactions from appointment_technician (per technician).
+     *
+     * Query params:
+     * - technician_id: required
+     * - from: optional YYYY-MM-DD
+     * - to: optional YYYY-MM-DD
+     */
+    public function payout(Request $request): JsonResponse
+    {
+        $technicianId = (int) $request->query('technician_id', 0);
+        $currentRole = (string) $request->session()->get('salon_role', 'admin');
+        $currentEmail = (string) $request->session()->get('salon_user_email', '');
+
+        if ($currentRole === 'technician' && $currentEmail !== '') {
+            $resolvedTechnicianId = User::query()->where('email', $currentEmail)->value('id');
+            $technicianId = $resolvedTechnicianId ? (int) $resolvedTechnicianId : 0;
+        }
+
+        $from = $request->query('from');
+        $to = $request->query('to');
+
+        if ($technicianId <= 0) {
+            return response()->json(['transactions' => []]);
+        }
+
+        $query = DB::table('appointment_technician as at')
+            ->join('appointments as a', 'a.id', '=', 'at.appointment_id')
+            ->join('payments as p', 'p.appointment_id', '=', 'a.id')
+            ->where('at.user_id', $technicianId)
+            ->whereNotNull('p.paid_at')
+            ->select([
+                'at.appointment_id as appointment_id',
+                'p.paid_at as date',
+                DB::raw("DATE_FORMAT(COALESCE(a.appointment_datetime, p.created_at), '%H:%i') as time"),
+                'at.total_service as amount',
+                'at.tip as tip',
+                'at.commission as commission',
+                'at.total as total',
+            ])
+            ->orderByDesc('p.paid_at')
+            ->orderByDesc(DB::raw('COALESCE(a.appointment_datetime, p.created_at)'));
+
+        if (is_string($from) && $from !== '') {
+            $query->whereDate('p.paid_at', '>=', $from);
+        }
+        if (is_string($to) && $to !== '') {
+            $query->whereDate('p.paid_at', '<=', $to);
+        }
+
+        $transactions = $query
+            ->get()
+            ->map(fn ($row) => [
+                'appointment_id' => (int) $row->appointment_id,
+                'date' => (string) $row->date,
+                'time' => (string) ($row->time ?? '00:00'),
+                'amount' => round((float) $row->amount, 2),
+                'tip' => round((float) $row->tip, 2),
+                'commission' => round((float) $row->commission, 2),
+                'total' => round((float) $row->total, 2),
+            ])
+            ->values()
+            ->all();
+
+        return response()->json(['transactions' => $transactions]);
+    }
+
+    /**
      * Return a single technician (user) by id with legacy view shape + commissions.
      */
     public function technician(Request $request, int $id): JsonResponse
@@ -274,10 +358,6 @@ class SalonDataController extends Controller
             return response()->json(['message' => 'Technician not found'], 404);
         }
 
-        $totalEarnings = (float) Payment::query()
-            ->whereHas('appointment.technicians', fn ($q) => $q->where('users.id', $user->id))
-            ->sum('amount');
-
         $appointmentsWithPayment = Appointment::query()
             ->whereHas('technicians', fn ($q) => $q->where('users.id', $user->id))
             ->whereHas('payment')
@@ -288,37 +368,45 @@ class SalonDataController extends Controller
         $today = now()->toDateString();
         $todayServices = $appointmentsWithPayment->filter(fn ($a) => $a->appointment_datetime?->toDateString() === $today)->count();
 
-        $tipRate = 0.15;
-        $commissionRate = 0.30;
-        $totalTip = round($totalEarnings * $tipRate, 2);
-        $totalCommission = round($totalEarnings * $commissionRate, 2);
+        $commissions = DB::table('appointment_technician as at')
+            ->join('appointments as a', 'a.id', '=', 'at.appointment_id')
+            ->join('payments as p', 'p.appointment_id', '=', 'a.id')
+            ->where('at.user_id', $user->id)
+            ->whereNotNull('p.paid_at')
+            ->groupBy('p.paid_at')
+            ->orderByDesc('p.paid_at')
+            ->selectRaw('p.paid_at as date')
+            ->selectRaw('SUM(at.total_service) as total')
+            ->selectRaw('SUM(at.tip) as tip')
+            ->selectRaw('SUM(at.commission) as commission')
+            ->get()
+            ->map(fn ($row) => [
+                'date' => (string) $row->date,
+                'total' => round((float) $row->total, 2),
+                'tip' => round((float) $row->tip, 2),
+                'commission' => round((float) $row->commission, 2),
+            ])
+            ->all();
+
+        $totalService = 0.0;
+        $totalTip = 0.0;
+        $totalCommission = 0.0;
+        foreach ($commissions as $c) {
+            $totalService += (float) ($c['total'] ?? 0);
+            $totalTip += (float) ($c['tip'] ?? 0);
+            $totalCommission += (float) ($c['commission'] ?? 0);
+        }
 
         $avatarColors = ['pink', 'purple', 'teal', 'indigo', 'rose', 'blue'];
         $avatarColor = $avatarColors[($user->id - 1) % count($avatarColors)];
-        $isActive = in_array($user->status, ['active', null], true);
-        $statusLabel = $isActive ? 'Available' : 'Offline';
-        $statusColor = $isActive ? 'green' : 'gray';
-
-        $commissionsByDate = [];
-        foreach ($appointmentsWithPayment as $apt) {
-            $date = $apt->payment?->paid_at?->format('Y-m-d');
-            if (! $date) {
-                continue;
-            }
-            $amount = (float) $apt->payment->amount;
-            if (! isset($commissionsByDate[$date])) {
-                $commissionsByDate[$date] = ['date' => $date, 'total' => 0, 'tip' => 0, 'commission' => 0];
-            }
-            $commissionsByDate[$date]['total'] += $amount;
-            $commissionsByDate[$date]['tip'] += round($amount * $tipRate, 2);
-            $commissionsByDate[$date]['commission'] += round($amount * $commissionRate, 2);
-        }
-        $commissions = array_values($commissionsByDate);
-        usort($commissions, fn ($a, $b) => strcmp($b['date'], $a['date']));
 
         $tracker = TurnTracker::query()->where('user_id', $user->id)->first();
         $clockIn = $tracker?->clock_in?->format('M j, Y g:i A');
         $clockOut = $tracker?->clock_out?->format('M j, Y g:i A');
+
+        $isClockedIn = (bool) $tracker?->clock_in && ! $tracker?->clock_out;
+        $statusLabel = $isClockedIn ? 'Active' : 'Inactive';
+        $statusColor = $isClockedIn ? 'green' : 'gray';
 
         $technician = [
             'id' => $user->id,
@@ -334,11 +422,11 @@ class SalonDataController extends Controller
             'today_services' => $todayServices,
             'current_queue' => 0,
             'total_services' => $appointmentsWithPayment->count(),
-            'total_earnings' => round($totalEarnings, 2),
+            'total_earnings' => round($totalService, 2),
             'customers' => $customersCount,
-            'total' => round($totalEarnings, 2),
-            'tip' => $totalTip,
-            'commission' => $totalCommission,
+            'total' => round($totalService, 2),
+            'tip' => round($totalTip, 2),
+            'commission' => round($totalCommission, 2),
             'clock_in' => $clockIn ?? '--',
             'clock_out' => $clockOut ?? '--',
         ];

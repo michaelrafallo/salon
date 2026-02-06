@@ -11,17 +11,26 @@ use App\Models\Service;
 use App\Models\ServiceCategory;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 
 class SalonAppointmentController extends Controller
 {
     public function store(StoreAppointmentRequest $request): JsonResponse
     {
         $data = $request->validated();
+        $type = (string) ($data['type'] ?? 'walk-in');
+        $appointmentDateTime = $data['appointment_datetime'] ?? null;
+        if (! $appointmentDateTime) {
+            $appointmentDateTime = now();
+        } else {
+            $appointmentDateTime = Carbon::parse((string) $appointmentDateTime);
+        }
+
         $appointment = Appointment::query()->create([
             'customer_id' => $data['customer_id'],
-            'type' => $data['type'] ?? 'walk-in',
+            'type' => $type,
             'status' => $data['status'] ?? 'waiting',
-            'appointment_datetime' => $data['appointment_datetime'],
+            'appointment_datetime' => $appointmentDateTime,
         ]);
 
         if (! empty($data['assigned_technician'])) {

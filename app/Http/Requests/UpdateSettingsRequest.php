@@ -18,6 +18,7 @@ class UpdateSettingsRequest extends FormRequest
     {
         return [
             'settings' => ['required', 'array'],
+            'settings.commission_rate' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'settings.*' => ['nullable'],
         ];
     }

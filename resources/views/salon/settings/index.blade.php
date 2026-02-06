@@ -10,7 +10,6 @@
         <div class="mb-6">
             <div class="flex items-center gap-2 overflow-x-auto pb-2 border-b border-gray-200">
                 <button type="button" onclick="salonSettingsShowTab('general', this)" class="tab-button px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap border-b-2 border-transparent">General</button>
-                <button type="button" onclick="salonSettingsShowTab('payment', this)" class="tab-button px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap border-b-2 border-transparent">Payment Gateways</button>
                 <button type="button" onclick="salonSettingsShowTab('ghl', this)" class="tab-button px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap border-b-2 border-transparent">Clickaio</button>
                 <button type="button" onclick="salonSettingsShowTab('tax', this)" class="tab-button px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap border-b-2 border-transparent">Tax & Currency</button>
                 <button type="button" onclick="salonSettingsShowTab('discounts', this)" class="tab-button px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap border-b-2 border-transparent">Discounts & Coupons</button>
@@ -69,99 +68,6 @@
                     </div>
                     <div class="flex justify-end">
                         <button type="submit" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">Save Changes</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-        <div id="tab-payment" class="settings-tab hidden">
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
-                        </div>
-                        <div>
-                            <h2 class="text-lg font-semibold text-gray-900">Authorize.net</h2>
-                            <p class="text-xs text-gray-500">Secure card processing with tokenization</p>
-                        </div>
-                    </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" name="payment_authorize_net_enabled" value="1" class="sr-only peer settings-checkbox" form="form-payment-authorize">
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#b3d1d9] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#003047]"></div>
-                    </label>
-                </div>
-                <form id="form-payment-authorize" class="space-y-4 mt-4 settings-form" data-settings-keys="payment_authorize_net_enabled,payment_authorize_net_api_login_id,payment_authorize_net_transaction_key,payment_authorize_net_tokenization,payment_authorize_net_environment">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">API Login ID</label>
-                            <input type="text" name="payment_authorize_net_api_login_id" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="Enter API Login ID">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Transaction Key</label>
-                            <input type="password" name="payment_authorize_net_transaction_key" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="Enter Transaction Key">
-                        </div>
-                    </div>
-                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                        <div>
-                            <label class="text-sm font-medium text-gray-900">Enable Tokenization</label>
-                            <p class="text-xs text-gray-500">Store customer payment methods for faster checkout</p>
-                        </div>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" name="payment_authorize_net_tokenization" value="1" class="sr-only peer settings-checkbox">
-                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#b3d1d9] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#003047]"></div>
-                        </label>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Environment</label>
-                        <select name="payment_authorize_net_environment" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent bg-white">
-                            <option value="sandbox">Sandbox (Testing)</option>
-                            <option value="production">Production</option>
-                        </select>
-                    </div>
-                    <div class="flex justify-end">
-                        <button type="submit" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">Save Authorize.net Settings</button>
-                    </div>
-                </form>
-            </div>
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                            <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"></path></svg>
-                        </div>
-                        <div>
-                            <h2 class="text-lg font-semibold text-gray-900">NMI.com</h2>
-                            <p class="text-xs text-gray-500">Multi-processor support with fraud settings</p>
-                        </div>
-                    </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" name="payment_nmi_enabled" value="1" class="sr-only peer settings-checkbox" form="form-payment-nmi">
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#b3d1d9] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#003047]"></div>
-                    </label>
-                </div>
-                <form id="form-payment-nmi" class="space-y-4 mt-4 settings-form" data-settings-keys="payment_nmi_enabled,payment_nmi_username,payment_nmi_password,payment_nmi_fraud_detection">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Username</label>
-                            <input type="text" name="payment_nmi_username" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="Enter Username">
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
-                            <input type="password" name="payment_nmi_password" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="Enter Password">
-                        </div>
-                    </div>
-                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                        <div>
-                            <label class="text-sm font-medium text-gray-900">Enable Fraud Detection</label>
-                            <p class="text-xs text-gray-500">Use NMI fraud settings for secure transactions</p>
-                        </div>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" name="payment_nmi_fraud_detection" value="1" class="sr-only peer settings-checkbox">
-                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#b3d1d9] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#003047]"></div>
-                        </label>
-                    </div>
-                    <div class="flex justify-end">
-                        <button type="submit" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">Save NMI.com Settings</button>
                     </div>
                 </form>
             </div>
@@ -265,7 +171,7 @@
             </div>
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <h2 class="text-lg font-semibold text-gray-900 mb-4">Currency</h2>
-                <form class="space-y-4 settings-form" data-settings-keys="currency_code">
+                <form class="space-y-4 settings-form" data-settings-keys="currency_code,commission_rate">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Select Currency</label>
                         <select name="currency_code" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent bg-white">
@@ -314,6 +220,14 @@
                             <option value="HRK">Croatian Kuna (kn)</option>
                             <option value="ISK">Icelandic Króna (kr)</option>
                         </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Commission (%)</label>
+                        <div class="relative">
+                            <input type="number" name="commission_rate" min="0" max="100" step="0.01" inputmode="decimal" value="30.00" class="w-full pr-10 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="30.00">
+                            <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-500 text-sm">%</span>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-1">Used to calculate technician commissions (example: 30 = 30%).</p>
                     </div>
                     <div class="flex justify-end">
                         <button type="submit" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">Save Currency Settings</button>
@@ -416,7 +330,7 @@ function salonSettingsLoad() {
                 if (input.type === 'checkbox' || input.type === 'radio') {
                     input.checked = (val === '1' || val === 'true' || val === true);
                 } else {
-                    input.value = val || '';
+                    input.value = (val === null || val === undefined) ? '' : String(val);
                 }
             });
         })
@@ -446,7 +360,7 @@ function salonSettingsCollectFormPayload(form) {
 document.addEventListener('DOMContentLoaded', function() {
     var urlParams = new URLSearchParams(window.location.search);
     var tabParam = urlParams.get('tab');
-    var validTabs = ['general', 'payment', 'ghl', 'tax', 'discounts', 'gift-cards'];
+    var validTabs = ['general', 'ghl', 'tax', 'discounts', 'gift-cards'];
     var tabToShow = validTabs.indexOf(tabParam) >= 0 ? tabParam : 'general';
     var tabButton = document.querySelector('button[onclick*="salonSettingsShowTab(\'' + tabToShow + '\'"]');
     if (tabButton) {
@@ -482,7 +396,7 @@ function salonSettingsLoadCoupons() {
                 var statusClass = c.active ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600';
                 var statusText = c.active ? 'Active' : 'Inactive';
                 var dataCoupon = (typeof JSON !== 'undefined' && JSON.stringify) ? JSON.stringify(c).replace(/&/g, '&amp;').replace(/"/g, '&quot;') : '';
-                html += '<div class="p-4 border border-gray-200 rounded-lg"><div class="flex items-center justify-between mb-2"><div><p class="font-medium text-gray-900">' + codeEsc + '</p><p class="text-xs text-gray-500">' + descEsc + ' &middot; ' + (c.discount_type === 'percent' ? c.discount_value + '%' : '$' + c.discount_value) + (c.min_order_amount ? ' (min $' + c.min_order_amount + ')' : '') + '</p></div><div class="flex items-center gap-2"><span class="px-2 py-1 ' + statusClass + ' text-xs font-medium rounded">' + statusText + '</span><button type="button" class="salon-settings-edit-coupon text-[#003047] hover:text-[#002535] text-sm font-medium" data-coupon="' + dataCoupon + '">Edit</button><button type="button" class="salon-settings-delete-coupon text-red-600 hover:text-red-700 text-sm font-medium" data-id="' + c.id + '" data-code="' + codeEsc + '">Remove</button></div></div></div>';
+                html += '<div class="p-4 border border-gray-200 rounded-lg"><div class="flex items-center justify-between mb-2"><div><p class="font-medium text-gray-900">' + codeEsc + '</p><p class="text-xs text-gray-500">' + descEsc + ' &middot; ' + (c.discount_type === 'percent' ? c.discount_value + '%' : (window.salonCurrencySymbol || '$') + c.discount_value) + (c.min_order_amount ? ' (min ' + (window.salonCurrencySymbol || '$') + c.min_order_amount + ')' : '') + '</p></div><div class="flex items-center gap-2"><span class="px-2 py-1 ' + statusClass + ' text-xs font-medium rounded">' + statusText + '</span><button type="button" class="salon-settings-edit-coupon text-[#003047] hover:text-[#002535] text-sm font-medium" data-coupon="' + dataCoupon + '">Edit</button><button type="button" class="salon-settings-delete-coupon text-red-600 hover:text-red-700 text-sm font-medium" data-id="' + c.id + '" data-code="' + codeEsc + '">Remove</button></div></div></div>';
             });
             listEl.innerHTML = html;
             listEl.querySelectorAll('.salon-settings-edit-coupon').forEach(function(btn) {
@@ -528,7 +442,7 @@ function salonSettingsLoadGiftCards() {
                 var statusClass = c.active ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600';
                 var statusText = c.active ? 'Active' : 'Inactive';
                 var dataCard = (typeof JSON !== 'undefined' && JSON.stringify) ? JSON.stringify(c).replace(/&/g, '&amp;').replace(/"/g, '&quot;') : '';
-                html += '<div class="p-4 border border-gray-200 rounded-lg"><div class="flex items-center justify-between mb-2"><div><p class="font-medium text-gray-900">' + codeEsc + '</p><p class="text-xs text-gray-500">' + descEsc + ' &middot; Balance $' + Number(c.balance || 0).toFixed(2) + ' / Initial $' + Number(c.initial_value || 0).toFixed(2) + '</p></div><div class="flex items-center gap-2"><span class="px-2 py-1 ' + statusClass + ' text-xs font-medium rounded">' + statusText + '</span><button type="button" class="salon-settings-edit-gift-card text-[#003047] hover:text-[#002535] text-sm font-medium" data-gift-card="' + dataCard + '">Edit</button><button type="button" class="salon-settings-delete-gift-card text-red-600 hover:text-red-700 text-sm font-medium" data-id="' + c.id + '" data-code="' + codeEsc + '">Remove</button></div></div></div>';
+                html += '<div class="p-4 border border-gray-200 rounded-lg"><div class="flex items-center justify-between mb-2"><div><p class="font-medium text-gray-900">' + codeEsc + '</p><p class="text-xs text-gray-500">' + descEsc + ' &middot; Balance ' + window.salonFormatMoney(Number(c.balance || 0)) + ' / Initial ' + window.salonFormatMoney(Number(c.initial_value || 0)) + '</p></div><div class="flex items-center gap-2"><span class="px-2 py-1 ' + statusClass + ' text-xs font-medium rounded">' + statusText + '</span><button type="button" class="salon-settings-edit-gift-card text-[#003047] hover:text-[#002535] text-sm font-medium" data-gift-card="' + dataCard + '">Edit</button><button type="button" class="salon-settings-delete-gift-card text-red-600 hover:text-red-700 text-sm font-medium" data-id="' + c.id + '" data-code="' + codeEsc + '">Remove</button></div></div></div>';
             });
             listEl.innerHTML = html;
             listEl.querySelectorAll('.salon-settings-edit-gift-card').forEach(function(btn) {

@@ -63,8 +63,15 @@ function formatDate(str) {
     return months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
 }
 function formatMoney(val) {
-    var num = parseFloat(val || 0);
-    return '$' + num.toFixed(2);
+    return window.salonFormatMoney(val || 0);
+}
+function escapeHtml(str) {
+    return (str == null ? '' : String(str))
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }
 function getPaginated() {
     if (PAGE_SIZE === 'all' || PAGE_SIZE === Infinity) return paymentsData;
@@ -115,7 +122,7 @@ function renderList() {
         var customerColor = p.customerColor || 'bg-[#e6f0f3]';
         var customerTextColor = p.customerTextColor || 'text-[#003047]';
         var customerInitials = p.customerInitials || '—';
-        var amount = parseFloat(p.amount || p.total || 0).toFixed(2);
+        var amount = parseFloat(p.amount || p.total || 0);
         var method = p.method || p.paymentMethod || '—';
         var methodColor = p.methodColor || 'bg-gray-100';
         var methodTextColor = p.methodTextColor || 'text-gray-700';
@@ -123,7 +130,7 @@ function renderList() {
         var statusColor = p.statusColor || 'bg-gray-100';
         var statusTextColor = p.statusTextColor || 'text-gray-700';
         var date = p.date || formatDate(p.date);
-        return '<tr class="hover:bg-gray-50"><td class="py-3 px-4"><div class="flex items-center gap-3"><div class="w-8 h-8 ' + customerColor + ' rounded-full flex items-center justify-center"><span class="text-xs font-bold ' + customerTextColor + '">' + customerInitials + '</span></div><span class="text-sm font-medium text-gray-900">' + customerName + '</span></div></td><td class="py-3 px-4 text-sm font-semibold text-gray-900">$' + amount + '</td><td class="py-3 px-4"><span class="px-2 py-1 ' + methodColor + ' ' + methodTextColor + ' text-xs font-medium rounded">' + method + '</span></td><td class="py-3 px-4"><span class="px-2 py-1 ' + statusColor + ' ' + statusTextColor + ' text-xs font-medium rounded">' + status + '</span></td><td class="py-3 px-4 text-sm text-gray-600">' + date + '</td><td class="py-3 px-4"><button onclick="salonPaymentsOpenReceiptModal(\'' + p.id + '\')" class="text-[#003047] hover:text-[#002535] text-sm font-medium">View Receipt</button></td></tr>';
+        return '<tr class="hover:bg-gray-50"><td class="py-3 px-4"><div class="flex items-center gap-3"><div class="w-8 h-8 ' + customerColor + ' rounded-full flex items-center justify-center"><span class="text-xs font-bold ' + customerTextColor + '">' + customerInitials + '</span></div><span class="text-sm font-medium text-gray-900">' + customerName + '</span></div></td><td class="py-3 px-4 text-sm font-semibold text-gray-900">' + formatMoney(amount) + '</td><td class="py-3 px-4"><span class="px-2 py-1 ' + methodColor + ' ' + methodTextColor + ' text-xs font-medium rounded">' + method + '</span></td><td class="py-3 px-4"><span class="px-2 py-1 ' + statusColor + ' ' + statusTextColor + ' text-xs font-medium rounded">' + status + '</span></td><td class="py-3 px-4 text-sm text-gray-600">' + date + '</td><td class="py-3 px-4"><button onclick="salonPaymentsOpenReceiptModal(\'' + p.id + '\')" class="text-[#003047] hover:text-[#002535] text-sm font-medium">View Receipt</button></td></tr>';
     }).join('');
 }
 function renderGrid() {
@@ -136,7 +143,7 @@ function renderGrid() {
         var customerColor = p.customerColor || 'bg-[#e6f0f3]';
         var customerTextColor = p.customerTextColor || 'text-[#003047]';
         var customerInitials = p.customerInitials || '—';
-        var amount = parseFloat(p.amount || p.total || 0).toFixed(2);
+        var amount = parseFloat(p.amount || p.total || 0);
         var method = p.method || p.paymentMethod || '—';
         var methodColor = p.methodColor || 'bg-gray-100';
         var methodTextColor = p.methodTextColor || 'text-gray-700';
@@ -144,7 +151,7 @@ function renderGrid() {
         var statusColor = p.statusColor || 'bg-gray-100';
         var statusTextColor = p.statusTextColor || 'text-gray-700';
         var date = p.date || formatDate(p.date);
-        return '<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow"><div class="flex items-center gap-4 mb-4"><div class="w-12 h-12 ' + customerColor + ' rounded-full flex items-center justify-center flex-shrink-0"><span class="text-sm font-bold ' + customerTextColor + '">' + customerInitials + '</span></div><div class="flex-1 min-w-0"><h3 class="font-semibold text-gray-900 text-lg truncate">' + customerName + '</h3><p class="text-xs text-gray-500">' + p.id + '</p></div></div><div class="mb-4"><p class="text-2xl font-bold text-gray-900 mb-2">$' + amount + '</p><div class="flex items-center gap-2"><span class="px-2 py-1 ' + methodColor + ' ' + methodTextColor + ' text-xs font-medium rounded">' + method + '</span><span class="px-2 py-1 ' + statusColor + ' ' + statusTextColor + ' text-xs font-medium rounded">' + status + '</span></div></div><button onclick="salonPaymentsOpenReceiptModal(\'' + p.id + '\')" class="w-full px-4 py-2 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium text-sm active:scale-95">View Receipt</button></div>';
+        return '<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow"><div class="flex items-center gap-4 mb-4"><div class="w-12 h-12 ' + customerColor + ' rounded-full flex items-center justify-center flex-shrink-0"><span class="text-sm font-bold ' + customerTextColor + '">' + customerInitials + '</span></div><div class="flex-1 min-w-0"><h3 class="font-semibold text-gray-900 text-lg truncate">' + customerName + '</h3><p class="text-xs text-gray-500">' + p.id + '</p></div></div><div class="mb-4"><p class="text-2xl font-bold text-gray-900 mb-2">' + formatMoney(amount) + '</p><div class="flex items-center gap-2"><span class="px-2 py-1 ' + methodColor + ' ' + methodTextColor + ' text-xs font-medium rounded">' + method + '</span><span class="px-2 py-1 ' + statusColor + ' ' + statusTextColor + ' text-xs font-medium rounded">' + status + '</span></div></div><button onclick="salonPaymentsOpenReceiptModal(\'' + p.id + '\')" class="w-full px-4 py-2 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium text-sm active:scale-95">View Receipt</button></div>';
     }).join('');
 }
 function salonPaymentsRender() {
@@ -195,6 +202,7 @@ window.salonPaymentsOpenReceiptModal = function(transactionId) {
         return;
     }
     var customerName = payment.customerName || payment.customer || '—';
+    var safeCustomerName = customerName.replace(/'/g, "\\'");
     var date = payment.date || '';
     var services = Array.isArray(payment.services) ? payment.services : [];
     var servicesHtml = services.length
@@ -202,7 +210,56 @@ window.salonPaymentsOpenReceiptModal = function(transactionId) {
             return '<div class="flex justify-between text-sm text-gray-700"><span>' + (s.name || 'Service') + (s.quantity > 1 ? ' × ' + s.quantity : '') + '</span><span>' + formatMoney(s.line_total) + '</span></div>';
         }).join('')
         : '<div class="text-sm text-gray-500">No services listed</div>';
-    var modalContent = '<div class="max-h-[90vh] flex flex-col"><div class="p-6 border-b border-gray-200 flex items-center justify-between"><h3 class="text-xl font-bold text-gray-900">Receipt</h3><button onclick="salonPaymentsCloseModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><div class="space-y-4 p-6 overflow-y-auto"><div class="text-center border-b border-gray-200 pb-4"><h4 class="font-bold text-lg text-gray-900">Nail Salon POS</h4><p class="text-sm text-gray-600">123 Main Street</p><p class="text-sm text-gray-600">(555) 123-4567</p></div><div class="space-y-2"><div class="flex justify-between"><span class="text-sm text-gray-600">Transaction #:</span><span class="text-sm font-medium text-gray-900">' + payment.id + '</span></div><div class="flex justify-between"><span class="text-sm text-gray-600">Date:</span><span class="text-sm font-medium text-gray-900">' + date + '</span></div><div class="flex justify-between"><span class="text-sm text-gray-600">Customer:</span><span class="text-sm font-medium text-gray-900">' + customerName + '</span></div><div class="flex justify-between"><span class="text-sm text-gray-600">Method:</span><span class="text-sm font-medium text-gray-900">' + (payment.method || '—') + '</span></div><div class="flex justify-between"><span class="text-sm text-gray-600">Status:</span><span class="text-sm font-medium text-gray-900">' + (payment.status || '—') + '</span></div></div><div class="border-t border-gray-200 pt-4"><h4 class="text-sm font-semibold text-gray-700 mb-2">Services</h4><div class="space-y-2">' + servicesHtml + '</div></div><div class="border-t border-gray-200 pt-4 space-y-2"><div class="flex justify-between text-sm text-gray-700"><span>Sub Total</span><span>' + formatMoney(payment.subTotal) + '</span></div><div class="flex justify-between text-sm text-gray-700"><span>Discount</span><span>-' + formatMoney(payment.discount) + '</span></div><div class="flex justify-between text-sm text-gray-700"><span>Credits</span><span>-' + formatMoney(payment.credits) + '</span></div><div class="flex justify-between text-sm text-gray-700"><span>Gift Card</span><span>-' + formatMoney(payment.giftCard) + '</span></div><div class="flex justify-between text-sm text-gray-700"><span>Tax</span><span>' + formatMoney(payment.tax) + '</span></div><div class="flex justify-between text-sm text-gray-700"><span>Tip</span><span>' + formatMoney(payment.tip) + '</span></div><div class="flex justify-between items-center pt-2 border-t border-gray-200"><span class="text-lg font-semibold text-gray-900">Total</span><span class="text-2xl font-bold text-gray-900">' + formatMoney(payment.amount) + '</span></div></div></div><div class="flex justify-end gap-3 p-6 border-t border-gray-200"><button onclick="salonPaymentsOpenVoidConfirmationModal(\'' + payment.id + '\', \'' + customerName.replace(/'/g, "\\'") + '\', \'' + formatMoney(payment.amount) + '\')" class="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium active:scale-95 flex items-center gap-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>Void</button><button onclick="window.print()" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">Print Receipt</button><button onclick="salonPaymentsCloseModal()" class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium active:scale-95">Close</button></div></div>';
+    var statusLower = String(payment.status || '').toLowerCase();
+    var isRefundedOrVoided = statusLower === 'refunded' || statusLower === 'voided';
+    var refundNotes = payment.refund_notes || payment.refundNotes || '';
+    var refundNotesHtml = (isRefundedOrVoided && refundNotes)
+        ? '<div class="mt-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">'
+            + '<p class="text-xs font-semibold text-amber-900 mb-1">Refund notes</p>'
+            + '<p class="text-sm text-amber-900 whitespace-pre-wrap">' + escapeHtml(refundNotes) + '</p>'
+            + '</div>'
+        : '';
+    var refundBtnHtml = isRefundedOrVoided
+        ? '<button type="button" disabled class="px-6 py-3 bg-gray-100 text-gray-400 rounded-lg font-medium cursor-not-allowed opacity-80 flex items-center gap-2" title="Already refunded">'
+            + '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>'
+            + 'Refunded</button>'
+        : '<button type="button" id="receiptRefundBtn" data-transaction-id="' + escapeHtml(payment.id) + '" data-customer-name="' + escapeHtml(customerName) + '" data-amount="' + escapeHtml(formatMoney(payment.amount)) + '" onclick="salonPaymentsOpenRefundConfirmationModal(this.dataset.transactionId, this.dataset.customerName, this.dataset.amount)" class="px-6 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition font-medium active:scale-95 flex items-center gap-2">'
+            + '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1"></path></svg>'
+            + 'Refund</button>';
+
+    var modalContent = ''
+        + '<div class="max-h-[90vh] flex flex-col">'
+        + '<div class="p-6 border-b border-gray-200 flex items-center justify-between">'
+        + '<h3 class="text-xl font-bold text-gray-900">Receipt</h3>'
+        + '<button onclick="salonPaymentsCloseModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>'
+        + '</div>'
+        + '<div class="space-y-4 p-6 overflow-y-auto">'
+        + '<div class="text-center border-b border-gray-200 pb-4"><h4 class="font-bold text-lg text-gray-900">Nail Salon POS</h4><p class="text-sm text-gray-600">123 Main Street</p><p class="text-sm text-gray-600">(555) 123-4567</p></div>'
+        + '<div class="space-y-2">'
+        + '<div class="flex justify-between"><span class="text-sm text-gray-600">Transaction #:</span><span class="text-sm font-medium text-gray-900">' + payment.id + '</span></div>'
+        + '<div class="flex justify-between"><span class="text-sm text-gray-600">Date:</span><span class="text-sm font-medium text-gray-900">' + date + '</span></div>'
+        + '<div class="flex justify-between"><span class="text-sm text-gray-600">Customer:</span><span class="text-sm font-medium text-gray-900">' + customerName + '</span></div>'
+        + '<div class="flex justify-between"><span class="text-sm text-gray-600">Method:</span><span class="text-sm font-medium text-gray-900">' + (payment.method || '—') + '</span></div>'
+        + '<div class="flex justify-between"><span class="text-sm text-gray-600">Status:</span><span class="text-sm font-medium text-gray-900">' + (payment.status || '—') + '</span></div>'
+        + refundNotesHtml
+        + '</div>'
+        + '<div class="border-t border-gray-200 pt-4"><h4 class="text-sm font-semibold text-gray-700 mb-2">Services</h4><div class="space-y-2">' + servicesHtml + '</div></div>'
+        + '<div class="border-t border-gray-200 pt-4 space-y-2">'
+        + '<div class="flex justify-between text-sm text-gray-700"><span>Sub Total</span><span>' + formatMoney(payment.subTotal) + '</span></div>'
+        + '<div class="flex justify-between text-sm text-gray-700"><span>Discount</span><span>-' + formatMoney(payment.discount) + '</span></div>'
+        + '<div class="flex justify-between text-sm text-gray-700"><span>Credits</span><span>-' + formatMoney(payment.credits) + '</span></div>'
+        + '<div class="flex justify-between text-sm text-gray-700"><span>Gift Card</span><span>-' + formatMoney(payment.giftCard) + '</span></div>'
+        + '<div class="flex justify-between text-sm text-gray-700"><span>Tax</span><span>' + formatMoney(payment.tax) + '</span></div>'
+        + '<div class="flex justify-between text-sm text-gray-700"><span>Tip</span><span>' + formatMoney(payment.tip) + '</span></div>'
+        + '<div class="flex justify-between items-center pt-2 border-t border-gray-200"><span class="text-lg font-semibold text-gray-900">Total</span><span class="text-2xl font-bold text-gray-900">' + formatMoney(payment.amount) + '</span></div>'
+        + '</div>'
+        + '</div>'
+        + '<div class="flex justify-end gap-3 p-6 border-t border-gray-200">'
+        + refundBtnHtml
+        + '<button onclick="window.print()" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">Print Receipt</button>'
+        + '<button onclick="salonPaymentsCloseModal()" class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium active:scale-95">Close</button>'
+        + '</div>'
+        + '</div>';
     if (typeof openModal === 'function') {
         openModal(modalContent);
     } else {
@@ -214,65 +271,105 @@ window.salonPaymentsCloseModal = function() {
         closeModal();
     }
 };
-window.salonPaymentsOpenVoidConfirmationModal = function(transactionId, customerName, amount) {
-    var voidModalOverlay = document.getElementById('voidModalOverlay');
-    if (!voidModalOverlay) {
-        voidModalOverlay = document.createElement('div');
-        voidModalOverlay.id = 'voidModalOverlay';
-        voidModalOverlay.className = 'fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4 transition-opacity duration-300';
-        voidModalOverlay.style.backgroundColor = 'rgba(0,0,0,0.5)';
-        document.body.appendChild(voidModalOverlay);
+window.salonPaymentsOpenRefundConfirmationModal = function(transactionId, customerName, amount) {
+    var refundModalOverlay = document.getElementById('refundModalOverlay');
+    if (!refundModalOverlay) {
+        refundModalOverlay = document.createElement('div');
+        refundModalOverlay.id = 'refundModalOverlay';
+        refundModalOverlay.className = 'fixed inset-0 z-[60] flex items-center justify-center p-2 sm:p-4 transition-opacity duration-300';
+        refundModalOverlay.style.backgroundColor = 'rgba(0,0,0,0.5)';
+        document.body.appendChild(refundModalOverlay);
     }
-    var modalContent = '<div class="bg-white rounded-2xl shadow-2xl max-w-md w-full transform transition-all duration-300 scale-95" onclick="event.stopPropagation()" id="voidModalContainer"><div class="p-6"><div class="flex items-center justify-between mb-4"><h3 class="text-xl font-bold text-gray-900">Confirm Void Transaction</h3><button onclick="salonPaymentsCloseVoidModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><div class="space-y-4"><div class="bg-red-50 border border-red-200 rounded-lg p-4"><div class="flex items-start gap-3"><svg class="w-6 h-6 text-red-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg><div><p class="text-sm font-semibold text-red-900 mb-2">Are you sure you want to void this transaction?</p><p class="text-sm text-red-700">This action cannot be undone.</p></div></div></div><div class="space-y-2 border-t border-gray-200 pt-4"><div class="flex justify-between"><span class="text-sm text-gray-600">Transaction #:</span><span class="text-sm font-medium text-gray-900">' + transactionId + '</span></div><div class="flex justify-between"><span class="text-sm text-gray-600">Customer:</span><span class="text-sm font-medium text-gray-900">' + customerName + '</span></div><div class="flex justify-between"><span class="text-sm text-gray-600">Amount:</span><span class="text-sm font-medium text-gray-900">' + amount + '</span></div></div></div><div class="flex justify-end gap-3 pt-6"><button onclick="salonPaymentsCloseVoidModal()" class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium active:scale-95">Cancel</button><button onclick="salonPaymentsVoidPayment(\'' + transactionId + '\')" class="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium active:scale-95 flex items-center gap-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>Confirm Void</button></div></div></div>';
-    voidModalOverlay.innerHTML = modalContent;
-    voidModalOverlay.style.backgroundColor = 'rgba(0,0,0,0.5)';
-    voidModalOverlay.style.backdropFilter = 'none';
-    voidModalOverlay.classList.remove('hidden');
+
+    var modalContent = ''
+        + '<div class="bg-white rounded-2xl shadow-2xl max-w-md w-full transform transition-all duration-300 scale-95" onclick="event.stopPropagation()" id="refundModalContainer">'
+        + '<div class="p-6">'
+        + '<div class="flex items-center justify-between mb-4">'
+        + '<h3 class="text-xl font-bold text-gray-900">Confirm Refund</h3>'
+        + '<button onclick="salonPaymentsCloseRefundModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>'
+        + '</div>'
+        + '<div class="space-y-4">'
+        + '<div class="bg-amber-50 border border-amber-200 rounded-lg p-4">'
+        + '<div class="flex items-start gap-3">'
+        + '<svg class="w-6 h-6 text-amber-700 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>'
+        + '<div><p class="text-sm font-semibold text-amber-900 mb-2">Refund this transaction?</p><p class="text-sm text-amber-800">This will mark the payment as refunded.</p></div>'
+        + '</div>'
+        + '</div>'
+        + '<div class="space-y-2 border-t border-gray-200 pt-4">'
+        + '<div class="flex justify-between"><span class="text-sm text-gray-600">Transaction #:</span><span class="text-sm font-medium text-gray-900">' + transactionId + '</span></div>'
+        + '<div class="flex justify-between"><span class="text-sm text-gray-600">Customer:</span><span class="text-sm font-medium text-gray-900">' + customerName + '</span></div>'
+        + '<div class="flex justify-between"><span class="text-sm text-gray-600">Amount:</span><span class="text-sm font-medium text-gray-900">' + amount + '</span></div>'
+        + '</div>'
+        + '<div class="border-t border-gray-200 pt-4">'
+        + '<label class="block text-sm font-medium text-gray-700 mb-2">Notes (optional)</label>'
+        + '<textarea id="refundNotesInput" rows="3" maxlength="2000" placeholder="Add refund notes..." class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent text-sm"></textarea>'
+        + '<p class="mt-2 text-xs text-gray-500">Notes will be saved with this payment.</p>'
+        + '</div>'
+        + '</div>'
+        + '<div class="flex justify-end gap-3 pt-6">'
+        + '<button onclick="salonPaymentsCloseRefundModal()" class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium active:scale-95">Cancel</button>'
+        + '<button type="button" id="confirmRefundBtn" data-transaction-id="' + escapeHtml(transactionId) + '" onclick="salonPaymentsRefundPayment(this.dataset.transactionId)" class="px-6 py-3 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition font-medium active:scale-95 flex items-center gap-2">'
+        + '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1"></path></svg>'
+        + 'Confirm Refund</button>'
+        + '</div>'
+        + '</div>'
+        + '</div>';
+
+    refundModalOverlay.innerHTML = modalContent;
+    refundModalOverlay.style.backgroundColor = 'rgba(0,0,0,0.5)';
+    refundModalOverlay.style.backdropFilter = 'none';
+    refundModalOverlay.classList.remove('hidden');
     document.body.style.overflow = 'hidden';
     setTimeout(function() {
-        var container = document.getElementById('voidModalContainer');
+        var container = document.getElementById('refundModalContainer');
         if (container) {
             container.classList.remove('scale-95');
             container.classList.add('scale-100');
         }
     }, 10);
-    voidModalOverlay.onclick = function(e) {
-        if (e.target === voidModalOverlay) {
-            salonPaymentsCloseVoidModal();
+    refundModalOverlay.onclick = function(e) {
+        if (e.target === refundModalOverlay) {
+            salonPaymentsCloseRefundModal();
         }
     };
 };
-window.salonPaymentsCloseVoidModal = function() {
-    var voidModalOverlay = document.getElementById('voidModalOverlay');
-    var voidModalContainer = document.getElementById('voidModalContainer');
-    if (voidModalContainer) {
-        voidModalContainer.classList.remove('scale-100');
-        voidModalContainer.classList.add('scale-95');
+window.salonPaymentsCloseRefundModal = function() {
+    var refundModalOverlay = document.getElementById('refundModalOverlay');
+    var refundModalContainer = document.getElementById('refundModalContainer');
+    if (refundModalContainer) {
+        refundModalContainer.classList.remove('scale-100');
+        refundModalContainer.classList.add('scale-95');
     }
     setTimeout(function() {
-        if (voidModalOverlay) {
-            voidModalOverlay.classList.add('hidden');
+        if (refundModalOverlay) {
+            refundModalOverlay.classList.add('hidden');
         }
-        document.body.style.overflow = 'auto';
+        var mainOverlay = document.getElementById('modalOverlay');
+        var mainOpen = mainOverlay && mainOverlay.style.display !== 'none' && !mainOverlay.classList.contains('hidden');
+        document.body.style.overflow = mainOpen ? 'hidden' : 'auto';
     }, 200);
 };
-window.salonPaymentsVoidPayment = function(transactionId) {
-    salonPaymentsCloseVoidModal();
+window.salonPaymentsRefundPayment = function(transactionId) {
+    var notesEl = document.getElementById('refundNotesInput');
+    var notes = notesEl ? String(notesEl.value || '').trim() : '';
+    salonPaymentsCloseRefundModal();
+
     var paymentIndex = allPayments.findIndex(function(p) { return String(p.id) === String(transactionId); });
     if (paymentIndex === -1) {
         if (typeof showErrorMessage === 'function') showErrorMessage('Transaction not found');
         return;
     }
-    salonApi.put(apiPaymentsUrl + '/' + encodeURIComponent(transactionId), { status: 'Voided' }).then(function() {
-        allPayments[paymentIndex].status = 'Voided';
-        allPayments[paymentIndex].statusColor = 'bg-gray-100';
-        allPayments[paymentIndex].statusTextColor = 'text-gray-700';
+    salonApi.put(apiPaymentsUrl + '/' + encodeURIComponent(transactionId), { status: 'Refunded', refund_notes: (notes || null) }).then(function() {
+        allPayments[paymentIndex].status = 'Refunded';
+        allPayments[paymentIndex].refund_notes = notes || '';
+        allPayments[paymentIndex].statusColor = 'bg-amber-100';
+        allPayments[paymentIndex].statusTextColor = 'text-amber-700';
         paymentsData = allPayments;
         salonPaymentsRender();
         salonPaymentsCloseModal();
-        if (typeof showSuccessMessage === 'function') showSuccessMessage('Transaction voided successfully');
+        if (typeof showSuccessMessage === 'function') showSuccessMessage('Transaction refunded successfully');
     }).catch(function(err) {
-        if (typeof showErrorMessage === 'function') showErrorMessage(err.message || 'Failed to void transaction');
+        if (typeof showErrorMessage === 'function') showErrorMessage(err.message || 'Failed to refund transaction');
     });
 };
 document.addEventListener('DOMContentLoaded', function() {

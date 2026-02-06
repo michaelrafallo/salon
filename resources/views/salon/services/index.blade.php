@@ -175,7 +175,7 @@ function renderGridView() {
         card.onclick = function() {
             openServiceModal(s);
         };
-        card.innerHTML = '<div class="flex items-start mb-3">' + thumbHtml + '</div><h3 class="font-semibold text-gray-900 text-lg mb-2">' + (s.name || '') + '</h3><p class="text-sm text-gray-600 mb-4 line-clamp-2">' + (s.description || '') + '</p><div class="pt-4 border-t border-gray-200"><span class="text-2xl font-bold text-gray-900">$' + (parseFloat(s.price || 0).toFixed(2)) + '</span></div>';
+        card.innerHTML = '<div class="flex items-start mb-3">' + thumbHtml + '</div><h3 class="font-semibold text-gray-900 text-lg mb-2">' + (s.name || '') + '</h3><p class="text-sm text-gray-600 mb-4 line-clamp-2">' + (s.description || '') + '</p><div class="pt-4 border-t border-gray-200"><span class="text-2xl font-bold text-gray-900">' + window.salonFormatMoney(parseFloat(s.price || 0)) + '</span></div>';
         el.appendChild(card);
     });
 }
@@ -200,7 +200,7 @@ function renderListView() {
             openServiceModal(s);
         };
         var statusHtml = s.active ? '<span class="text-sm font-medium text-green-600">Active</span>' : '<span class="text-sm font-medium text-gray-500">Inactive</span>';
-        row.innerHTML = '<td class="px-6 py-4 whitespace-nowrap"><div class="flex items-center">' + thumbCell + '<div class="ml-3 text-sm font-medium text-gray-900">' + (s.name || '') + '</div></div></td><td class="px-6 py-4"><div class="text-sm text-gray-900">' + (s.description || '') + '</div></td><td class="px-6 py-4 whitespace-nowrap"><div class="text-sm font-bold text-gray-900">$' + (parseFloat(s.price || 0).toFixed(2)) + '</div></td><td class="px-6 py-4 whitespace-nowrap">' + statusHtml + '</td>';
+        row.innerHTML = '<td class="px-6 py-4 whitespace-nowrap"><div class="flex items-center">' + thumbCell + '<div class="ml-3 text-sm font-medium text-gray-900">' + (s.name || '') + '</div></div></td><td class="px-6 py-4"><div class="text-sm text-gray-900">' + (s.description || '') + '</div></td><td class="px-6 py-4 whitespace-nowrap"><div class="text-sm font-bold text-gray-900">' + window.salonFormatMoney(parseFloat(s.price || 0)) + '</div></td><td class="px-6 py-4 whitespace-nowrap">' + statusHtml + '</td>';
         tbody.appendChild(row);
     });
 }

@@ -32,61 +32,131 @@ function updateClockDateTime() {
 }
 setInterval(updateClockDateTime, 1000);
 updateClockDateTime();
-function initializeTechnicianLoginState() {
-    var isLoggedIn = localStorage.getItem('technician_dashboard_loggedIn') === 'true';
-    var clockInDateTime = localStorage.getItem('technician_dashboard_clockInDateTime');
+
+function formatIsoDateTime(iso) {
+    if (!iso) return '';
+    var d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' ' +
+        d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+}
+
+function setTechnicianClockState(isClockedIn, clockInIso) {
     var btn = document.getElementById('technicianLoginBtn');
     var text = document.getElementById('technicianLoginText');
     var clockInDisplay = document.getElementById('clockInDateTimeDisplay');
     var clockInDateTimeSpan = document.getElementById('clockInDateTime');
-    if (btn && text) {
-        if (isLoggedIn) {
-            btn.classList.remove('bg-[#003047]', 'hover:bg-[#002535]');
-            btn.classList.add('bg-red-600', 'hover:bg-red-700');
-            text.textContent = 'Clock Out';
-            if (clockInDisplay && clockInDateTimeSpan && clockInDateTime) {
-                clockInDateTimeSpan.textContent = clockInDateTime;
-                clockInDisplay.classList.remove('hidden');
-            }
-        } else {
-            btn.classList.remove('bg-red-600', 'hover:bg-red-700');
-            btn.classList.add('bg-[#003047]', 'hover:bg-[#002535]');
-            text.textContent = 'Clock In';
-            if (clockInDisplay) clockInDisplay.classList.add('hidden');
+
+    if (!btn || !text) return;
+
+    if (isClockedIn) {
+        btn.classList.remove('bg-[#003047]', 'hover:bg-[#002535]');
+        btn.classList.add('bg-red-600', 'hover:bg-red-700');
+        text.textContent = 'Clock Out';
+
+        var display = formatIsoDateTime(clockInIso);
+        if (clockInDisplay && clockInDateTimeSpan && display) {
+            clockInDateTimeSpan.textContent = display;
+            clockInDisplay.classList.remove('hidden');
+        } else if (clockInDisplay) {
+            clockInDisplay.classList.add('hidden');
         }
+    } else {
+        btn.classList.remove('bg-red-600', 'hover:bg-red-700');
+        btn.classList.add('bg-[#003047]', 'hover:bg-[#002535]');
+        text.textContent = 'Clock In';
+        if (clockInDisplay) clockInDisplay.classList.add('hidden');
     }
 }
-document.addEventListener('DOMContentLoaded', initializeTechnicianLoginState);
+
+function setTechnicianClockLoading(isLoading) {
+    var btn = document.getElementById('technicianLoginBtn');
+    if (!btn) return;
+    btn.disabled = !!isLoading;
+    btn.classList.toggle('opacity-60', !!isLoading);
+    btn.classList.toggle('cursor-not-allowed', !!isLoading);
+}
+
+function loadTechnicianClockStateFromServer() {
+    var btn = document.getElementById('technicianLoginBtn');
+    if (!btn) return;
+
+    var technicianId = btn.dataset.technicianId || '';
+    var turnTrackerUrl = btn.dataset.turnTrackerUrl || '';
+
+    if (!technicianId || !turnTrackerUrl) {
+        setTechnicianClockState(false);
+        return;
+    }
+
+    setTechnicianClockLoading(true);
+
+    fetch(turnTrackerUrl, { credentials: 'same-origin' })
+        .then(function (r) {
+            if (!r.ok) throw new Error('Failed to load turn tracker');
+            return r.json();
+        })
+        .then(function (data) {
+            var entries = data.entries || [];
+            var match = entries.find(function (e) { return String(e.user_id) === String(technicianId); });
+            if (match) {
+                setTechnicianClockState(true, match.clock_in);
+            } else {
+                setTechnicianClockState(false);
+            }
+        })
+        .catch(function () {
+            setTechnicianClockState(false);
+        })
+        .finally(function () {
+            setTechnicianClockLoading(false);
+        });
+}
+
+document.addEventListener('DOMContentLoaded', loadTechnicianClockStateFromServer);
 function toggleTechnicianLogin() {
     var btn = document.getElementById('technicianLoginBtn');
     var text = document.getElementById('technicianLoginText');
     var clockInDisplay = document.getElementById('clockInDateTimeDisplay');
     var clockInDateTimeSpan = document.getElementById('clockInDateTime');
     if (!btn || !text) return;
-    var isLoggedIn = text.textContent.trim() === 'Clock Out';
-    var newState = !isLoggedIn;
-    var now = new Date();
-    var dateTime = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' ' + now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    localStorage.setItem('technician_dashboard_loggedIn', newState.toString());
-    if (newState) {
-        btn.classList.remove('bg-[#003047]', 'hover:bg-[#002535]');
-        btn.classList.add('bg-red-600', 'hover:bg-red-700');
-        text.textContent = 'Clock Out';
-        localStorage.setItem('technician_dashboard_clockInDateTime', dateTime);
-        if (clockInDisplay && clockInDateTimeSpan) {
-            clockInDateTimeSpan.textContent = dateTime;
-            clockInDisplay.classList.remove('hidden');
-        }
-        showSuccessMessage('Clocked in successfully at ' + dateTime);
-    } else {
-        btn.classList.remove('bg-red-600', 'hover:bg-red-700');
-        btn.classList.add('bg-[#003047]', 'hover:bg-[#002535]');
-        text.textContent = 'Clock In';
-        localStorage.removeItem('technician_dashboard_clockInDateTime');
-        if (clockInDisplay) clockInDisplay.classList.add('hidden');
-        showSuccessMessage('Clocked out successfully at ' + dateTime);
+
+    var isClockedIn = text.textContent.trim() === 'Clock Out';
+    var clockInUrl = btn.dataset.clockInUrl || '';
+    var clockOutUrl = btn.dataset.clockOutUrl || '';
+
+    if (typeof salonApi === 'undefined' || !salonApi.post) {
+        showSuccessMessage('Action unavailable. Please refresh the page.');
+        return;
     }
-    updateClockDateTime();
+
+    setTechnicianClockLoading(true);
+
+    var url = isClockedIn ? clockOutUrl : clockInUrl;
+    if (!url) {
+        setTechnicianClockLoading(false);
+        return;
+    }
+
+    salonApi.post(url, {})
+        .then(function (res) {
+            if (isClockedIn) {
+                setTechnicianClockState(false);
+                showSuccessMessage('Clocked out successfully.');
+            } else {
+                var clockInIso = res && res.data ? res.data.clock_in : null;
+                setTechnicianClockState(true, clockInIso);
+                showSuccessMessage('Clocked in successfully.');
+            }
+        })
+        .catch(function (err) {
+            console.error(err);
+            showSuccessMessage((err && err.message) ? err.message : 'Request failed.');
+        })
+        .finally(function () {
+            setTechnicianClockLoading(false);
+            updateClockDateTime();
+        });
 }
 function showSuccessMessage(message) {
     var d = document.createElement('div');

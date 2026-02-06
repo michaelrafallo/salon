@@ -32,6 +32,14 @@ class Customer extends Model
     }
 
     /**
+     * @return HasMany<CustomerCreditLedger, $this>
+     */
+    public function creditLedgers(): HasMany
+    {
+        return $this->hasMany(CustomerCreditLedger::class, 'customer_id');
+    }
+
+    /**
      * @return HasManyThrough<Payment, Appointment, $this>
      */
     public function payments(): HasManyThrough

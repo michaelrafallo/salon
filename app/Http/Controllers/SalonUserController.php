@@ -8,6 +8,7 @@ use App\Http\Requests\UpdateUserRequest;
 use App\Models\User;
 use App\Services\Salon\UserService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
 class SalonUserController extends Controller
@@ -50,6 +51,60 @@ class SalonUserController extends Controller
             'success' => true,
             'message' => 'User deleted successfully.',
         ]);
+    }
+
+    public function loginAs(Request $request, User $user): JsonResponse
+    {
+        if (! $request->session()->has('salon_authenticated')) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
+        }
+
+        $currentRole = (string) $request->session()->get('salon_role', 'admin');
+        if ($currentRole !== 'admin') {
+            return response()->json(['success' => false, 'message' => 'Only admins can login as another user.'], 403);
+        }
+
+        if (! $request->session()->has('salon_impersonator_email')) {
+            $request->session()->put('salon_impersonator_email', (string) $request->session()->get('salon_user_email', ''));
+            $request->session()->put('salon_impersonator_role', (string) $request->session()->get('salon_role', 'admin'));
+        }
+
+        $newRole = (string) ($user->role ?? 'admin');
+        if (! in_array($newRole, ['admin', 'receptionist', 'technician'], true)) {
+            $newRole = 'admin';
+        }
+
+        $request->session()->put('salon_authenticated', true);
+        $request->session()->put('salon_user_email', $user->email);
+        $request->session()->put('salon_role', $newRole);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Logged in as '.$user->first_name.' '.$user->last_name.'.',
+            'data' => [
+                'role' => $newRole,
+                'email' => $user->email,
+            ],
+        ]);
+    }
+
+    public function stopImpersonating(Request $request): RedirectResponse
+    {
+        if (! $request->session()->has('salon_authenticated')) {
+            return redirect()->route('salon.login');
+        }
+
+        $impersonatorEmail = (string) $request->session()->get('salon_impersonator_email', '');
+        $impersonatorRole = (string) $request->session()->get('salon_impersonator_role', 'admin');
+
+        $request->session()->forget(['salon_impersonator_email', 'salon_impersonator_role']);
+
+        if ($impersonatorEmail !== '') {
+            $request->session()->put('salon_user_email', $impersonatorEmail);
+            $request->session()->put('salon_role', $impersonatorRole);
+        }
+
+        return redirect()->route('salon.dashboard');
     }
 
     public function profile(Request $request): JsonResponse

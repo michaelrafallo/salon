@@ -16,6 +16,7 @@ class AppointmentService extends Model
         'user_id',
         'quantity',
         'unit_price',
+        'currency',
     ];
 
     protected function casts(): array

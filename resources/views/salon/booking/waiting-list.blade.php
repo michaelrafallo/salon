@@ -1,6 +1,12 @@
 @extends('layouts.salon')
 
 @section('content')
+@php
+    $waitingListTab = request()->query('status', 'all');
+    if (! in_array($waitingListTab, ['all', 'walk-in', 'booked'], true)) {
+        $waitingListTab = 'all';
+    }
+@endphp
 <main class="flex-1 overflow-y-auto bg-gray-50 lg:ml-0 pt-16 lg:pt-0">
     <div class="p-4 sm:p-6 lg:p-8">
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 gap-4">
@@ -23,9 +29,9 @@
 
         <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div class="flex items-center gap-6 border-b border-gray-200">
-                <button onclick="filterByStatus('all')" id="filterAll" class="filter-tab px-1 py-3 text-sm font-medium text-gray-900 border-b-2 border-[#003047] transition">All</button>
-                <button onclick="filterByStatus('walk-in')" id="filterWalkIn" class="filter-tab px-1 py-3 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-gray-700 transition">Walk-In</button>
-                <button onclick="filterByStatus('booked')" id="filterBooked" class="filter-tab px-1 py-3 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-gray-700 transition">Booked</button>
+                <button onclick="filterByStatus('all')" id="filterAll" class="filter-tab px-1 py-3 text-sm font-medium transition {{ $waitingListTab === 'all' ? 'text-gray-900 border-b-2 border-[#003047]' : 'text-gray-500 border-b-2 border-transparent hover:text-gray-700' }}">All</button>
+                <button onclick="filterByStatus('walk-in')" id="filterWalkIn" class="filter-tab px-1 py-3 text-sm font-medium transition {{ $waitingListTab === 'walk-in' ? 'text-gray-900 border-b-2 border-[#003047]' : 'text-gray-500 border-b-2 border-transparent hover:text-gray-700' }}">Walk-In</button>
+                <button onclick="filterByStatus('booked')" id="filterBooked" class="filter-tab px-1 py-3 text-sm font-medium transition {{ $waitingListTab === 'booked' ? 'text-gray-900 border-b-2 border-[#003047]' : 'text-gray-500 border-b-2 border-transparent hover:text-gray-700' }}">Booked</button>
             </div>
             <div class="relative max-w-md">
                 <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
@@ -72,10 +78,11 @@
 <script>
 (function() {
 var base = window.salonJsonBase || '{{ url("api/salon/data") }}';
+window.salonWaitingListBootstrap = window.salonWaitingListBootstrap || @json($waitingListBootstrap ?? null);
 var apiCustomersUrl = '{{ url("api/salon/customers") }}';
 var apiAppointmentsUrl = '{{ url("api/salon/appointments") }}';
 var allCustomers = [], allAppointments = [], allTechnicians = [], allMergedData = [], customersData = [];
-var PAGE_SIZE = 15, currentPage = 1, totalPages = 1, currentSearchTerm = '', currentStatusFilter = 'waiting';
+var PAGE_SIZE = 15, currentPage = 1, totalPages = 1, currentSearchTerm = '', currentStatusFilter = @json($waitingListTab);
 var currentView = localStorage.getItem('customersView') || 'grid';
 
 var colorClasses = [
@@ -249,22 +256,41 @@ window.updateTabStates = function(status) {
     });
 };
 
+function setViewUI(view) {
+    var gridView = document.getElementById('gridView');
+    var listView = document.getElementById('listView');
+    var gridBtn = document.getElementById('gridViewBtn');
+    var listBtn = document.getElementById('listViewBtn');
+
+    var isGrid = view === 'grid';
+    if (gridView) gridView.classList.toggle('hidden', !isGrid);
+    if (listView) listView.classList.toggle('hidden', isGrid);
+
+    if (gridBtn) {
+        gridBtn.classList.toggle('bg-white', isGrid);
+        gridBtn.classList.toggle('shadow-sm', isGrid);
+        if (gridBtn.querySelector('svg')) {
+            gridBtn.querySelector('svg').classList.toggle('text-gray-900', isGrid);
+            gridBtn.querySelector('svg').classList.toggle('text-gray-500', !isGrid);
+        }
+    }
+
+    if (listBtn) {
+        listBtn.classList.toggle('bg-white', !isGrid);
+        listBtn.classList.toggle('shadow-sm', !isGrid);
+        if (listBtn.querySelector('svg')) {
+            listBtn.querySelector('svg').classList.toggle('text-gray-900', !isGrid);
+            listBtn.querySelector('svg').classList.toggle('text-gray-500', isGrid);
+        }
+    }
+}
+
 window.toggleView = function(view) {
     currentView = view;
     localStorage.setItem('customersView', view);
-    var gridView = document.getElementById('gridView'), listView = document.getElementById('listView');
-    var gridBtn = document.getElementById('gridViewBtn'), listBtn = document.getElementById('listViewBtn');
-    if (view === 'grid') {
-        gridView.classList.remove('hidden'); listView.classList.add('hidden');
-        if (gridBtn && gridBtn.querySelector('svg')) { gridBtn.querySelector('svg').classList.remove('text-gray-500'); gridBtn.querySelector('svg').classList.add('text-gray-900'); }
-        if (listBtn && listBtn.querySelector('svg')) { listBtn.querySelector('svg').classList.remove('text-gray-900'); listBtn.querySelector('svg').classList.add('text-gray-500'); }
-        renderGridView();
-    } else {
-        gridView.classList.add('hidden'); listView.classList.remove('hidden');
-        if (listBtn && listBtn.querySelector('svg')) { listBtn.querySelector('svg').classList.remove('text-gray-500'); listBtn.querySelector('svg').classList.add('text-gray-900'); }
-        if (gridBtn && gridBtn.querySelector('svg')) { gridBtn.querySelector('svg').classList.remove('text-gray-900'); gridBtn.querySelector('svg').classList.add('text-gray-500'); }
-        renderListView();
-    }
+    setViewUI(view);
+    if (view === 'grid') renderGridView();
+    else renderListView();
 };
 
 window.searchCustomers = function(val) { currentSearchTerm = val.toLowerCase(); applyFilters(); };
@@ -457,6 +483,24 @@ window.assignCustomer = function(customerId, customerName) {
     }, 50);
 }
 function loadTechniciansForAssign() {
+    if (allTechnicians && allTechnicians.length) {
+        availableTechnicians = allTechnicians;
+        originalTechnicianOrder = availableTechnicians.map(function(t) { return t.id; });
+        renderAvailableTechnicians();
+        renderAssignedTechnicians();
+        updateCounts();
+        updateStartSessionToggleState();
+        var dropdownText = document.getElementById('statusDropdownText');
+        if (dropdownText) {
+            if (selectedStatus === 'waiting') dropdownText.textContent = 'Waiting';
+            else if (selectedStatus === 'in-progress') dropdownText.textContent = 'In Progress';
+            else if (selectedStatus === 'completed') dropdownText.textContent = 'Completed';
+            else dropdownText.textContent = 'In Progress';
+        }
+        updateStatusHighlighting();
+        return;
+    }
+
     fetch(base + '/users').then(function(r) { return r.json(); }).then(function(data) {
         availableTechnicians = (data.users || []).filter(function(u) { return u.role === 'technician' || u.userlevel === 'technician'; });
         originalTechnicianOrder = availableTechnicians.map(function(t) { return t.id; });
@@ -720,11 +764,18 @@ window.waitingListConfirmAssign = function() {
 
 async function fetchCustomers() {
     try {
-        var custRes = await fetch(base + '/customers'), aptRes = await fetch(base + '/appointments'), techRes = await fetch(base + '/users');
-        var custData = await custRes.json(), aptData = await aptRes.json(), techData = await techRes.json();
-        allCustomers = custData.customers || [];
-        allAppointments = aptData.appointments || [];
-        allTechnicians = (techData.users || []).filter(function(u) { return u.role === 'technician' || u.userlevel === 'technician'; });
+        if (window.salonWaitingListBootstrap && window.salonWaitingListBootstrap.customers) {
+            var boot = window.salonWaitingListBootstrap || {};
+            allCustomers = boot.customers || [];
+            allAppointments = boot.appointments || [];
+            allTechnicians = (boot.users || []).filter(function(u) { return u.role === 'technician' || u.userlevel === 'technician'; });
+        } else {
+            var custRes = await fetch(base + '/customers'), aptRes = await fetch(base + '/appointments'), techRes = await fetch(base + '/users');
+            var custData = await custRes.json(), aptData = await aptRes.json(), techData = await techRes.json();
+            allCustomers = custData.customers || [];
+            allAppointments = aptData.appointments || [];
+            allTechnicians = (techData.users || []).filter(function(u) { return u.role === 'technician' || u.userlevel === 'technician'; });
+        }
         mergeAppointmentsWithCustomers();
         allMergedData = allMergedData.filter(function(item) { return (item.status || '').toLowerCase() === 'waiting'; });
         currentStatusFilter = getStatusFromURL();
@@ -745,6 +796,7 @@ async function fetchCustomers() {
 document.addEventListener('DOMContentLoaded', function() {
     var saved = localStorage.getItem('customersPerPage');
     if (saved) { var sel = document.getElementById('perPageSelect'); if (sel) { sel.value = saved; PAGE_SIZE = saved === 'all' ? Infinity : parseInt(saved, 10); } }
+    setViewUI(currentView);
     fetchCustomers().then(function() { window.toggleView(currentView); });
 });
 })();

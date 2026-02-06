@@ -6,6 +6,7 @@ use App\Http\Requests\StoreCustomerRequest;
 use App\Http\Requests\UpdateCustomerCreditRequest;
 use App\Http\Requests\UpdateCustomerRequest;
 use App\Models\Customer;
+use App\Models\User;
 use App\Services\Salon\CustomerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -55,11 +56,21 @@ class SalonCustomerController extends Controller
     {
         $validated = $request->validated();
 
+        $email = $request->session()->get('salon_user_email');
+        $processedByUserId = $email
+            ? User::query()->where('email', $email)->value('id')
+            : null;
+
+        if (! $processedByUserId) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
+        }
+
         try {
             $customer = $this->customerService->adjustCredits(
                 $customer,
                 (float) $validated['amount'],
-                (string) $validated['operation']
+                (string) $validated['operation'],
+                (int) $processedByUserId
             );
         } catch (\RuntimeException $exception) {
             return response()->json([

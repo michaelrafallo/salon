@@ -15,6 +15,7 @@ class Payment extends Model
         'id',
         'appointment_id',
         'amount',
+        'currency',
         'sub_total',
         'discount',
         'credits',
@@ -23,6 +24,7 @@ class Payment extends Model
         'tip',
         'method',
         'status',
+        'refund_notes',
         'paid_at',
     ];
 

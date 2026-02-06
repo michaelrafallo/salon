@@ -54,7 +54,8 @@ function salonTurnTrackerLoadData() {
                     initials: e.initials || ((e.firstName || '')[0] + (e.lastName || '')[0]).toUpperCase() || '—',
                     photo: e.photo || null,
                     serviceCount: typeof e.services === 'number' ? e.services : parseInt(e.services, 10) || 0,
-                    clockIn: e.clock_in || null
+                    clockIn: e.clock_in || null,
+                    clockInDisplay: e.clock_in_display || null
                 };
             });
             techniciansData.sort(salonTurnTrackerSortCompare);
@@ -120,6 +121,20 @@ function salonTurnTrackerShowServiceCountToast(technicianName, serviceCount) {
     }, 3000);
 }
 
+function salonTurnTrackerFormatClockIn(isoString, displayString) {
+    if (displayString) return displayString;
+    if (!isoString) return '--';
+    var d = new Date(isoString);
+    if (isNaN(d.getTime())) return '--';
+    return d.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+}
+
 function salonTurnTrackerRenderTechnicians() {
     var container = document.getElementById('techniciansContainer');
     if (!container) return;
@@ -129,10 +144,11 @@ function salonTurnTrackerRenderTechnicians() {
     }
     var html = '';
     techniciansData.forEach(function(tech, index) {
+        var clockInLabel = salonTurnTrackerFormatClockIn(tech.clockIn, tech.clockInDisplay);
         var photoHtml = tech.photo
             ? '<img src="' + (tech.photo || '').replace(/"/g, '&quot;') + '" alt="" class="w-10 h-10 rounded-full object-cover border border-gray-200">'
             : '<div class="w-10 h-10 bg-[#e6f0f3] rounded-full flex items-center justify-center border border-gray-200"><span class="text-xs font-bold text-[#003047]">' + (tech.initials || '—') + '</span></div>';
-        html += '<div class="technician-item flex items-center gap-3 p-3 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-all" data-index="' + index + '" data-technician-id="' + tech.id + '"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-[#003047] text-white flex items-center justify-center font-bold text-sm">' + (index + 1) + '</div><div class="flex-shrink-0">' + photoHtml + '</div><div class="flex-1 min-w-0"><p class="font-semibold text-gray-900 text-sm truncate">' + (tech.fullName || '').replace(/</g, '&lt;') + '</p></div><div class="flex-shrink-0 flex items-center gap-2"><span class="text-xs text-gray-600">Services:</span><input type="number" value="' + tech.serviceCount + '" min="0" class="w-20 px-2 py-1 text-sm font-semibold text-[#003047] border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" onchange="salonTurnTrackerUpdateServiceCount(' + tech.id + ', this.value)" onblur="salonTurnTrackerSaveServiceCount(' + tech.id + ')" data-technician-id="' + tech.id + '"></div></div>';
+        html += '<div class="technician-item flex items-center gap-3 p-3 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-all" data-index="' + index + '" data-technician-id="' + tech.id + '"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-[#003047] text-white flex items-center justify-center font-bold text-sm">' + (index + 1) + '</div><div class="flex-shrink-0">' + photoHtml + '</div><div class="flex-1 min-w-0"><p class="font-semibold text-gray-900 text-sm truncate">' + (tech.fullName || '').replace(/</g, '&lt;') + '</p><p class="text-xs text-gray-500 truncate">Clock In: ' + String(clockInLabel).replace(/</g, '&lt;') + '</p></div><div class="flex-shrink-0 flex items-center gap-2"><span class="text-xs text-gray-600">Services:</span><input type="number" value="' + tech.serviceCount + '" min="0" class="w-20 px-2 py-1 text-sm font-semibold text-[#003047] border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" onchange="salonTurnTrackerUpdateServiceCount(' + tech.id + ', this.value)" onblur="salonTurnTrackerSaveServiceCount(' + tech.id + ')" data-technician-id="' + tech.id + '"></div></div>';
     });
     container.innerHTML = html;
 }

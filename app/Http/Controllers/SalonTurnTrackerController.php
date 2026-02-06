@@ -42,6 +42,7 @@ class SalonTurnTrackerController extends Controller
                 'user_id' => $t->user_id,
                 'services' => $t->services,
                 'clock_in' => $t->clock_in?->toIso8601String(),
+                'clock_in_display' => $t->clock_in?->format('M j, Y g:i A'),
                 'firstName' => $u?->first_name,
                 'lastName' => $u?->last_name,
                 'fullName' => trim(($u?->first_name ?? '').' '.($u?->last_name ?? '')),
