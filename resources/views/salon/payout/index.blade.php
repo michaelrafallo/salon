@@ -75,6 +75,7 @@
 <script>
 (function() {
 var base = window.salonJsonBase || '{{ url("api/salon/data") }}';
+window.salonPayoutBootstrap = window.salonPayoutBootstrap || @json($payoutBootstrap ?? null);
 var isTechnicianUser = {{ $isTechnician ? 'true' : 'false' }};
 var loggedInUserId = @json($loggedInUserId);
 var payoutData = [], filteredPayoutData = [], dateRangeFrom = null, dateRangeTo = null, selectedTechnicianId = isTechnicianUser ? (loggedInUserId ? String(loggedInUserId) : null) : null, techniciansList = [];
@@ -454,12 +455,19 @@ window.salonPayoutPrintReport = function() {
 };
 async function salonPayoutLoadTechnicians() {
     try {
+        if (window.salonPayoutBootstrap && Array.isArray(window.salonPayoutBootstrap.technicians)) {
+            techniciansList = window.salonPayoutBootstrap.technicians || [];
+            if (!isTechnicianUser) {
+                salonPayoutPopulateTechnicianDropdown(techniciansList);
+            }
+            return;
+        }
         var techRes = await fetch(base + '/users');
         var techData = await techRes.json();
         var technicians = techData.users || [];
         techniciansList = technicians.filter(function(t) { return t.role === 'technician'; });
         if (isTechnicianUser) {
-            selectedTechnicianId = '1';
+            selectedTechnicianId = loggedInUserId ? String(loggedInUserId) : null;
         } else {
             salonPayoutPopulateTechnicianDropdown(techniciansList);
         }
@@ -468,13 +476,40 @@ async function salonPayoutLoadTechnicians() {
     }
 }
 document.addEventListener('DOMContentLoaded', function() {
+    if (window.salonPayoutBootstrap && typeof window.salonPayoutBootstrap === 'object') {
+        var boot = window.salonPayoutBootstrap || {};
+        if (boot.from) dateRangeFrom = String(boot.from);
+        if (boot.to) dateRangeTo = String(boot.to);
+        if (boot.selectedTechnicianId) selectedTechnicianId = String(boot.selectedTechnicianId);
+        if (Array.isArray(boot.transactions)) {
+            payoutData = (boot.transactions || []).slice().sort(function(a, b) {
+                var dateA = new Date(a.date), dateB = new Date(b.date);
+                if (dateB.getTime() !== dateA.getTime()) return dateB - dateA;
+                var timeA = (a.time || '00:00').split(':').map(Number), timeB = (b.time || '00:00').split(':').map(Number);
+                var timeAValue = timeA[0] * 60 + timeA[1], timeBValue = timeB[0] * 60 + timeB[1];
+                return timeBValue - timeAValue;
+            });
+            filteredPayoutData = payoutData;
+        }
+        var fromInputBoot = document.getElementById('dateRangeFrom');
+        var toInputBoot = document.getElementById('dateRangeTo');
+        if (fromInputBoot && dateRangeFrom) fromInputBoot.value = dateRangeFrom;
+        if (toInputBoot && dateRangeTo) toInputBoot.value = dateRangeTo;
+        if (!isTechnicianUser && selectedTechnicianId) {
+            var dropdownBoot = document.getElementById('technicianFilter');
+            if (dropdownBoot) dropdownBoot.value = selectedTechnicianId;
+        }
+        if (boot.datetype) {
+            setTimeout(function() { salonPayoutSetActivePreset(String(boot.datetype)); }, 50);
+        }
+    }
     var urlParams = new URLSearchParams(window.location.search);
     var urlFrom = urlParams.get('from');
     var urlTo = urlParams.get('to');
     var urlDateType = urlParams.get('datetype');
     var today = new Date();
-    dateRangeFrom = salonPayoutFormatYmd(today);
-    dateRangeTo = salonPayoutFormatYmd(today);
+    if (!dateRangeFrom) dateRangeFrom = salonPayoutFormatYmd(today);
+    if (!dateRangeTo) dateRangeTo = salonPayoutFormatYmd(today);
     var fromInput = document.getElementById('dateRangeFrom');
     var toInput = document.getElementById('dateRangeTo');
     if (fromInput) fromInput.value = dateRangeFrom;
@@ -497,15 +532,25 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     salonPayoutLoadTechnicians().then(function() {
         if (isTechnicianUser) {
-            selectedTechnicianId = '1';
-            salonPayoutFetchPayouts();
+            selectedTechnicianId = loggedInUserId ? String(loggedInUserId) : selectedTechnicianId;
+            if (payoutData && payoutData.length) {
+                salonPayoutRenderPayouts();
+            } else {
+                salonPayoutFetchPayouts();
+            }
         } else {
             var urlTech = urlParams.get('technician');
             if (urlTech) {
                 selectedTechnicianId = urlTech;
                 var dropdown = document.getElementById('technicianFilter');
                 if (dropdown) dropdown.value = urlTech;
-                salonPayoutFetchPayouts();
+                if (payoutData && payoutData.length) {
+                    salonPayoutRenderPayouts();
+                } else {
+                    salonPayoutFetchPayouts();
+                }
+            } else if (payoutData && payoutData.length) {
+                salonPayoutRenderPayouts();
             }
         }
     });

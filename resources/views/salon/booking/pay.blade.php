@@ -404,6 +404,8 @@ window.salonJsonBase = '{{ url("api/salon/data") }}';
 window.salonTicketsUrl = '{{ $ticketsUrl }}';
 window.salonApiAppointmentsUrl = '{{ url("api/salon/appointments") }}';
 window.salonApiBase = '{{ url("api/salon") }}';
+window.salonCurrencySymbol = '{{ $currencySymbol }}';
+window.salonPayBootstrap = @json($payBootstrap ?? null);
 </script>
 <script src="{{ asset('js/salon-pay.js') }}"></script>
 @endpush

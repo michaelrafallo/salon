@@ -105,6 +105,7 @@ Route::name('salon.')->group(function () {
         Route::get('orders', [SalonController::class, 'ordersIndex'])->name('orders.index');
         Route::get('turn-tracker', [SalonController::class, 'turnTrackerIndex'])->name('turn-tracker.index');
         Route::get('settings', [SalonController::class, 'settingsIndex'])->name('settings.index');
+        Route::get('documentation', [SalonController::class, 'documentationIndex'])->name('documentation.index');
         Route::get('profile', [SalonController::class, 'profileIndex'])->name('profile.index');
     });
 });

@@ -53,6 +53,7 @@
 <script>
 (function() {
 var base = window.salonJsonBase || '{{ url("api/salon/data") }}';
+window.salonPaymentsBootstrap = window.salonPaymentsBootstrap || @json($paymentsBootstrap ?? null);
 var apiPaymentsUrl = '{{ url("api/salon/payments") }}';
 var allPayments = [], paymentsData = [], PAGE_SIZE = 15, currentPage = 1, totalPages = 1;
 var currentView = localStorage.getItem('paymentsView') || 'list';
@@ -172,29 +173,40 @@ window.salonPaymentsChangePerPage = function(val) {
 window.salonPaymentsToggleView = function(view) {
     currentView = view;
     localStorage.setItem('paymentsView', view);
-    var l = document.getElementById('listView'), g = document.getElementById('gridView'), lb = document.getElementById('listViewBtn'), gb = document.getElementById('gridViewBtn');
+    setViewUI(view);
     if (view === 'grid') {
-        g.classList.remove('hidden');
-        l.classList.add('hidden');
-        if (gb && gb.querySelector('svg')) { gb.querySelector('svg').classList.remove('text-gray-500'); gb.querySelector('svg').classList.add('text-gray-900'); }
-        gb.classList.add('bg-white');
-        gb.classList.remove('hover:bg-white');
-        if (lb && lb.querySelector('svg')) { lb.querySelector('svg').classList.remove('text-gray-900'); lb.querySelector('svg').classList.add('text-gray-500'); }
-        lb.classList.remove('bg-white');
-        lb.classList.add('hover:bg-white');
         renderGrid();
-    } else {
-        l.classList.remove('hidden');
-        g.classList.add('hidden');
-        if (lb && lb.querySelector('svg')) { lb.querySelector('svg').classList.remove('text-gray-500'); lb.querySelector('svg').classList.add('text-gray-900'); }
-        lb.classList.add('bg-white');
-        lb.classList.remove('hover:bg-white');
-        if (gb && gb.querySelector('svg')) { gb.querySelector('svg').classList.remove('text-gray-900'); gb.querySelector('svg').classList.add('text-gray-500'); }
-        gb.classList.remove('bg-white');
-        gb.classList.add('hover:bg-white');
-        renderList();
+        return;
     }
+    renderList();
 };
+function setViewUI(view) {
+    var l = document.getElementById('listView');
+    var g = document.getElementById('gridView');
+    var lb = document.getElementById('listViewBtn');
+    var gb = document.getElementById('gridViewBtn');
+
+    var isGrid = view === 'grid';
+    if (g) g.classList.toggle('hidden', !isGrid);
+    if (l) l.classList.toggle('hidden', isGrid);
+
+    if (gb) {
+        gb.classList.toggle('bg-white', isGrid);
+        gb.classList.toggle('shadow-sm', isGrid);
+        if (gb.querySelector('svg')) {
+            gb.querySelector('svg').classList.toggle('text-gray-900', isGrid);
+            gb.querySelector('svg').classList.toggle('text-gray-500', !isGrid);
+        }
+    }
+    if (lb) {
+        lb.classList.toggle('bg-white', !isGrid);
+        lb.classList.toggle('shadow-sm', !isGrid);
+        if (lb.querySelector('svg')) {
+            lb.querySelector('svg').classList.toggle('text-gray-900', !isGrid);
+            lb.querySelector('svg').classList.toggle('text-gray-500', isGrid);
+        }
+    }
+}
 window.salonPaymentsOpenReceiptModal = function(transactionId) {
     var payment = allPayments.find(function(p) { return String(p.id) === String(transactionId); });
     if (!payment) {
@@ -380,6 +392,16 @@ document.addEventListener('DOMContentLoaded', function() {
             perPageSelect.value = savedPerPage;
             PAGE_SIZE = savedPerPage === 'all' ? Infinity : parseInt(savedPerPage, 10);
         }
+    }
+    setViewUI(currentView);
+    if (window.salonPaymentsBootstrap && window.salonPaymentsBootstrap.payments) {
+        allPayments = (window.salonPaymentsBootstrap.payments || []).map(function(p) {
+            return Object.assign({}, p, { date: formatDate(p.date) || p.date });
+        });
+        paymentsData = allPayments;
+        salonPaymentsRender();
+        salonPaymentsToggleView(currentView);
+        return;
     }
     fetch(base + '/payments').then(function(r) { return r.json(); }).then(function(data) {
         allPayments = (data.payments || []).map(function(p) { return Object.assign({}, p, { date: formatDate(p.date) || p.date }); });

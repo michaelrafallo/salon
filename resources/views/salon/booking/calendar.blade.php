@@ -90,6 +90,41 @@ let technicianSearchTerm = ''; // Search term for technician search
 let currentEvent = null; // Current FullCalendar event being edited
 let currentEventModalElement = null; // Reference to the technician display element in the event modal
 
+// --- Date helpers (avoid UTC date shifting for YYYY-MM-DD inputs) ---
+function formatYmdLocal(date) {
+    if (!date || isNaN(date.getTime())) return '';
+    var y = date.getFullYear();
+    var m = String(date.getMonth() + 1).padStart(2, '0');
+    var d = String(date.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + d;
+}
+function parseYmdAsLocalDate(ymd) {
+    if (!ymd || typeof ymd !== 'string') return null;
+    var match = ymd.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) return null;
+    var y = parseInt(match[1], 10);
+    var m = parseInt(match[2], 10) - 1;
+    var d = parseInt(match[3], 10);
+    return new Date(y, m, d);
+}
+function parseIsoDatetimeLocal(isoStr) {
+    if (!isoStr || typeof isoStr !== 'string') return null;
+    // Treat stored datetimes as local by ignoring timezone suffixes.
+    var s = isoStr.trim()
+        .replace(/Z$/i, '')
+        .replace(/([+-]\d{2}:?\d{2})$/i, '')
+        .replace(/\.\d+/, '');
+    var match = s.match(/^(\d{4})-(\d{2})-(\d{2})[T\s](\d{2}):(\d{2})(?::(\d{2}))?/);
+    if (!match) return null;
+    var y = parseInt(match[1], 10);
+    var m = parseInt(match[2], 10) - 1;
+    var d = parseInt(match[3], 10);
+    var hh = parseInt(match[4], 10);
+    var mm = parseInt(match[5], 10);
+    var ss = parseInt(match[6] || '0', 10);
+    return new Date(y, m, d, hh, mm, ss);
+}
+
 // Fetch customers to match phone numbers
 async function fetchCustomers() {
     try {
@@ -299,7 +334,7 @@ document.addEventListener('DOMContentLoaded', async function() {
     
     // If date parameter exists and view is list, use it
     if (viewParam === 'list' && dateParam) {
-        selectedListViewDate = new Date(dateParam);
+        selectedListViewDate = parseYmdAsLocalDate(dateParam) || parseIsoDatetimeLocal(dateParam) || new Date(dateParam);
     }
     
     // Map URL view names to FullCalendar view names
@@ -506,12 +541,25 @@ document.addEventListener('DOMContentLoaded', async function() {
                 appointment.appointment_date = `${year}-${month}-${day}`;
                 appointment.appointment_time = `${hours}:${minutes}`;
                 
-                // TODO: Save to backend/JSON file
-                console.log('Appointment updated:', {
-                    id: appointmentId,
-                    newDateTime: appointment.appointment_datetime,
-                    appointment: appointment
-                });
+                // Persist to backend
+                const apiUrl = window.salonCalendarAppointmentsApiUrl;
+                if (apiUrl && typeof salonApi !== 'undefined' && salonApi.put) {
+                    salonApi.put(apiUrl + '/' + appointmentId, { appointment_datetime: appointment.appointment_datetime })
+                        .then(function(res) {
+                            if (res && res.data) {
+                                appointment.appointment_datetime = res.data.appointment_datetime || appointment.appointment_datetime;
+                                if (Array.isArray(res.data.assigned_technician)) {
+                                    appointment.assigned_technician = res.data.assigned_technician;
+                                }
+                            }
+                        })
+                        .catch(function(err) {
+                            info.revert();
+                            if (typeof showErrorMessage === 'function') {
+                                showErrorMessage(err && err.message ? err.message : 'Failed to update appointment time.');
+                            }
+                        });
+                }
                 
                 // Update list view if it's currently visible
                 const listViewContainer = document.getElementById('listViewContainer');
@@ -753,7 +801,7 @@ function switchView(viewType) {
         // Update URL with current date
         var url = new URL(window.location);
         url.searchParams.set('view', 'list');
-        const currentDateString = selectedListViewDate.toISOString().split('T')[0];
+        const currentDateString = formatYmdLocal(selectedListViewDate) || selectedListViewDate.toISOString().split('T')[0];
         url.searchParams.set('date', currentDateString);
         window.history.pushState({}, '', url);
     }
@@ -789,13 +837,32 @@ function renderTechnicianListView() {
         container.innerHTML = '<p class="text-center text-gray-500 py-8">No technicians available</p>';
         return;
     }
+
+    // Match the technician ordering used in the Waiting List "Assign Technician" modal (Available Technicians).
+    // Sort priority: assigned-to-current-context last (not applicable here), online first, fewer services first,
+    // earlier clock-in first.
+    const orderedTechnicians = [...techniciansData].sort((a, b) => {
+        const aOnline = !!(a.clock_in && !a.clock_out);
+        const bOnline = !!(b.clock_in && !b.clock_out);
+        if (aOnline && !bOnline) return -1;
+        if (!aOnline && bOnline) return 1;
+
+        const aServices = typeof a.services === 'number' ? a.services : 0;
+        const bServices = typeof b.services === 'number' ? b.services : 0;
+        const diff = aServices - bServices;
+        if (diff !== 0) return diff;
+
+        const aTime = a.clock_in ? new Date(a.clock_in).getTime() : Infinity;
+        const bTime = b.clock_in ? new Date(b.clock_in).getTime() : Infinity;
+        return aTime - bTime;
+    });
     
     // Use selected date for filtering appointments
     const selectedDate = new Date(selectedListViewDate);
     selectedDate.setHours(0, 0, 0, 0);
     
     // Format date for date picker (YYYY-MM-DD)
-    const datePickerValue = selectedDate.toISOString().split('T')[0];
+    const datePickerValue = formatYmdLocal(selectedDate) || selectedDate.toISOString().split('T')[0];
     
     // Generate time slots from 8am to 8pm
     const timeSlots = [];
@@ -832,14 +899,18 @@ function renderTechnicianListView() {
         </div>
     </th>`;
     
-    // Add technician headers
-    techniciansData.forEach(technician => {
+    // Add technician headers (ordered like Waiting List modal)
+    orderedTechnicians.forEach(technician => {
         const initials = technician.initials || (technician.firstName?.[0] || '') + (technician.lastName?.[0] || '');
         const fullName = `${technician.firstName} ${technician.lastName}`;
         const profilePhoto = technician.photo || technician.profilePhoto || null;
+        const isOnline = !!(technician.clock_in && !technician.clock_out);
+        const onlineBadgeClass = isOnline ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-gray-100 text-gray-700 border border-gray-200';
+        const onlineBadgeText = isOnline ? 'Online' : 'Offline';
         
         html += `<th class="border-r border-b border-gray-300 p-3 text-center font-semibold text-gray-700 min-w-[150px] cursor-pointer hover:bg-gray-50 transition-colors" onclick="showTechnicianMessageModal(${technician.id}, '${fullName.replace(/'/g, "\\'")}')">`;
         html += `<div class="flex flex-col items-center gap-2">`;
+        html += `<div class="relative">`;
         if (profilePhoto) {
             html += `<img src="${profilePhoto}" alt="${fullName}" class="w-10 h-10 rounded-full object-cover border-2 border-gray-200">`;
         } else {
@@ -847,6 +918,10 @@ function renderTechnicianListView() {
             html += `<span class="text-sm font-bold text-[#003047]">${initials}</span>`;
             html += `</div>`;
         }
+        // Online/offline dot badge (like Waiting List modal)
+        html += `<div class="absolute w-4 h-4 rounded-full border-2 border-white ${isOnline ? 'bg-green-500' : 'bg-gray-400'}" style="bottom: -4px; right: -4px;" title="${onlineBadgeText}"></div>`;
+        html += `</div>`;
+
         html += `<span class="text-xs font-medium text-gray-900">${fullName}</span>`;
         html += `</div>`;
         html += `</th>`;
@@ -881,9 +956,9 @@ function renderTechnicianListView() {
                 const dateParts = apt.appointment_date.split('-');
                 aptDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
             } else if (apt.appointment_datetime) {
-                aptDate = new Date(apt.appointment_datetime);
+                aptDate = parseIsoDatetimeLocal(apt.appointment_datetime) || new Date(apt.appointment_datetime);
             } else if (apt.created_at) {
-                aptDate = new Date(apt.created_at);
+                aptDate = parseIsoDatetimeLocal(apt.created_at) || new Date(apt.created_at);
             }
             if (!aptDate || isNaN(aptDate.getTime())) return false;
             
@@ -901,9 +976,9 @@ function renderTechnicianListView() {
                 const [hours, minutes] = apt.appointment_time.split(':').map(Number);
                 aptStart.setHours(hours, minutes || 0, 0, 0);
             } else if (apt.appointment_datetime) {
-                aptStart = new Date(apt.appointment_datetime);
+                aptStart = parseIsoDatetimeLocal(apt.appointment_datetime) || new Date(apt.appointment_datetime);
             } else if (apt.created_at) {
-                aptStart = new Date(apt.created_at);
+                aptStart = parseIsoDatetimeLocal(apt.created_at) || new Date(apt.created_at);
             } else if (apt.appointment_date) {
                 const dateParts = apt.appointment_date.split('-');
                 aptStart = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
@@ -987,7 +1062,7 @@ function renderTechnicianListView() {
         
         html += '</td>';
         
-        techniciansData.forEach(technician => {
+        orderedTechnicians.forEach(technician => {
             const technicianId = technician.id.toString();
             const [hours, minutes] = timeSlot.value.split(':').map(Number);
             const slotStart = new Date(selectedDate);
@@ -1007,9 +1082,9 @@ function renderTechnicianListView() {
                     const dateParts = apt.appointment_date.split('-');
                     aptDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
                 } else if (apt.appointment_datetime) {
-                    aptDate = new Date(apt.appointment_datetime);
+                    aptDate = parseIsoDatetimeLocal(apt.appointment_datetime) || new Date(apt.appointment_datetime);
                 } else if (apt.created_at) {
-                    aptDate = new Date(apt.created_at);
+                    aptDate = parseIsoDatetimeLocal(apt.created_at) || new Date(apt.created_at);
                 }
                 if (!aptDate || isNaN(aptDate.getTime())) return false;
                 
@@ -1029,10 +1104,10 @@ function renderTechnicianListView() {
                     aptStart.setHours(hours, minutes || 0, 0, 0);
                 } else if (apt.appointment_datetime) {
                     // Use appointment_datetime (includes both date and time)
-                    aptStart = new Date(apt.appointment_datetime);
+                    aptStart = parseIsoDatetimeLocal(apt.appointment_datetime) || new Date(apt.appointment_datetime);
                 } else if (apt.created_at) {
                     // Fallback to created_at
-                    aptStart = new Date(apt.created_at);
+                    aptStart = parseIsoDatetimeLocal(apt.created_at) || new Date(apt.created_at);
                 } else if (apt.appointment_date) {
                     // Only date available, use default time of 9:00 AM
                     const dateParts = apt.appointment_date.split('-');
@@ -1076,9 +1151,9 @@ function renderTechnicianListView() {
                         const [hours, minutes] = apt.appointment_time.split(':').map(Number);
                         aptStart.setHours(hours, minutes, 0, 0);
                     } else if (apt.appointment_datetime) {
-                        aptStart = new Date(apt.appointment_datetime);
+                        aptStart = parseIsoDatetimeLocal(apt.appointment_datetime) || new Date(apt.appointment_datetime);
                     } else if (apt.created_at) {
-                        aptStart = new Date(apt.created_at);
+                        aptStart = parseIsoDatetimeLocal(apt.created_at) || new Date(apt.created_at);
                     }
                     if (!aptStart) return;
                     
@@ -1137,7 +1212,7 @@ function renderTechnicianListView() {
 
 // Change list view date
 function changeListViewDate(dateString) {
-    selectedListViewDate = new Date(dateString);
+    selectedListViewDate = parseYmdAsLocalDate(dateString) || parseIsoDatetimeLocal(dateString) || new Date(dateString);
     
     // Update URL with date parameter
     var url = new URL(window.location);
@@ -1655,22 +1730,15 @@ async function handleSlotDrop(event, technicianId, timeSlot) {
     
     const technicianIdStr = technicianId.toString();
     
+    // Build backend payload (appointment_datetime + assigned_technician)
+    const apiUrl = window.salonCalendarAppointmentsApiUrl;
+    const payload = { appointment_datetime: newDateTime };
+
     // Handle Salon Appointment column (clear all technicians)
     if (technicianIdStr === 'salon') {
         // Clear all assigned technicians
         appointment.assigned_technician = [];
-        
-        // TODO: Save to backend/JSON file
-        console.log('Appointment updated:', {
-            id: appointment.id,
-            newDateTime: newDateTime,
-            technician: 'Salon Appointment (unassigned)',
-            appointment: appointment
-        });
-        
-        // Show success message
-        const timeDisplay = newDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-        showToastMessage(`Appointment moved to Salon Appointment at ${timeDisplay}`, 'success');
+        payload.assigned_technician = [];
     } else {
         // Handle regular technician assignment
         const destinationTechnicianId = parseInt(technicianId);
@@ -1696,19 +1764,41 @@ async function handleSlotDrop(event, technicianId, timeSlot) {
         // Ensure array contains unique values (in case of duplicates)
         appointment.assigned_technician = [...new Set(appointment.assigned_technician.map(id => parseInt(id)))];
         
-        // TODO: Save to backend/JSON file
-        console.log('Appointment updated:', {
-            id: appointment.id,
-            newDateTime: newDateTime,
-            newTechnician: technicianId,
-            appointment: appointment
-        });
-        
-        // Show success message
+        payload.assigned_technician = appointment.assigned_technician.map(function(id) { return parseInt(id, 10); }).filter(function(n) { return !isNaN(n); });
+    }
+
+    // Persist to backend (fallback to optimistic-only if API unavailable)
+    let saved = null;
+    if (apiUrl && typeof salonApi !== 'undefined' && salonApi.put) {
+        try {
+            const res = await salonApi.put(apiUrl + '/' + appointment.id, payload);
+            if (res && res.data) {
+                // Apply canonical values returned by API
+                appointment.appointment_datetime = res.data.appointment_datetime || appointment.appointment_datetime;
+                appointment.status = res.data.status || appointment.status;
+                if (Array.isArray(res.data.assigned_technician)) {
+                    appointment.assigned_technician = res.data.assigned_technician;
+                }
+                if (Array.isArray(res.data.services)) {
+                    appointment.services = res.data.services;
+                }
+                saved = res.data;
+            }
+        } catch (err) {
+            // If save fails, refetch + redraw to avoid UI desync
+            console.error(err);
+            showToastMessage((err && err.message) ? err.message : 'Failed to update appointment.', 'error');
+        }
+    }
+
+    // Show success message (based on destination)
+    const timeDisplay = newDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    if (technicianIdStr === 'salon') {
+        showToastMessage(`Appointment moved to Salon Appointment at ${timeDisplay}`, saved ? 'success' : 'info');
+    } else {
         const technician = techniciansData.find(t => t.id.toString() === technicianIdStr);
         const technicianName = technician ? `${technician.firstName} ${technician.lastName}` : `Technician #${technicianId}`;
-        const timeDisplay = newDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-        showToastMessage(`Appointment moved to ${technicianName} at ${timeDisplay}`, 'success');
+        showToastMessage(`Appointment moved to ${technicianName} at ${timeDisplay}`, saved ? 'success' : 'info');
     }
     
     // Re-render the list view

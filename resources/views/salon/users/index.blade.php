@@ -5,6 +5,11 @@
     $usersViewUrl = route('salon.users.view');
     $apiUsersUrl = url('api/salon/users');
     $dashboardUrl = route('salon.dashboard');
+    $usersTab = request()->query('role', 'all');
+    if (! in_array($usersTab, ['all', 'admin', 'receptionist', 'technician'], true)) {
+        $usersTab = 'all';
+    }
+    $usersTabLabel = $usersTab === 'all' ? 'all' : ucfirst($usersTab);
 @endphp
 <main class="flex-1 overflow-y-auto bg-gray-50 lg:ml-0 pt-16 lg:pt-0">
     <div class="p-4 sm:p-6 lg:p-8">
@@ -24,10 +29,10 @@
         </div>
         <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div class="flex items-center gap-2 border-b border-gray-200 overflow-x-auto">
-                <button onclick="salonUsersFilter('all')" id="tab-all" class="px-4 py-2 text-sm font-medium text-[#003047] border-b-2 border-[#003047] transition whitespace-nowrap">All</button>
-                <button onclick="salonUsersFilter('Admin')" id="tab-Admin" class="px-4 py-2 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-gray-700 transition whitespace-nowrap">Admin</button>
-                <button onclick="salonUsersFilter('Receptionist')" id="tab-Receptionist" class="px-4 py-2 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-gray-700 transition whitespace-nowrap">Receptionist</button>
-                <button onclick="salonUsersFilter('Technician')" id="tab-Technician" class="px-4 py-2 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-gray-700 transition whitespace-nowrap">Technician</button>
+                <button onclick="salonUsersFilter('all')" id="tab-all" class="px-4 py-2 text-sm font-medium transition whitespace-nowrap {{ $usersTabLabel === 'all' ? 'text-[#003047] border-b-2 border-[#003047]' : 'text-gray-500 border-b-2 border-transparent hover:text-gray-700' }}">All</button>
+                <button onclick="salonUsersFilter('Admin')" id="tab-Admin" class="px-4 py-2 text-sm font-medium transition whitespace-nowrap {{ $usersTabLabel === 'Admin' ? 'text-[#003047] border-b-2 border-[#003047]' : 'text-gray-500 border-b-2 border-transparent hover:text-gray-700' }}">Admin</button>
+                <button onclick="salonUsersFilter('Receptionist')" id="tab-Receptionist" class="px-4 py-2 text-sm font-medium transition whitespace-nowrap {{ $usersTabLabel === 'Receptionist' ? 'text-[#003047] border-b-2 border-[#003047]' : 'text-gray-500 border-b-2 border-transparent hover:text-gray-700' }}">Receptionist</button>
+                <button onclick="salonUsersFilter('Technician')" id="tab-Technician" class="px-4 py-2 text-sm font-medium transition whitespace-nowrap {{ $usersTabLabel === 'Technician' ? 'text-[#003047] border-b-2 border-[#003047]' : 'text-gray-500 border-b-2 border-transparent hover:text-gray-700' }}">Technician</button>
             </div>
             <div class="relative w-full sm:w-[400px]">
                 <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
@@ -68,10 +73,11 @@
 <script>
 (function() {
 var base = window.salonJsonBase || '{{ url("api/salon/data") }}';
+window.salonUsersBootstrap = window.salonUsersBootstrap || @json($usersBootstrap ?? null);
 var viewUrl = '{{ $usersViewUrl }}';
 var apiUsersUrl = '{{ $apiUsersUrl }}';
 var dashboardUrl = '{{ $dashboardUrl }}';
-var allUsers = [], usersData = [], currentRoleFilter = 'all', currentSearchTerm = '', PAGE_SIZE = 15, currentPage = 1, totalPages = 1, currentView = localStorage.getItem('staffView') || 'grid';
+var allUsers = [], usersData = [], currentRoleFilter = @json($usersTabLabel), currentSearchTerm = '', PAGE_SIZE = 15, currentPage = 1, totalPages = 1, currentView = localStorage.getItem('staffView') || 'grid';
 
 var roleColors = {
     'admin': { bg: 'bg-[#e6f0f3]', text: 'text-[#003047]', badge: 'bg-[#e6f0f3]', badgeText: 'text-[#003047]' },
@@ -82,6 +88,11 @@ var roleColors = {
 function getInitials(u) { return u.initials || ((u.firstName||'')[0] + (u.lastName||'')[0]).toUpperCase(); }
 function getRoleDisplayName(role) { return (role || '').charAt(0).toUpperCase() + (role || '').slice(1).toLowerCase(); }
 function getRoleColors(role) { return roleColors[(role || '').toLowerCase()] || roleColors['technician']; }
+function getLastLogin(u) {
+    if (!u || typeof u !== 'object') return '—';
+    // If a last login field is added later, prefer it.
+    return u.lastLogin || u.last_login || u.lastLoginAt || u.last_login_at || '—';
+}
 function getPaginated() {
     if (PAGE_SIZE === 'all' || PAGE_SIZE === Infinity) return usersData;
     var start = (currentPage - 1) * PAGE_SIZE;
@@ -136,6 +147,16 @@ function applyFilters() {
     currentPage = 1;
     salonUsersRender();
 }
+function normalizeUsers(list) {
+    return (list || []).map(function(u) {
+        if (!u || typeof u !== 'object') return u;
+        if (typeof u.active === 'undefined') {
+            var status = (u.status || 'active').toString().toLowerCase();
+            u.active = status === 'active';
+        }
+        return u;
+    });
+}
 function renderGrid() {
     var el = document.getElementById('gridView');
     if (!el) return;
@@ -149,7 +170,8 @@ function renderGrid() {
         var statusText = u.active ? 'Active' : 'Inactive', statusColor = u.active ? 'text-green-600' : 'text-gray-500';
         var technicianStatus = (u.role === 'technician' || u.userlevel === 'technician') && u.status ? u.status : statusText;
         var technicianStatusColor = (u.role === 'technician' || u.userlevel === 'technician') && u.status === 'Available' ? 'text-green-600' : (u.role === 'technician' || u.userlevel === 'technician') && u.status === 'Busy' ? 'text-[#003047]' : statusColor;
-        var statsHTML = (u.role === 'technician' || u.userlevel === 'technician') && u.totalEarnings !== undefined ? '<div class="grid grid-cols-2 gap-3 mb-4 pt-4 border-t border-gray-200"><div><p class="text-xs text-gray-500">Status</p><p class="text-sm font-medium ' + technicianStatusColor + '">' + technicianStatus + '</p></div><div><p class="text-xs text-gray-500">Earnings</p><p class="text-sm font-medium text-gray-900">' + window.salonFormatMoney(u.totalEarnings || 0) + '</p></div></div>' : '<div class="grid grid-cols-2 gap-3 mb-4 pt-4 border-t border-gray-200"><div><p class="text-xs text-gray-500">Status</p><p class="text-sm font-medium ' + statusColor + '">' + statusText + '</p></div><div><p class="text-xs text-gray-500">Last Login</p><p class="text-sm font-medium text-gray-900">Today</p></div></div>';
+        var lastLogin = getLastLogin(u);
+        var statsHTML = '<div class="grid grid-cols-2 gap-3 mb-4 pt-4 border-t border-gray-200"><div><p class="text-xs text-gray-500">Status</p><p class="text-sm font-medium ' + ((u.role === 'technician' || u.userlevel === 'technician') ? technicianStatusColor : statusColor) + '">' + ((u.role === 'technician' || u.userlevel === 'technician') ? technicianStatus : statusText) + '</p></div><div><p class="text-xs text-gray-500">Last Login</p><p class="text-sm font-medium text-gray-900">' + lastLogin + '</p></div></div>';
         var safeName = (name || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
         return '<div data-role="' + roleDisplay + '" class="staff-card bg-white rounded-lg shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow relative"><div onclick="window.location.href=\'' + viewUrl + '?id=' + u.id + '\'" class="flex items-center gap-4 mb-4 cursor-pointer"><div class="w-16 h-16 ' + colors.bg + ' rounded-full flex items-center justify-center flex-shrink-0"><span class="text-2xl font-bold ' + colors.text + '">' + inits + '</span></div><div class="flex-1 min-w-0"><h3 class="font-semibold text-gray-900 text-lg truncate">' + name + '</h3><p class="text-sm text-gray-500 truncate">' + (u.email || '') + '</p><p class="text-xs ' + colors.text + ' font-medium mt-1">' + roleDisplay + '</p></div></div>' + statsHTML + '<div class="flex flex-wrap gap-2 pt-2 border-t border-gray-100" onclick="event.stopPropagation()"><button type="button" onclick="salonUsersLoginAs(' + u.id + ', \'' + safeName + '\')" class="px-3 py-1.5 text-sm bg-[#e6f0f3] text-[#003047] rounded-lg hover:bg-[#d1e4e9]">Login as</button><button type="button" onclick="salonUsersOpenEditModal(' + u.id + ')" class="px-3 py-1.5 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">Edit</button><button type="button" onclick="salonUsersDelete(' + u.id + ', \'' + safeName + '\')" class="px-3 py-1.5 text-sm bg-red-50 text-red-600 rounded-lg hover:bg-red-100">Delete</button></div></div>';
     }).join('');
@@ -168,7 +190,7 @@ function renderList() {
         var technicianStatus = (u.role === 'technician' || u.userlevel === 'technician') && u.status ? u.status : statusText;
         var technicianStatusColor = (u.role === 'technician' || u.userlevel === 'technician') && u.status === 'Available' ? 'text-green-600' : (u.role === 'technician' || u.userlevel === 'technician') && u.status === 'Busy' ? 'text-[#003047]' : statusColor;
         var safeName = (name || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-        return '<tr data-role="' + roleDisplay + '" class="staff-row hover:bg-gray-50 transition"><td onclick="window.location.href=\'' + viewUrl + '?id=' + u.id + '\'" class="px-6 py-4 whitespace-nowrap cursor-pointer"><div class="flex items-center"><div class="w-10 h-10 ' + colors.bg + ' rounded-full flex items-center justify-center flex-shrink-0"><span class="text-sm font-bold ' + colors.text + '">' + inits + '</span></div><div class="ml-4"><div class="text-sm font-medium text-gray-900">' + name + '</div><div class="text-sm text-gray-500">' + (u.email || '') + '</div></div></div></td><td class="px-6 py-4 whitespace-nowrap"><span class="text-xs ' + colors.badgeText + ' font-medium px-2 py-1 ' + colors.badge + ' rounded">' + roleDisplay + '</span></td><td class="px-6 py-4 whitespace-nowrap"><span class="text-sm font-medium ' + technicianStatusColor + '">' + technicianStatus + '</span></td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Today</td><td class="px-6 py-4 whitespace-nowrap text-sm"><button type="button" onclick="event.stopPropagation(); salonUsersLoginAs(' + u.id + ', \'' + safeName + '\')" class="text-[#003047] hover:underline mr-2">Login as</button><button type="button" onclick="event.stopPropagation(); salonUsersOpenEditModal(' + u.id + ')" class="text-[#003047] hover:underline mr-2">Edit</button><button type="button" onclick="event.stopPropagation(); salonUsersDelete(' + u.id + ', \'' + safeName + '\')" class="text-red-600 hover:underline">Delete</button></td></tr>';
+        return '<tr data-role="' + roleDisplay + '" class="staff-row hover:bg-gray-50 transition"><td onclick="window.location.href=\'' + viewUrl + '?id=' + u.id + '\'" class="px-6 py-4 whitespace-nowrap cursor-pointer"><div class="flex items-center"><div class="w-10 h-10 ' + colors.bg + ' rounded-full flex items-center justify-center flex-shrink-0"><span class="text-sm font-bold ' + colors.text + '">' + inits + '</span></div><div class="ml-4"><div class="text-sm font-medium text-gray-900">' + name + '</div><div class="text-sm text-gray-500">' + (u.email || '') + '</div></div></div></td><td class="px-6 py-4 whitespace-nowrap"><span class="text-xs ' + colors.badgeText + ' font-medium px-2 py-1 ' + colors.badge + ' rounded">' + roleDisplay + '</span></td><td class="px-6 py-4 whitespace-nowrap"><span class="text-sm font-medium ' + technicianStatusColor + '">' + technicianStatus + '</span></td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">' + getLastLogin(u) + '</td><td class="px-6 py-4 whitespace-nowrap text-sm"><button type="button" onclick="event.stopPropagation(); salonUsersLoginAs(' + u.id + ', \'' + safeName + '\')" class="text-[#003047] hover:underline mr-2">Login as</button><button type="button" onclick="event.stopPropagation(); salonUsersOpenEditModal(' + u.id + ')" class="text-[#003047] hover:underline mr-2">Edit</button><button type="button" onclick="event.stopPropagation(); salonUsersDelete(' + u.id + ', \'' + safeName + '\')" class="text-red-600 hover:underline">Delete</button></td></tr>';
     }).join('');
 }
 
@@ -226,21 +248,42 @@ window.salonUsersFilter = function(role, updateURL) {
 };
 window.salonUsersSearch = function(val) { currentSearchTerm = (val || '').toLowerCase(); applyFilters(); };
 window.salonUsersChangePerPage = function(val) { PAGE_SIZE = val === 'all' ? Infinity : parseInt(val, 10); currentPage = 1; localStorage.setItem('usersPerPage', val); salonUsersRender(); };
+function setViewUI(view) {
+    var g = document.getElementById('gridView');
+    var l = document.getElementById('listView');
+    var gb = document.getElementById('gridViewBtn');
+    var lb = document.getElementById('listViewBtn');
+
+    var isGrid = view === 'grid';
+    if (g) g.classList.toggle('hidden', !isGrid);
+    if (l) l.classList.toggle('hidden', isGrid);
+
+    if (gb) {
+        gb.classList.toggle('bg-white', isGrid);
+        gb.classList.toggle('shadow-sm', isGrid);
+        if (gb.querySelector('svg')) {
+            gb.querySelector('svg').classList.toggle('text-gray-900', isGrid);
+            gb.querySelector('svg').classList.toggle('text-gray-500', !isGrid);
+        }
+    }
+    if (lb) {
+        lb.classList.toggle('bg-white', !isGrid);
+        lb.classList.toggle('shadow-sm', !isGrid);
+        if (lb.querySelector('svg')) {
+            lb.querySelector('svg').classList.toggle('text-gray-900', !isGrid);
+            lb.querySelector('svg').classList.toggle('text-gray-500', isGrid);
+        }
+    }
+}
 window.salonUsersToggleView = function(view) {
     currentView = view;
     localStorage.setItem('staffView', view);
-    var g = document.getElementById('gridView'), l = document.getElementById('listView'), gb = document.getElementById('gridViewBtn'), lb = document.getElementById('listViewBtn');
+    setViewUI(view);
     if (view === 'grid') {
-        g.classList.remove('hidden'); l.classList.add('hidden');
-        if (gb && gb.querySelector('svg')) { gb.querySelector('svg').classList.remove('text-gray-500'); gb.querySelector('svg').classList.add('text-gray-900'); }
-        if (lb && lb.querySelector('svg')) { lb.querySelector('svg').classList.remove('text-gray-900'); lb.querySelector('svg').classList.add('text-gray-500'); }
         renderGrid();
-    } else {
-        g.classList.add('hidden'); l.classList.remove('hidden');
-        if (lb && lb.querySelector('svg')) { lb.querySelector('svg').classList.remove('text-gray-500'); lb.querySelector('svg').classList.add('text-gray-900'); }
-        if (gb && gb.querySelector('svg')) { gb.querySelector('svg').classList.remove('text-gray-900'); gb.querySelector('svg').classList.add('text-gray-500'); }
-        renderList();
+        return;
     }
+    renderList();
 };
 function initializeRoleFilter() {
     var urlParams = new URLSearchParams(window.location.search);
@@ -330,11 +373,18 @@ document.addEventListener('DOMContentLoaded', function() {
         var sel = document.getElementById('perPageSelect');
         if (sel) { sel.value = saved; PAGE_SIZE = saved === 'all' ? Infinity : parseInt(saved, 10); }
     }
-    fetch(base + '/users').then(function(r) { return r.json(); }).then(function(data) {
-        allUsers = data.users || [];
+    setViewUI(currentView);
+    if (window.salonUsersBootstrap && window.salonUsersBootstrap.users) {
+        allUsers = normalizeUsers(window.salonUsersBootstrap.users || []);
         initializeRoleFilter();
         salonUsersToggleView(currentView);
-    }).catch(function(err) { console.error(err); showErrorMessage('Failed to load users'); });
+    } else {
+        fetch(base + '/users').then(function(r) { return r.json(); }).then(function(data) {
+            allUsers = normalizeUsers(data.users || []);
+            initializeRoleFilter();
+            salonUsersToggleView(currentView);
+        }).catch(function(err) { console.error(err); showErrorMessage('Failed to load users'); });
+    }
 });
 window.addEventListener('popstate', function() {
     var urlParams = new URLSearchParams(window.location.search);

@@ -1,6 +1,12 @@
 @extends('layouts.salon')
 
 @section('content')
+@php
+    $settingsTab = request()->query('tab', 'general');
+    if (! in_array($settingsTab, ['general', 'tax', 'discounts', 'gift-cards'], true)) {
+        $settingsTab = 'general';
+    }
+@endphp
 <main class="flex-1 overflow-y-auto bg-gray-50 lg:ml-0 pt-16 lg:pt-0" data-settings-url="{{ route('api.salon.settings.index') }}" data-settings-update-url="{{ route('api.salon.settings.update') }}" data-coupons-url="{{ route('api.salon.coupons.index') }}" data-gift-cards-url="{{ route('api.salon.gift-cards.index') }}">
     <div class="p-4 sm:p-6 lg:p-8">
         <div class="mb-6">
@@ -9,14 +15,13 @@
         </div>
         <div class="mb-6">
             <div class="flex items-center gap-2 overflow-x-auto pb-2 border-b border-gray-200">
-                <button type="button" onclick="salonSettingsShowTab('general', this)" class="tab-button px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap border-b-2 border-transparent">General</button>
-                <button type="button" onclick="salonSettingsShowTab('ghl', this)" class="tab-button px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap border-b-2 border-transparent">Clickaio</button>
-                <button type="button" onclick="salonSettingsShowTab('tax', this)" class="tab-button px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap border-b-2 border-transparent">Tax & Currency</button>
-                <button type="button" onclick="salonSettingsShowTab('discounts', this)" class="tab-button px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap border-b-2 border-transparent">Discounts & Coupons</button>
-                <button type="button" onclick="salonSettingsShowTab('gift-cards', this)" class="tab-button px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 whitespace-nowrap border-b-2 border-transparent">Gift Cards</button>
+                <button type="button" onclick="salonSettingsShowTab('general', this)" class="tab-button px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition {{ $settingsTab === 'general' ? 'text-[#003047] border-[#003047]' : 'text-gray-500 hover:text-gray-700 border-transparent' }}">General</button>
+                <button type="button" onclick="salonSettingsShowTab('tax', this)" class="tab-button px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition {{ $settingsTab === 'tax' ? 'text-[#003047] border-[#003047]' : 'text-gray-500 hover:text-gray-700 border-transparent' }}">Tax & Currency</button>
+                <button type="button" onclick="salonSettingsShowTab('discounts', this)" class="tab-button px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition {{ $settingsTab === 'discounts' ? 'text-[#003047] border-[#003047]' : 'text-gray-500 hover:text-gray-700 border-transparent' }}">Discounts & Coupons</button>
+                <button type="button" onclick="salonSettingsShowTab('gift-cards', this)" class="tab-button px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition {{ $settingsTab === 'gift-cards' ? 'text-[#003047] border-[#003047]' : 'text-gray-500 hover:text-gray-700 border-transparent' }}">Gift Cards</button>
             </div>
         </div>
-        <div id="tab-general" class="settings-tab hidden">
+        <div id="tab-general" class="settings-tab {{ $settingsTab === 'general' ? '' : 'hidden' }}">
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
                 <h2 class="text-lg font-semibold text-gray-900 mb-4">Business Information</h2>
                 <form class="space-y-4 settings-form" data-settings-keys="business_name,business_phone,business_email,business_address">
@@ -72,75 +77,7 @@
                 </form>
             </div>
         </div>
-        <div id="tab-ghl" class="settings-tab hidden">
-            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-                <div class="flex items-center justify-between mb-4">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                            <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
-                        </div>
-                        <div>
-                            <h2 class="text-lg font-semibold text-gray-900">Clickaio Integration</h2>
-                            <p class="text-xs text-gray-500">LeadConnector API for seamless synchronization</p>
-                        </div>
-                    </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" class="sr-only peer">
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#b3d1d9] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#003047]"></div>
-                    </label>
-                </div>
-                <form class="space-y-4 mt-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">API Key</label>
-                        <input type="password" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="Enter LeadConnector API Key">
-                        <p class="text-xs text-gray-500 mt-1">Get your API key from Clickaio Settings > Integrations > API</p>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Location ID</label>
-                        <input type="text" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="Enter Location ID">
-                    </div>
-                    <div class="border-t border-gray-200 pt-4 mt-6">
-                        <h3 class="text-md font-semibold text-gray-900 mb-4">Sync Settings</h3>
-                        <div class="space-y-3">
-                            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                                <div>
-                                    <label class="text-sm font-medium text-gray-900">Sync Customer Contacts</label>
-                                    <p class="text-xs text-gray-500">Automatically sync POS customers with Clickaio Contacts</p>
-                                </div>
-                                <label class="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" class="sr-only peer" checked>
-                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#b3d1d9] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#003047]"></div>
-                                </label>
-                            </div>
-                            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                                <div>
-                                    <label class="text-sm font-medium text-gray-900">Sync Appointments to Calendar</label>
-                                    <p class="text-xs text-gray-500">Send booking and appointment details to Clickaio Calendars</p>
-                                </div>
-                                <label class="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" class="sr-only peer" checked>
-                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#b3d1d9] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#003047]"></div>
-                                </label>
-                            </div>
-                            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                                <div>
-                                    <label class="text-sm font-medium text-gray-900">Sync Service Status to Opportunities</label>
-                                    <p class="text-xs text-gray-500">Update Clickaio Opportunities/Pipelines with service status</p>
-                                </div>
-                                <label class="relative inline-flex items-center cursor-pointer">
-                                    <input type="checkbox" class="sr-only peer" checked>
-                                    <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#b3d1d9] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#003047]"></div>
-                                </label>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="flex justify-end">
-                        <button type="submit" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">Save Clickaio Settings</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-        <div id="tab-tax" class="settings-tab hidden">
+        <div id="tab-tax" class="settings-tab {{ $settingsTab === 'tax' ? '' : 'hidden' }}">
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
                 <h2 class="text-lg font-semibold text-gray-900 mb-4">Tax Configuration</h2>
                 <form class="space-y-4 settings-form" data-settings-keys="tax_rate,tax_name,tax_apply_to_all">
@@ -235,7 +172,7 @@
                 </form>
             </div>
         </div>
-        <div id="tab-discounts" class="settings-tab hidden">
+        <div id="tab-discounts" class="settings-tab {{ $settingsTab === 'discounts' ? '' : 'hidden' }}">
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="text-lg font-semibold text-gray-900">Discounts & Coupons</h2>
@@ -261,7 +198,7 @@
                 </div>
             </div>
         </div>
-        <div id="tab-gift-cards" class="settings-tab hidden">
+        <div id="tab-gift-cards" class="settings-tab {{ $settingsTab === 'gift-cards' ? '' : 'hidden' }}">
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
                 <div class="flex items-center justify-between mb-4">
                     <h2 class="text-lg font-semibold text-gray-900">Gift Card Settings</h2>
@@ -296,6 +233,7 @@
 </main>
 @push('scripts')
 <script>
+window.salonSettingsBootstrap = window.salonSettingsBootstrap || @json($settingsBootstrap ?? null);
 function salonSettingsShowTab(tabName, element) {
     document.querySelectorAll('.settings-tab').forEach(function(tab) { tab.classList.add('hidden'); });
     document.querySelectorAll('.tab-button').forEach(function(btn) {
@@ -319,6 +257,22 @@ function salonSettingsLoad() {
     var main = document.querySelector('main[data-settings-url]');
     if (!main || typeof salonApi === 'undefined') return;
     var url = main.getAttribute('data-settings-url');
+
+    if (window.salonSettingsBootstrap && typeof window.salonSettingsBootstrap === 'object') {
+        var data = window.salonSettingsBootstrap || {};
+        Object.keys(data).forEach(function(key) {
+            var val = data[key];
+            var input = document.querySelector('[name="' + key + '"]');
+            if (!input) return;
+            if (input.type === 'checkbox' || input.type === 'radio') {
+                input.checked = (val === '1' || val === 'true' || val === true);
+            } else {
+                input.value = (val === null || val === undefined) ? '' : String(val);
+            }
+        });
+        return;
+    }
+
     fetch(url, { method: 'GET', headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' })
         .then(function(r) { return r.json(); })
         .then(function(res) {
@@ -360,7 +314,7 @@ function salonSettingsCollectFormPayload(form) {
 document.addEventListener('DOMContentLoaded', function() {
     var urlParams = new URLSearchParams(window.location.search);
     var tabParam = urlParams.get('tab');
-    var validTabs = ['general', 'ghl', 'tax', 'discounts', 'gift-cards'];
+    var validTabs = ['general', 'tax', 'discounts', 'gift-cards'];
     var tabToShow = validTabs.indexOf(tabParam) >= 0 ? tabParam : 'general';
     var tabButton = document.querySelector('button[onclick*="salonSettingsShowTab(\'' + tabToShow + '\'"]');
     if (tabButton) {

@@ -25,15 +25,44 @@
 <script>
 (function() {
 var apiTurnTrackerUrl = '{{ $apiTurnTrackerUrl }}';
+window.salonTurnTrackerBootstrap = window.salonTurnTrackerBootstrap || @json($turnTrackerBootstrap ?? null);
 var techniciansData = [];
 var saveTimeout = null;
+var turnTrackerOrder = 'lowest';
 
 function salonTurnTrackerSortCompare(a, b) {
     var diff = (a.serviceCount || 0) - (b.serviceCount || 0);
+    if (turnTrackerOrder === 'highest') {
+        diff = -diff;
+    }
     if (diff !== 0) return diff;
     var aTime = a.clockIn ? new Date(a.clockIn).getTime() : 0;
     var bTime = b.clockIn ? new Date(b.clockIn).getTime() : 0;
     return aTime - bTime;
+}
+
+function salonTurnTrackerApplyPayload(data) {
+    var container = document.getElementById('techniciansContainer');
+    if (!data || typeof data !== 'object') return;
+    var entries = data.entries || [];
+    turnTrackerOrder = data.turn_tracker_order === 'highest' ? 'highest' : 'lowest';
+    techniciansData = entries.map(function(e) {
+        return {
+            id: e.user_id,
+            user_id: e.user_id,
+            fullName: e.fullName || ((e.firstName || '') + ' ' + (e.lastName || '')).trim() || 'Technician',
+            initials: e.initials || (((e.firstName || '')[0] || '') + ((e.lastName || '')[0] || '')).toUpperCase() || '—',
+            photo: e.photo || null,
+            serviceCount: typeof e.services === 'number' ? e.services : parseInt(e.services, 10) || 0,
+            clockIn: e.clock_in || null,
+            clockInDisplay: e.clock_in_display || null
+        };
+    });
+    techniciansData.sort(salonTurnTrackerSortCompare);
+    salonTurnTrackerRenderTechnicians();
+    if (container && techniciansData.length === 0) {
+        container.innerHTML = '<div class="text-center py-8 text-gray-500"><p>No technicians found.</p></div>';
+    }
 }
 
 function salonTurnTrackerLoadData() {
@@ -45,21 +74,7 @@ function salonTurnTrackerLoadData() {
             return r.json();
         })
         .then(function(data) {
-            var entries = data.entries || [];
-            techniciansData = entries.map(function(e) {
-                return {
-                    id: e.user_id,
-                    user_id: e.user_id,
-                    fullName: e.fullName || ((e.firstName || '') + ' ' + (e.lastName || '')).trim() || 'Technician',
-                    initials: e.initials || ((e.firstName || '')[0] + (e.lastName || '')[0]).toUpperCase() || '—',
-                    photo: e.photo || null,
-                    serviceCount: typeof e.services === 'number' ? e.services : parseInt(e.services, 10) || 0,
-                    clockIn: e.clock_in || null,
-                    clockInDisplay: e.clock_in_display || null
-                };
-            });
-            techniciansData.sort(salonTurnTrackerSortCompare);
-            salonTurnTrackerRenderTechnicians();
+            salonTurnTrackerApplyPayload(data || {});
         })
         .catch(function(err) {
             console.error(err);
@@ -154,7 +169,11 @@ function salonTurnTrackerRenderTechnicians() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    salonTurnTrackerLoadData();
+    if (window.salonTurnTrackerBootstrap && window.salonTurnTrackerBootstrap.entries) {
+        salonTurnTrackerApplyPayload(window.salonTurnTrackerBootstrap);
+    } else {
+        salonTurnTrackerLoadData();
+    }
     setInterval(salonTurnTrackerLoadData, 60000);
 });
 })();

@@ -124,6 +124,8 @@ class SalonDataController extends Controller
                 'status' => $u->status ?? 'active',
                 'initials' => $u->initials,
                 'createdAt' => $u->created_at?->format('Y-m-d'),
+                'last_login_at' => $u->last_login_at?->toIso8601String(),
+                'lastLogin' => $u->last_login_at?->format('M j, Y g:i A'),
             ];
             if ($u->role === 'technician') {
                 $earnings = Payment::query()

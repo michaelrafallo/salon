@@ -61,7 +61,7 @@
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <p class="text-sm text-gray-500 mb-2">Date Registered</p>
                 <p class="text-3xl font-bold text-gray-900">{{ \Carbon\Carbon::parse($joinDate)->format('M d, Y') }}</p>
-                <p class="text-xs text-gray-500 mt-2">{{ now()->diffInYears(\Carbon\Carbon::parse($joinDate)) }} years ago</p>
+                <p class="text-xs text-gray-500 mt-2">{{ \Carbon\Carbon::parse($joinDate)->diffForHumans() }}</p>
             </div>
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <p class="text-sm text-gray-500 mb-2">Permissions</p>

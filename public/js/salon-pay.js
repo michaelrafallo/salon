@@ -3,6 +3,7 @@ var base = window.salonJsonBase || '/json';
 var ticketsUrl = window.salonTicketsUrl || '/booking/tickets';
 var apiAppointmentsUrl = window.salonApiAppointmentsUrl || '';
 var apiBase = window.salonApiBase || '';
+var bootstrap = window.salonPayBootstrap || null;
 if (!apiBase) {
     if (base && base.indexOf('/api/salon/data') >= 0) {
         apiBase = base.replace(/\/data\/?$/, '');
@@ -35,6 +36,56 @@ var colorClasses = [
     { bg: 'bg-rose-100', text: 'text-rose-600' }, { bg: 'bg-blue-100', text: 'text-blue-600' },
     { bg: 'bg-amber-100', text: 'text-amber-600' }, { bg: 'bg-green-100', text: 'text-green-600' }
 ];
+
+function salonPayApplyBootstrapCatalog() {
+    if (!bootstrap) return false;
+
+    if (bootstrap.categories && typeof bootstrap.categories === 'object') {
+        categoriesMap = bootstrap.categories;
+    }
+
+    if (Array.isArray(bootstrap.services)) {
+        allServicesData = bootstrap.services;
+        servicesData = allServicesData.filter(function(s) { return s.active !== false; });
+    }
+
+    if (Array.isArray(bootstrap.users)) {
+        techniciansData = bootstrap.users.filter(function(u) {
+            return (u.role === 'technician' || u.userlevel === 'technician') && (u.status === 'active' || !u.status);
+        });
+    }
+
+    salonPayInitializeCategoriesList();
+    salonPayInitializeServicesList();
+    salonPayRenderTechniciansList();
+
+    return true;
+}
+
+function salonPayApplyBootstrapSettings() {
+    if (!bootstrap || !bootstrap.settings) return false;
+
+    var data = bootstrap.settings || {};
+    var enabled = data.discounts_enabled;
+    discountsEnabled = enabled === true || enabled === 1 || enabled === '1' || enabled === 'true';
+
+    var giftEnabled = data.gift_cards_enabled;
+    giftCardsEnabled = giftEnabled === true || giftEnabled === 1 || giftEnabled === '1' || giftEnabled === 'true';
+
+    var rate = parseFloat(data.tax_rate);
+    taxRate = isNaN(rate) ? 0 : rate;
+
+    taxName = data.tax_name ? String(data.tax_name) : 'Tax';
+
+    var applyAll = data.tax_apply_to_all;
+    taxApplyToAll = applyAll === true || applyAll === 1 || applyAll === '1' || applyAll === 'true';
+
+    salonPayUpdateTaxLabel();
+    salonPayUpdateActionButtonsState();
+    salonPayRefreshTotalsForTaxChange();
+
+    return true;
+}
 
 function salonPayGetQueryParam(name) {
     try {
@@ -85,6 +136,46 @@ async function salonPayLoadPaymentData() {
     if (!appointmentId) {
         salonPayShowError('No appointment ID provided');
         return;
+    }
+
+    if (bootstrap && bootstrap.error) {
+        salonPayShowError(bootstrap.error || 'Failed to load payment details');
+        return;
+    }
+
+    if (bootstrap && bootstrap.appointment && bootstrap.customer) {
+        var bootstrapId = bootstrap.appointmentId != null ? bootstrap.appointmentId.toString() : null;
+        if (!bootstrapId || bootstrapId === appointmentId.toString()) {
+            appointmentData = bootstrap.appointment;
+            customerData = bootstrap.customer;
+
+            availableCredits = customerData.creditBalance != null ? parseFloat(customerData.creditBalance) || 0 : 0;
+            if (appointmentData.assigned_technician && Array.isArray(appointmentData.assigned_technician)) {
+                assignedTechnicianIds = appointmentData.assigned_technician.map(function(id) { return id.toString(); });
+                if (assignedTechnicianIds.length > 0) selectedTechnicianId = assignedTechnicianIds[0];
+            }
+
+            salonPayApplyBootstrapCatalog();
+            salonPayApplyBootstrapSettings();
+
+            salonPayBuildCartFromAppointmentServices();
+            salonPayUpdateCustomerInfoHeader();
+
+            // Deep-link support: /booking/pay?id=87&step=2
+            var stepParam = parseInt(salonPayGetQueryParam('step') || '1', 10);
+            if (stepParam === 2) {
+                // Uses the same behavior as clicking Checkout tab / Next button.
+                if (typeof window.salonPaySaveAndGoToCheckout === 'function') {
+                    window.salonPaySaveAndGoToCheckout();
+                } else {
+                    window.salonPaySwitchStep(2);
+                }
+            } else {
+                salonPaySetStepInUrl(1);
+            }
+
+            return;
+        }
     }
     try {
         var aptRes = await fetch(base + '/appointments');
@@ -183,6 +274,9 @@ function salonPayShowError(message) {
     }
 }
 async function salonPayFetchCategoriesAndServices() {
+    if (salonPayApplyBootstrapCatalog()) {
+        return;
+    }
     try {
         var catRes = await fetch(base + '/service-categories');
         var svcRes = await fetch(base + '/services');
@@ -198,6 +292,9 @@ async function salonPayFetchCategoriesAndServices() {
     }
 }
 async function salonPayFetchTechnicians() {
+    if (salonPayApplyBootstrapCatalog()) {
+        return;
+    }
     try {
         var res = await fetch(base + '/users');
         var data = await res.json();
@@ -343,6 +440,9 @@ function salonPayNormalizeGiftCardCode(code) {
 }
 
 function salonPayFetchDiscountSettings() {
+    if (salonPayApplyBootstrapSettings()) {
+        return Promise.resolve(discountsEnabled);
+    }
     return fetch(apiBase + '/settings').then(function(r) { return r.json(); }).then(function(payload) {
         var data = payload && payload.data ? payload.data : {};
         var enabled = data.discounts_enabled;
@@ -372,6 +472,10 @@ function salonPayFetchDiscountSettings() {
 }
 
 function salonPayFetchCoupons() {
+    if (bootstrap && Array.isArray(bootstrap.coupons)) {
+        couponsData = bootstrap.coupons.filter(function(c) { return c && c.active !== false; });
+        return Promise.resolve(couponsData);
+    }
     return fetch(apiBase + '/coupons').then(function(r) { return r.json(); }).then(function(payload) {
         var items = (payload && payload.data) ? payload.data : [];
         couponsData = Array.isArray(items) ? items.filter(function(c) { return c && c.active !== false; }) : [];
@@ -383,6 +487,10 @@ function salonPayFetchCoupons() {
 }
 
 function salonPayFetchGiftCards() {
+    if (bootstrap && Array.isArray(bootstrap.gift_cards)) {
+        giftCardsData = bootstrap.gift_cards.filter(function(c) { return c && c.active !== false; });
+        return Promise.resolve(giftCardsData);
+    }
     return fetch(apiBase + '/gift-cards').then(function(r) { return r.json(); }).then(function(payload) {
         var items = (payload && payload.data) ? payload.data : [];
         giftCardsData = Array.isArray(items) ? items.filter(function(c) { return c && c.active !== false; }) : [];

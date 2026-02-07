@@ -22,36 +22,40 @@
         </div>
     </div>
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 class="text-lg font-semibold text-gray-900 mb-4">Recent Activities</h2>
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Tickets</h2>
         <div class="space-y-4">
-            <div class="flex items-center gap-3 pb-3 border-b border-gray-200">
-                <div class="w-10 h-10 bg-[#e6f0f3] rounded-full flex items-center justify-center"><span class="text-xs font-bold text-[#003047]">SJ</span></div>
-                <div class="flex-1">
-                    <p class="text-sm font-medium text-gray-900">Sarah Johnson - Service Completed</p>
-                    <p class="text-xs text-gray-500">2 minutes ago</p>
+            @forelse(($recentWaitingList ?? []) as $item)
+                <a href="{{ route('salon.booking.edit-booking', ['id' => $item['id']]) }}"
+                    class="flex items-center gap-3 pb-3 {{ $loop->last ? '' : 'border-b border-gray-200' }} hover:bg-gray-50 rounded-md px-2 py-2 -mx-2 transition">
+                    <div class="w-10 h-10 bg-[#e6f0f3] rounded-full flex items-center justify-center flex-shrink-0">
+                        <span class="text-xs font-bold text-[#003047]">{{ $item['customerInitials'] ?? 'CU' }}</span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-gray-900 truncate">
+                            {{ $item['customerName'] ?? 'Waiting List' }} - Waiting List
+                        </p>
+                        <p class="text-xs text-gray-500 truncate">
+                            Ticket #{{ $item['id'] }}
+                            @if(!empty($item['servicesSummary']))
+                                • {{ $item['servicesSummary'] }}
+                            @endif
+                        </p>
+                    </div>
+                    <div class="text-right flex-shrink-0">
+                        <p class="text-xs text-gray-500">{{ $item['whenAgo'] ?? '—' }}</p>
+                        <p class="text-[11px] text-gray-400">{{ $item['whenDisplay'] ?? '' }}</p>
+                    </div>
+                </a>
+            @empty
+                <div class="py-6 text-center">
+                    <p class="text-sm text-gray-500">No waiting list items yet.</p>
                 </div>
-            </div>
-            <div class="flex items-center gap-3 pb-3 border-b border-gray-200">
-                <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center"><span class="text-xs font-bold text-purple-600">EC</span></div>
-                <div class="flex-1">
-                    <p class="text-sm font-medium text-gray-900">Emily Chen - Payment Processed</p>
-                    <p class="text-xs text-gray-500">15 minutes ago</p>
-                </div>
-            </div>
-            <div class="flex items-center gap-3 pb-3 border-b border-gray-200">
-                <div class="w-10 h-10 bg-amber-100 rounded-full flex items-center justify-center"><span class="text-xs font-bold text-amber-600">JM</span></div>
-                <div class="flex-1">
-                    <p class="text-sm font-medium text-gray-900">Jessica Martinez - New Walk-In</p>
-                    <p class="text-xs text-gray-500">30 minutes ago</p>
-                </div>
-            </div>
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center"><span class="text-xs font-bold text-teal-600">AT</span></div>
-                <div class="flex-1">
-                    <p class="text-sm font-medium text-gray-900">Amanda Taylor - Appointment Booked</p>
-                    <p class="text-xs text-gray-500">1 hour ago</p>
-                </div>
-            </div>
+            @endforelse
+        </div>
+        <div class="mt-4">
+            <a href="{{ route('salon.booking.waiting-list') }}" class="text-sm font-medium text-[#003047] hover:underline">
+                View Waiting List
+            </a>
         </div>
     </div>
 </div>

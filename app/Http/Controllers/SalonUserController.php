@@ -77,6 +77,7 @@ class SalonUserController extends Controller
         $request->session()->put('salon_authenticated', true);
         $request->session()->put('salon_user_email', $user->email);
         $request->session()->put('salon_role', $newRole);
+        $user->forceFill(['last_login_at' => now()])->save();
 
         return response()->json([
             'success' => true,
@@ -168,6 +169,8 @@ class SalonUserController extends Controller
             'status' => $user->status ?? 'active',
             'initials' => $user->initials,
             'createdAt' => $user->created_at?->format('Y-m-d'),
+            'last_login_at' => $user->last_login_at?->toIso8601String(),
+            'lastLogin' => $user->last_login_at?->format('M j, Y g:i A'),
         ];
     }
 }

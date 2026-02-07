@@ -180,6 +180,8 @@ window.salonJsonBase = '{{ $apiDataBase }}';
     var apiAppointmentsUrl = '{{ $apiAppointmentsUrl }}';
     var apiCustomersUrl = '{{ $apiCustomersUrl }}';
     var opts = { credentials: 'same-origin' };
+window.salonEditBookingBootstrap = @json($editBookingBootstrap ?? null);
+    var bootstrap = window.salonEditBookingBootstrap || null;
 
     function getCsrfToken() {
         var meta = document.querySelector('meta[name="csrf-token"]');
@@ -217,6 +219,14 @@ function getBookingIdFromURL() {
 
 // Fetch booking data
 async function fetchBookingData(bookingId) {
+    if (bootstrap) {
+        if (bootstrap.error) {
+            return null;
+        }
+        if (bootstrap.booking && bootstrap.booking.id != null && bootstrap.booking.id.toString() === bookingId.toString()) {
+            return bootstrap.booking;
+        }
+    }
     try {
         const response = await fetch(base + '/appointments', opts);
         if (!response.ok) return null;
@@ -236,8 +246,15 @@ async function loadBookingData() {
         showErrorMessage('No booking ID provided.');
         return;
     }
-    
-    currentBookingData = await fetchBookingData(currentBookingId);
+
+    if (bootstrap && bootstrap.error) {
+        showErrorMessage(bootstrap.error || 'Booking not found.');
+        return;
+    }
+
+    if (!currentBookingData) {
+        currentBookingData = await fetchBookingData(currentBookingId);
+    }
     if (!currentBookingData) {
         showErrorMessage('Booking not found.');
         return;
@@ -339,6 +356,10 @@ async function loadBookingData() {
 
 // Fetch customers
 async function fetchCustomers() {
+    if (bootstrap && Array.isArray(bootstrap.customers)) {
+        allCustomers = bootstrap.customers;
+        return;
+    }
     try {
         const response = await fetch(base + '/customers', opts);
         if (!response.ok) { allCustomers = []; return; }
@@ -813,6 +834,14 @@ function selectAppointmentTime(time) {
 
 // Technician functions
 async function fetchTechnicians() {
+    if (bootstrap && Array.isArray(bootstrap.users)) {
+        const users = bootstrap.users || [];
+        availableTechnicians = users.filter(user => (user.role === 'technician' || user.userlevel === 'technician') && (user.status === 'active' || !user.status));
+        renderAvailableTechnicians();
+        renderAssignedTechnicians();
+        updateCounts();
+        return;
+    }
     try {
         const response = await fetch(base + '/users', opts);
         if (!response.ok) { availableTechnicians = []; return; }
@@ -1116,6 +1145,24 @@ function updateBooking() {
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', async function() {
+    if (bootstrap) {
+        if (bootstrap.error) {
+            showErrorMessage(bootstrap.error || 'Booking not found.');
+            return;
+        }
+        if (Array.isArray(bootstrap.customers)) {
+            allCustomers = bootstrap.customers;
+        }
+        if (Array.isArray(bootstrap.users)) {
+            const users = bootstrap.users || [];
+            availableTechnicians = users.filter(user => (user.role === 'technician' || user.userlevel === 'technician') && (user.status === 'active' || !user.status));
+        }
+        const bookingId = getBookingIdFromURL();
+        if (bootstrap.booking && bookingId && bootstrap.booking.id != null && bootstrap.booking.id.toString() === bookingId.toString()) {
+            currentBookingData = bootstrap.booking;
+        }
+    }
+
     await fetchCustomers();
     await fetchTechnicians();
     initializeAppointmentCalendar();

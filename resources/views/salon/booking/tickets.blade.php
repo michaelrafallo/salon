@@ -4,6 +4,10 @@
 @php
     $bookingUrl = route('salon.booking.index');
     $payUrl = route('salon.booking.pay');
+    $ticketsTab = request()->query('status', 'unpaid');
+    if (! in_array($ticketsTab, ['unpaid', 'paid', 'cancelled', 'refunded'], true)) {
+        $ticketsTab = 'unpaid';
+    }
 @endphp
 <main class="flex-1 overflow-y-auto bg-gray-50 lg:ml-0 pt-16 lg:pt-0">
     <div class="p-4 sm:p-6 lg:p-8">
@@ -26,10 +30,10 @@
         </div>
         <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div class="flex items-center gap-6 border-b border-gray-200">
-                <button onclick="salonTicketsFilter('unpaid')" id="filterUnpaid" class="filter-tab px-1 py-3 text-sm font-medium text-gray-900 border-b-2 border-[#003047] transition">Unpaid</button>
-                <button onclick="salonTicketsFilter('paid')" id="filterPaid" class="filter-tab px-1 py-3 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-gray-700 transition">Paid</button>
-                <button onclick="salonTicketsFilter('cancelled')" id="filterCancelled" class="filter-tab px-1 py-3 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-gray-700 transition">Cancelled</button>
-                <button onclick="salonTicketsFilter('refunded')" id="filterRefunded" class="filter-tab px-1 py-3 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-gray-700 transition">Refunded</button>
+                <button onclick="salonTicketsFilter('unpaid')" id="filterUnpaid" class="filter-tab px-1 py-3 text-sm font-medium transition {{ $ticketsTab === 'unpaid' ? 'text-gray-900 border-b-2 border-[#003047]' : 'text-gray-500 border-b-2 border-transparent hover:text-gray-700' }}">Unpaid</button>
+                <button onclick="salonTicketsFilter('paid')" id="filterPaid" class="filter-tab px-1 py-3 text-sm font-medium transition {{ $ticketsTab === 'paid' ? 'text-gray-900 border-b-2 border-[#003047]' : 'text-gray-500 border-b-2 border-transparent hover:text-gray-700' }}">Paid</button>
+                <button onclick="salonTicketsFilter('cancelled')" id="filterCancelled" class="filter-tab px-1 py-3 text-sm font-medium transition {{ $ticketsTab === 'cancelled' ? 'text-gray-900 border-b-2 border-[#003047]' : 'text-gray-500 border-b-2 border-transparent hover:text-gray-700' }}">Cancelled</button>
+                <button onclick="salonTicketsFilter('refunded')" id="filterRefunded" class="filter-tab px-1 py-3 text-sm font-medium transition {{ $ticketsTab === 'refunded' ? 'text-gray-900 border-b-2 border-[#003047]' : 'text-gray-500 border-b-2 border-transparent hover:text-gray-700' }}">Refunded</button>
             </div>
             <div class="relative max-w-md">
                 <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
@@ -72,12 +76,13 @@
 <script>
 (function() {
 var base = window.salonJsonBase || '{{ url("api/salon/data") }}';
+window.salonTicketsBootstrap = window.salonTicketsBootstrap || @json($ticketsBootstrap ?? null);
 var apiAppointmentsUrl = '{{ url("api/salon/appointments") }}';
 var apiPaymentsUrl = '{{ url("api/salon/payments") }}';
 var bookingUrl = '{{ $bookingUrl }}';
 var payUrl = '{{ $payUrl }}';
 var allCustomers = [], allAppointments = [], allTechnicians = [], allPayments = [], allMergedData = [], ticketsData = [];
-var PAGE_SIZE = 15, currentPage = 1, totalPages = 1, currentSearchTerm = '', currentStatusFilter = 'unpaid';
+var PAGE_SIZE = 15, currentPage = 1, totalPages = 1, currentSearchTerm = '', currentStatusFilter = @json($ticketsTab);
 var currentView = localStorage.getItem('ticketsView') || 'grid';
 var durationInterval = null;
 var availableTechnicians = [];
@@ -463,35 +468,43 @@ window.salonTicketsSearch = function(val) {
     currentSearchTerm = (val || '').toLowerCase();
     applyFilters();
 };
+function setViewUI(view) {
+    var g = document.getElementById('gridView');
+    var l = document.getElementById('listView');
+    var gb = document.getElementById('gridViewBtn');
+    var lb = document.getElementById('listViewBtn');
+
+    var isGrid = view === 'grid';
+    if (g) g.classList.toggle('hidden', !isGrid);
+    if (l) l.classList.toggle('hidden', isGrid);
+
+    if (gb) {
+        gb.classList.toggle('bg-white', isGrid);
+        gb.classList.toggle('shadow-sm', isGrid);
+        if (gb.querySelector('svg')) {
+            gb.querySelector('svg').classList.toggle('text-gray-900', isGrid);
+            gb.querySelector('svg').classList.toggle('text-gray-500', !isGrid);
+        }
+    }
+    if (lb) {
+        lb.classList.toggle('bg-white', !isGrid);
+        lb.classList.toggle('shadow-sm', !isGrid);
+        if (lb.querySelector('svg')) {
+            lb.querySelector('svg').classList.toggle('text-gray-900', !isGrid);
+            lb.querySelector('svg').classList.toggle('text-gray-500', isGrid);
+        }
+    }
+}
 window.salonTicketsToggleView = function(view) {
     currentView = view;
     localStorage.setItem('ticketsView', view);
-    var g = document.getElementById('gridView'), l = document.getElementById('listView'), gb = document.getElementById('gridViewBtn'), lb = document.getElementById('listViewBtn');
+    setViewUI(view);
     if (view === 'grid') {
-        g.classList.remove('hidden');
-        l.classList.add('hidden');
-        if (gb && gb.querySelector('svg')) {
-            gb.querySelector('svg').classList.remove('text-gray-500');
-            gb.querySelector('svg').classList.add('text-gray-900');
-        }
-        if (lb && lb.querySelector('svg')) {
-            lb.querySelector('svg').classList.remove('text-gray-900');
-            lb.querySelector('svg').classList.add('text-gray-500');
-        }
+        stopDurationCounters();
         renderGrid();
-    } else {
-        g.classList.add('hidden');
-        l.classList.remove('hidden');
-        if (lb && lb.querySelector('svg')) {
-            lb.querySelector('svg').classList.remove('text-gray-500');
-            lb.querySelector('svg').classList.add('text-gray-900');
-        }
-        if (gb && gb.querySelector('svg')) {
-            gb.querySelector('svg').classList.remove('text-gray-900');
-            gb.querySelector('svg').classList.add('text-gray-500');
-        }
-        renderList();
+        return;
     }
+    renderList();
 };
 window.salonTicketsViewDetails = function(appointmentId, customerName) {
     var appointment = allMergedData.find(function(apt) {
@@ -860,18 +873,26 @@ window.salonTicketsConfirmAssign = function() {
 };
 async function fetchTickets() {
     try {
-        var custRes = await fetch(base + '/customers');
-        var aptRes = await fetch(base + '/appointments');
-        var techRes = await fetch(base + '/users');
-        var payRes = await fetch(base + '/payments');
-        var custData = await custRes.json();
-        var aptData = await aptRes.json();
-        var techData = await techRes.json();
-        var payData = await payRes.json();
-        allCustomers = custData.customers || [];
-        allAppointments = aptData.appointments || [];
-        allTechnicians = (techData.users || []).filter(function(u) { return u.role === 'technician' || u.userlevel === 'technician'; });
-        allPayments = payData.payments || [];
+        if (window.salonTicketsBootstrap && window.salonTicketsBootstrap.appointments) {
+            var boot = window.salonTicketsBootstrap || {};
+            allCustomers = boot.customers || [];
+            allAppointments = boot.appointments || [];
+            allTechnicians = (boot.users || []).filter(function(u) { return u.role === 'technician' || u.userlevel === 'technician'; });
+            allPayments = boot.payments || [];
+        } else {
+            var custRes = await fetch(base + '/customers');
+            var aptRes = await fetch(base + '/appointments');
+            var techRes = await fetch(base + '/users');
+            var payRes = await fetch(base + '/payments');
+            var custData = await custRes.json();
+            var aptData = await aptRes.json();
+            var techData = await techRes.json();
+            var payData = await payRes.json();
+            allCustomers = custData.customers || [];
+            allAppointments = aptData.appointments || [];
+            allTechnicians = (techData.users || []).filter(function(u) { return u.role === 'technician' || u.userlevel === 'technician'; });
+            allPayments = payData.payments || [];
+        }
         mergeAppointmentsWithCustomers();
         currentStatusFilter = getStatusFromURL();
         if (!new URLSearchParams(window.location.search).get('status')) {
@@ -900,6 +921,7 @@ document.addEventListener('DOMContentLoaded', function() {
             PAGE_SIZE = saved === 'all' ? Infinity : parseInt(saved, 10);
         }
     }
+    setViewUI(currentView);
     fetchTickets().then(function() {
         salonTicketsToggleView(currentView);
     });

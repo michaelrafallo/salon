@@ -104,32 +104,74 @@
                 <div id="ticketsContainer" class="space-y-4">
                     @forelse($bookings as $booking)
                         @php
-                            $bookingDate = $booking->appointment_datetime?->format('Y-m-d') ?? $booking->created_at?->format('Y-m-d');
-                            $dateDisplay = $bookingDate ? \Carbon\Carbon::parse($bookingDate)->format('M j, Y') : '—';
-                            $totalAmount = 0;
-                            foreach ($booking->appointmentServices as $svc) {
-                                $totalAmount += (int)($svc->quantity ?? 1) * (float)($svc->unit_price ?? 0);
-                            }
-                            $techNames = $booking->technicians->map(fn ($u) => $u->first_name . ' ' . $u->last_name)->implode(', ');
-                            $status = $booking->status ?? 'Completed';
-                            $statusColor = match($status) {
-                                'Completed' => 'bg-green-100 text-green-700',
-                                'Paid' => 'bg-blue-100 text-blue-700',
-                                'Waiting' => 'bg-yellow-100 text-yellow-700',
+                            $bookingDateTime = $booking->appointment_datetime ?? $booking->created_at;
+                            $dateDisplay = $bookingDateTime ? \Carbon\Carbon::parse($bookingDateTime)->format('M j, Y') : '—';
+
+                            $statusRaw = strtolower(trim((string) ($booking->status ?? '')));
+                            $statusKey = match ($statusRaw) {
+                                'cancelled', 'canceled' => 'cancelled',
+                                default => $statusRaw !== '' ? $statusRaw : 'unpaid',
+                            };
+
+                            $statusDisplay = match ($statusKey) {
+                                'unpaid' => 'Unpaid',
+                                'paid' => 'Paid',
+                                'waiting' => 'Waiting',
+                                'in-progress' => 'In Progress',
+                                'completed', 'closed' => 'Completed',
+                                'refunded' => 'Refunded',
+                                'cancelled' => 'Cancelled',
+                                default => ucfirst($statusKey),
+                            };
+
+                            $statusColor = match ($statusKey) {
+                                'unpaid' => 'bg-red-100 text-red-700',
+                                'waiting' => 'bg-yellow-100 text-yellow-700',
+                                'paid' => 'bg-blue-100 text-blue-700',
+                                'completed', 'closed' => 'bg-green-100 text-green-700',
+                                'refunded' => 'bg-purple-100 text-purple-700',
+                                'cancelled' => 'bg-gray-100 text-gray-700',
                                 default => 'bg-gray-100 text-gray-700',
                             };
+
+                            $techNames = $booking->technicians->map(fn ($u) => trim(($u->first_name ?? '').' '.($u->last_name ?? '')))->filter()->implode(', ');
+
+                            $services = $booking->appointmentServices ?? collect();
+                            $serviceCount = method_exists($services, 'count') ? $services->count() : 0;
+                            $firstServiceName = $serviceCount > 0
+                                ? (($services[0]->service?->name ?? $services[0]->serviceCategory?->name ?? $services[0]->serviceCategory?->slug) ?: 'Service')
+                                : null;
+                            $serviceSummary = $serviceCount === 0
+                                ? 'No services'
+                                : ($serviceCount === 1 ? $firstServiceName : ($firstServiceName.' + '.($serviceCount - 1).' more'));
+
+                            $totalAmount = $booking->payment?->amount !== null
+                                ? (float) $booking->payment->amount
+                                : (float) $services->sum(function ($svc) {
+                                    $qty = (int) ($svc->quantity ?? 1);
+                                    $unitPrice = $svc->unit_price !== null
+                                        ? (float) $svc->unit_price
+                                        : (float) ($svc->service?->price ?? 0);
+
+                                    return $qty * $unitPrice;
+                                });
                         @endphp
                         <div class="p-5 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
                             <div class="flex justify-between items-start mb-3">
                                 <div class="flex-1">
                                     <div class="flex items-center gap-3 mb-2">
                                         <p class="font-semibold text-gray-900 text-lg">Ticket #{{ $booking->id }}</p>
-                                        <span class="px-2 py-1 {{ $statusColor }} text-xs font-medium rounded">{{ $status }}</span>
+                                        <span class="px-2 py-1 {{ $statusColor }} text-xs font-medium rounded">{{ $statusDisplay }}</span>
                                     </div>
-                                    <p class="text-sm text-gray-600 mb-3">Nail care service</p>
+                                    <p class="text-sm text-gray-600 mb-3">{{ $serviceSummary }}</p>
                                 </div>
                                 <div class="flex items-center gap-3">
                                     <span class="text-2xl font-bold text-gray-900">{{ $currencySymbol ?? '$' }}{{ number_format($totalAmount, 2) }}</span>
+                                    @if($statusKey === 'unpaid')
+                                        <a href="{{ route('salon.booking.pay', ['id' => $booking->id]) }}" class="px-3 py-1.5 bg-[#003047] text-white text-xs font-medium rounded hover:bg-[#002535] transition active:scale-95 flex items-center gap-1">
+                                            Pay
+                                        </a>
+                                    @endif
                                     <button type="button" onclick="printTicket({{ $booking->id }})" class="px-3 py-1.5 bg-[#003047] text-white text-xs font-medium rounded hover:bg-[#002535] transition active:scale-95 flex items-center gap-1">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
                                         Print
@@ -151,9 +193,11 @@
                                         @forelse($booking->appointmentServices as $svc)
                                             @php
                                                 $qty = (int)($svc->quantity ?? 1);
-                                                $unitPrice = (float)($svc->unit_price ?? 0);
+                                                $unitPrice = $svc->unit_price !== null
+                                                    ? (float) $svc->unit_price
+                                                    : (float) ($svc->service?->price ?? 0);
                                                 $lineTotal = $qty * $unitPrice;
-                                                $serviceName = $svc->serviceCategory?->name ?? $svc->serviceCategory?->slug ?? 'Service';
+                                                $serviceName = $svc->service?->name ?? $svc->serviceCategory?->name ?? $svc->serviceCategory?->slug ?? 'Service';
                                             @endphp
                                             <div class="flex justify-between items-center">
                                                 <span class="text-sm text-gray-900">{{ $serviceName }}{{ $qty > 1 ? ' × ' . $qty : '' }}</span>

@@ -61,6 +61,7 @@
 <script>
 (function() {
 var base = window.salonJsonBase || '{{ url("api/salon/data") }}';
+window.salonCustomersBootstrap = window.salonCustomersBootstrap || @json($customersBootstrap ?? null);
 var viewUrl = '{{ $customersViewUrl }}';
 var apiCustomersUrl = '{{ $apiCustomersUrl }}';
 var allCustomers = [], customersData = [], PAGE_SIZE = 15, currentPage = 1, totalPages = 1, currentSearchTerm = '';
@@ -74,6 +75,14 @@ var colorClasses = [
 function getInitials(c) { return c.initials || ((c.firstName||'')[0] + (c.lastName||'')[0]).toUpperCase(); }
 function getLastVisit(c) {
     if (c.lastVisit) return c.lastVisit;
+    if (c.lastVisitDate) {
+        var d2 = new Date(c.lastVisitDate);
+        if (!isNaN(d2.getTime())) {
+            var days2 = Math.floor((new Date() - d2) / 86400000);
+            if (days2 === 0) return 'Today'; if (days2 === 1) return '1 day ago'; if (days2 < 7) return days2 + ' days ago'; if (days2 < 14) return '1 week ago'; if (days2 < 30) return Math.floor(days2/7) + ' weeks ago';
+            return Math.floor(days2/30) + ' months ago';
+        }
+    }
     if (c.createdAt) {
         var d = new Date(c.createdAt), days = Math.floor((new Date() - d) / 86400000);
         if (days === 0) return 'Today'; if (days === 1) return '1 day ago'; if (days < 7) return days + ' days ago'; if (days < 14) return '1 week ago'; if (days < 30) return Math.floor(days/7) + ' weeks ago';
@@ -81,7 +90,7 @@ function getLastVisit(c) {
     }
     return 'N/A';
 }
-function getTotalVisits(c) { return c.totalBookings || 0; }
+function getTotalVisits(c) { return (c.totalVisits != null ? c.totalVisits : c.totalBookings) || 0; }
 function getPaginated() {
     if (PAGE_SIZE === 'all' || PAGE_SIZE === Infinity) return customersData;
     var start = (currentPage - 1) * PAGE_SIZE;
@@ -163,10 +172,40 @@ function applyFilters() {
 window.salonCustomersToggleView = function(view) {
     currentView = view;
     localStorage.setItem('customersView', view);
-    var g = document.getElementById('gridView'), l = document.getElementById('listView'), gb = document.getElementById('gridViewBtn'), lb = document.getElementById('listViewBtn');
-    if (view === 'grid') { g.classList.remove('hidden'); l.classList.add('hidden'); if (gb && gb.querySelector('svg')) { gb.querySelector('svg').classList.add('text-gray-900'); gb.querySelector('svg').classList.remove('text-gray-500'); } if (lb && lb.querySelector('svg')) { lb.querySelector('svg').classList.remove('text-gray-900'); lb.querySelector('svg').classList.add('text-gray-500'); } renderGrid(); }
-    else { g.classList.add('hidden'); l.classList.remove('hidden'); if (lb && lb.querySelector('svg')) { lb.querySelector('svg').classList.add('text-gray-900'); lb.querySelector('svg').classList.remove('text-gray-500'); } if (gb && gb.querySelector('svg')) { gb.querySelector('svg').classList.remove('text-gray-900'); gb.querySelector('svg').classList.add('text-gray-500'); } renderList(); }
+    setViewUI(view);
+    if (view === 'grid') {
+        renderGrid();
+        return;
+    }
+    renderList();
 };
+function setViewUI(view) {
+    var g = document.getElementById('gridView');
+    var l = document.getElementById('listView');
+    var gb = document.getElementById('gridViewBtn');
+    var lb = document.getElementById('listViewBtn');
+
+    var isGrid = view === 'grid';
+    if (g) g.classList.toggle('hidden', !isGrid);
+    if (l) l.classList.toggle('hidden', isGrid);
+
+    if (gb) {
+        gb.classList.toggle('bg-white', isGrid);
+        gb.classList.toggle('shadow-sm', isGrid);
+        if (gb.querySelector('svg')) {
+            gb.querySelector('svg').classList.toggle('text-gray-900', isGrid);
+            gb.querySelector('svg').classList.toggle('text-gray-500', !isGrid);
+        }
+    }
+    if (lb) {
+        lb.classList.toggle('bg-white', !isGrid);
+        lb.classList.toggle('shadow-sm', !isGrid);
+        if (lb.querySelector('svg')) {
+            lb.querySelector('svg').classList.toggle('text-gray-900', !isGrid);
+            lb.querySelector('svg').classList.toggle('text-gray-500', isGrid);
+        }
+    }
+}
 window.salonCustomersOpenNewModal = function() {
     var content = '<div class="p-6"><div class="flex items-center justify-between mb-4"><h3 class="text-xl font-bold text-gray-900">New Customer</h3><button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><form onsubmit="salonCustomersSaveCustomer(event)" class="space-y-4"><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">First Name</label><input type="text" name="first_name" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Last Name</label><input type="text" name="last_name" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">Email</label><input type="email" name="email" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Phone Number</label><input type="tel" name="phone" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Address (optional)</label><input type="text" name="address" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div><div class="flex justify-end gap-3 pt-4"><button type="button" onclick="closeModal()" class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium active:scale-95">Cancel</button><button type="submit" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">Save Customer</button></div></form></div>';
     openModal(content);
@@ -190,7 +229,7 @@ window.salonCustomersSaveCustomer = function(e) {
         showSuccessMessage(res.message || 'Customer added successfully!');
         closeModal();
         var d = res.data || {};
-        allCustomers.unshift({ id: d.id, firstName: d.firstName || data.first_name, lastName: d.lastName || data.last_name, email: d.email || null, phone: d.phone || null, createdAt: d.createdAt || new Date().toISOString().slice(0, 10), totalBookings: 0, totalSpent: 0 });
+        allCustomers.unshift({ id: d.id, firstName: d.firstName || data.first_name, lastName: d.lastName || data.last_name, email: d.email || null, phone: d.phone || null, createdAt: d.createdAt || new Date().toISOString().slice(0, 10), totalBookings: 0, totalVisits: 0, lastVisit: null, lastVisitDate: null, totalSpent: 0 });
         applyFilters();
         salonCustomersRender();
     }).catch(function(err) {
@@ -245,13 +284,23 @@ window.salonCustomersDelete = function(id, name) {
         }
     });
 };
-fetch(base + '/customers').then(function(r) { return r.json(); }).then(function(data) {
-    allCustomers = data.customers || [];
+if (window.salonCustomersBootstrap && window.salonCustomersBootstrap.customers) {
+    allCustomers = window.salonCustomersBootstrap.customers || [];
     var saved = localStorage.getItem('customersPerPage');
     if (saved) { var sel = document.getElementById('perPageSelect'); if (sel) { sel.value = saved; PAGE_SIZE = saved === 'all' ? Infinity : parseInt(saved, 10); } }
+    setViewUI(currentView);
     applyFilters();
     salonCustomersToggleView(currentView);
-}).catch(function(err) { console.error(err); showErrorMessage('Failed to load customers'); });
+} else {
+    fetch(base + '/customers').then(function(r) { return r.json(); }).then(function(data) {
+        allCustomers = data.customers || [];
+        var saved = localStorage.getItem('customersPerPage');
+        if (saved) { var sel = document.getElementById('perPageSelect'); if (sel) { sel.value = saved; PAGE_SIZE = saved === 'all' ? Infinity : parseInt(saved, 10); } }
+        setViewUI(currentView);
+        applyFilters();
+        salonCustomersToggleView(currentView);
+    }).catch(function(err) { console.error(err); showErrorMessage('Failed to load customers'); });
+}
 })();
 </script>
 @endpush

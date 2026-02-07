@@ -114,29 +114,35 @@
         </div>
     </div>
     <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 class="text-lg font-semibold text-gray-900 mb-4">Recent Activities</h2>
+        <h2 class="text-lg font-semibold text-gray-900 mb-4">Tickets</h2>
         <div class="space-y-4">
-            <div class="flex items-center gap-3 pb-3 border-b border-gray-200">
-                <div class="w-10 h-10 bg-[#e6f0f3] rounded-full flex items-center justify-center"><span class="text-xs font-bold text-[#003047]">SJ</span></div>
-                <div class="flex-1">
-                    <p class="text-sm font-medium text-gray-900">Sarah Johnson - Service Completed</p>
-                    <p class="text-xs text-gray-500">2 minutes ago</p>
+            @forelse(($recentWaitingList ?? []) as $item)
+                <div
+                    class="flex items-center gap-3 pb-3 {{ $loop->last ? '' : 'border-b border-gray-200' }} rounded-md px-2 py-2 -mx-2">
+                    <div class="w-10 h-10 bg-[#e6f0f3] rounded-full flex items-center justify-center flex-shrink-0">
+                        <span class="text-xs font-bold text-[#003047]">{{ $item['customerInitials'] ?? 'CU' }}</span>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-gray-900 truncate">
+                            {{ $item['customerName'] ?? 'Waiting List' }}
+                        </p>
+                        <p class="text-xs text-gray-500 truncate">
+                            Ticket #{{ $item['id'] }}
+                            @if(!empty($item['servicesSummary']))
+                                • {{ $item['servicesSummary'] }}
+                            @endif
+                        </p>
+                    </div>
+                    <div class="text-right flex-shrink-0">
+                        <p class="text-xs text-gray-500">{{ $item['whenAgo'] ?? '—' }}</p>
+                        <p class="text-[11px] text-gray-400">{{ $item['whenDisplay'] ?? '' }}</p>
+                    </div>
                 </div>
-            </div>
-            <div class="flex items-center gap-3 pb-3 border-b border-gray-200">
-                <div class="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center"><span class="text-xs font-bold text-purple-600">EC</span></div>
-                <div class="flex-1">
-                    <p class="text-sm font-medium text-gray-900">Emily Chen - Service Started</p>
-                    <p class="text-xs text-gray-500">15 minutes ago</p>
+            @empty
+                <div class="py-6 text-center">
+                    <p class="text-sm text-gray-500">No assigned waiting list items.</p>
                 </div>
-            </div>
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-teal-100 rounded-full flex items-center justify-center"><span class="text-xs font-bold text-teal-600">JM</span></div>
-                <div class="flex-1">
-                    <p class="text-sm font-medium text-gray-900">Jessica Martinez - Appointment Started</p>
-                    <p class="text-xs text-gray-500">1 hour ago</p>
-                </div>
-            </div>
+            @endforelse
         </div>
     </div>
 </div>

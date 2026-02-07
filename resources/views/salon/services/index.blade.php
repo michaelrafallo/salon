@@ -3,6 +3,10 @@
 @section('content')
 @php
     $isAdmin = in_array(session('salon_role', 'admin'), ['admin'], true);
+    $servicesTab = request()->query('status', 'all');
+    if (! in_array($servicesTab, ['all', 'active', 'inactive'], true)) {
+        $servicesTab = 'all';
+    }
 @endphp
 <main class="flex-1 overflow-y-auto bg-gray-50 lg:ml-0 pt-16 lg:pt-0">
     <div class="p-4 sm:p-6 lg:p-8">
@@ -22,9 +26,9 @@
         </div>
         <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div class="flex items-center gap-2 border-b border-gray-200 overflow-x-auto min-w-0">
-                <button type="button" id="tab-all" onclick="filterByStatus('all')" class="px-4 py-2 text-sm font-medium text-[#003047] border-b-2 border-[#003047] transition whitespace-nowrap">All</button>
-                <button type="button" id="tab-active" onclick="filterByStatus('active')" class="px-4 py-2 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-gray-700 transition whitespace-nowrap">Active</button>
-                <button type="button" id="tab-inactive" onclick="filterByStatus('inactive')" class="px-4 py-2 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-gray-700 transition whitespace-nowrap">Inactive</button>
+                <button type="button" id="tab-all" onclick="filterByStatus('all')" class="px-4 py-2 text-sm font-medium transition whitespace-nowrap {{ $servicesTab === 'all' ? 'text-[#003047] border-b-2 border-[#003047]' : 'text-gray-500 border-b-2 border-transparent hover:text-gray-700' }}">All</button>
+                <button type="button" id="tab-active" onclick="filterByStatus('active')" class="px-4 py-2 text-sm font-medium transition whitespace-nowrap {{ $servicesTab === 'active' ? 'text-[#003047] border-b-2 border-[#003047]' : 'text-gray-500 border-b-2 border-transparent hover:text-gray-700' }}">Active</button>
+                <button type="button" id="tab-inactive" onclick="filterByStatus('inactive')" class="px-4 py-2 text-sm font-medium transition whitespace-nowrap {{ $servicesTab === 'inactive' ? 'text-[#003047] border-b-2 border-[#003047]' : 'text-gray-500 border-b-2 border-transparent hover:text-gray-700' }}">Inactive</button>
             </div>
             <div class="flex flex-col sm:flex-row sm:items-center gap-3 sm:flex-shrink-0">
                 <select id="categoryFilter" onchange="filterByCategory(this.value)" class="w-full sm:w-auto sm:min-w-[180px] px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent text-base bg-white cursor-pointer">
@@ -68,11 +72,12 @@
 @push('scripts')
 <script>
 var base = window.salonJsonBase || '{{ url("api/salon/data") }}';
+window.salonServicesBootstrap = window.salonServicesBootstrap || @json($servicesBootstrap ?? null);
 var apiServicesUrl = '{{ url("api/salon/services") }}';
 var storageUrl = '{{ rtrim(asset("storage"), "/") }}';
 var isAdmin = {{ $isAdmin ? 'true' : 'false' }};
 var SERVICE_PASSWORD = '54321';
-var allServices = [], servicesData = [], categoriesMap = {}, currentCategoryFilter = '', currentSearchTerm = '', currentStatusFilter = 'all';
+var allServices = [], servicesData = [], categoriesMap = {}, currentCategoryFilter = '', currentSearchTerm = '', currentStatusFilter = @json($servicesTab);
 var editingServiceId = null;
 var PAGE_SIZE = 15, currentPage = 1, totalPages = 1, currentView = localStorage.getItem('servicesView') || 'grid';
 var pendingAction = null;
@@ -242,25 +247,42 @@ function searchServices(searchTerm) {
     currentSearchTerm = (searchTerm || '').toLowerCase();
     applyFilters();
 }
+function setViewUI(view) {
+    var g = document.getElementById('gridView');
+    var l = document.getElementById('listView');
+    var gb = document.getElementById('gridViewBtn');
+    var lb = document.getElementById('listViewBtn');
+
+    var isGrid = view === 'grid';
+    if (g) g.classList.toggle('hidden', !isGrid);
+    if (l) l.classList.toggle('hidden', isGrid);
+
+    if (gb) {
+        gb.classList.toggle('bg-white', isGrid);
+        gb.classList.toggle('shadow-sm', isGrid);
+        if (gb.querySelector('svg')) {
+            gb.querySelector('svg').classList.toggle('text-gray-900', isGrid);
+            gb.querySelector('svg').classList.toggle('text-gray-500', !isGrid);
+        }
+    }
+    if (lb) {
+        lb.classList.toggle('bg-white', !isGrid);
+        lb.classList.toggle('shadow-sm', !isGrid);
+        if (lb.querySelector('svg')) {
+            lb.querySelector('svg').classList.toggle('text-gray-900', !isGrid);
+            lb.querySelector('svg').classList.toggle('text-gray-500', isGrid);
+        }
+    }
+}
 function toggleView(view) {
     currentView = view;
     localStorage.setItem('servicesView', view);
-    var g = document.getElementById('gridView'), l = document.getElementById('listView'), gb = document.getElementById('gridViewBtn'), lb = document.getElementById('listViewBtn');
+    setViewUI(view);
     if (view === 'grid') {
-        g.classList.remove('hidden'); l.classList.add('hidden');
-        if (gb && gb.querySelector('svg')) { gb.querySelector('svg').classList.remove('text-gray-500'); gb.querySelector('svg').classList.add('text-gray-900'); }
-        gb.classList.add('bg-white'); gb.classList.remove('hover:bg-white');
-        if (lb && lb.querySelector('svg')) { lb.querySelector('svg').classList.remove('text-gray-900'); lb.querySelector('svg').classList.add('text-gray-500'); }
-        lb.classList.remove('bg-white'); lb.classList.add('hover:bg-white');
         renderGridView();
-    } else {
-        g.classList.add('hidden'); l.classList.remove('hidden');
-        if (lb && lb.querySelector('svg')) { lb.querySelector('svg').classList.remove('text-gray-500'); lb.querySelector('svg').classList.add('text-gray-900'); }
-        lb.classList.add('bg-white'); lb.classList.remove('hover:bg-white');
-        if (gb && gb.querySelector('svg')) { gb.querySelector('svg').classList.remove('text-gray-900'); gb.querySelector('svg').classList.add('text-gray-500'); }
-        gb.classList.remove('bg-white'); gb.classList.add('hover:bg-white');
-        renderListView();
+        return;
     }
+    renderListView();
 }
 function openPasswordModal(action) {
     pendingAction = action;
@@ -408,12 +430,24 @@ document.addEventListener('DOMContentLoaded', function() {
         var sel = document.getElementById('perPageSelect');
         if (sel) { sel.value = saved; PAGE_SIZE = saved === 'all' ? Infinity : parseInt(saved, 10); }
     }
-    Promise.all([
-        fetch(base + '/service-categories').then(function(r) { return r.json(); }),
-        fetch(base + '/services').then(function(r) { return r.json(); })
-    ]).then(function(arr) {
-        categoriesMap = arr[0].categories || {};
-        allServices = arr[1].services || [];
+    setViewUI(currentView);
+    var dataPromise;
+    if (window.salonServicesBootstrap && window.salonServicesBootstrap.services) {
+        dataPromise = Promise.resolve({
+            categories: window.salonServicesBootstrap.categories || {},
+            services: window.salonServicesBootstrap.services || []
+        });
+    } else {
+        dataPromise = Promise.all([
+            fetch(base + '/service-categories').then(function(r) { return r.json(); }),
+            fetch(base + '/services').then(function(r) { return r.json(); })
+        ]).then(function(arr) {
+            return { categories: (arr[0] && arr[0].categories) || {}, services: (arr[1] && arr[1].services) || [] };
+        });
+    }
+    dataPromise.then(function(payload) {
+        categoriesMap = payload.categories || {};
+        allServices = payload.services || [];
         populateCategoryDropdown();
         var urlParams = new URLSearchParams(window.location.search);
         var catParam = urlParams.get('category');

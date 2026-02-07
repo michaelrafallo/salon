@@ -66,8 +66,8 @@ class SalonAppointmentController extends Controller
             $appointment->update($updates);
         }
 
-        if ($request->filled('assigned_technician')) {
-            $appointment->technicians()->sync($request->validated('assigned_technician'));
+        if ($request->has('assigned_technician')) {
+            $appointment->technicians()->sync($request->validated('assigned_technician') ?? []);
         }
 
         $appointment->load(['customer', 'technicians', 'appointmentServices.serviceCategory', 'appointmentServices.service']);

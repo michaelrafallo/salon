@@ -4,6 +4,16 @@
 @php
     $techniciansViewUrl = route('salon.technicians.view');
     $isAdmin = in_array(session('salon_role', 'admin'), ['admin'], true);
+    $techniciansTab = request()->query('status', 'all');
+    if ($techniciansTab === 'online') {
+        $techniciansTab = 'active';
+    }
+    if ($techniciansTab === 'offline') {
+        $techniciansTab = 'inactive';
+    }
+    if (! in_array($techniciansTab, ['all', 'active', 'inactive'], true)) {
+        $techniciansTab = 'all';
+    }
 @endphp
 <main class="flex-1 overflow-y-auto bg-gray-50 lg:ml-0 pt-16 lg:pt-0">
     <div class="p-4 sm:p-6 lg:p-8">
@@ -23,9 +33,9 @@
         </div>
         <div class="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div class="flex items-center gap-2 border-b border-gray-200 overflow-x-auto">
-                <button onclick="salonTechFilter('all')" id="tab-all" class="px-4 py-2 text-sm font-medium text-[#003047] border-b-2 border-[#003047] transition whitespace-nowrap">All</button>
-                <button onclick="salonTechFilter('active')" id="tab-online" class="px-4 py-2 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-gray-700 transition whitespace-nowrap">Active</button>
-                <button onclick="salonTechFilter('inactive')" id="tab-offline" class="px-4 py-2 text-sm font-medium text-gray-500 border-b-2 border-transparent hover:text-gray-700 transition whitespace-nowrap">Inactive</button>
+                <button onclick="salonTechFilter('all')" id="tab-all" class="px-4 py-2 text-sm font-medium transition whitespace-nowrap {{ $techniciansTab === 'all' ? 'text-[#003047] border-b-2 border-[#003047]' : 'text-gray-500 border-b-2 border-transparent hover:text-gray-700' }}">All</button>
+                <button onclick="salonTechFilter('active')" id="tab-online" class="px-4 py-2 text-sm font-medium transition whitespace-nowrap {{ $techniciansTab === 'active' ? 'text-[#003047] border-b-2 border-[#003047]' : 'text-gray-500 border-b-2 border-transparent hover:text-gray-700' }}">Active</button>
+                <button onclick="salonTechFilter('inactive')" id="tab-offline" class="px-4 py-2 text-sm font-medium transition whitespace-nowrap {{ $techniciansTab === 'inactive' ? 'text-[#003047] border-b-2 border-[#003047]' : 'text-gray-500 border-b-2 border-transparent hover:text-gray-700' }}">Inactive</button>
             </div>
             <div class="relative w-full sm:w-[400px]">
                 <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
@@ -70,10 +80,11 @@
 <script>
 (function() {
 var base = window.salonJsonBase || '{{ url("api/salon/data") }}';
+window.salonTechniciansBootstrap = window.salonTechniciansBootstrap || @json($techniciansBootstrap ?? null);
 var apiSalonUrl = '{{ url("api/salon") }}';
 var viewUrl = '{{ $techniciansViewUrl }}';
 var isAdmin = {{ $isAdmin ? 'true' : 'false' }};
-var allTechnicians = [], techniciansData = [], technicianData = {}, currentStatusFilter = 'all', currentSearchTerm = '';
+var allTechnicians = [], techniciansData = [], technicianData = {}, currentStatusFilter = @json($techniciansTab), currentSearchTerm = '';
 var PAGE_SIZE = 15, currentPage = 1, totalPages = 1, currentView = localStorage.getItem('techniciansView') || 'grid';
 var colorClasses = [
     { bg: 'bg-[#e6f0f3]', text: 'text-[#003047]' }, { bg: 'bg-purple-100', text: 'text-purple-600' },
@@ -244,12 +255,42 @@ window.salonTechChangePerPage = function(val) {
     updateCounter();
     localStorage.setItem('techniciansPerPage', val);
 };
+function setViewUI(view) {
+    var g = document.getElementById('gridView');
+    var l = document.getElementById('listView');
+    var gb = document.getElementById('gridViewBtn');
+    var lb = document.getElementById('listViewBtn');
+
+    var isGrid = view === 'grid';
+    if (g) g.classList.toggle('hidden', !isGrid);
+    if (l) l.classList.toggle('hidden', isGrid);
+
+    if (gb) {
+        gb.classList.toggle('bg-white', isGrid);
+        gb.classList.toggle('shadow-sm', isGrid);
+        if (gb.querySelector('svg')) {
+            gb.querySelector('svg').classList.toggle('text-gray-900', isGrid);
+            gb.querySelector('svg').classList.toggle('text-gray-500', !isGrid);
+        }
+    }
+    if (lb) {
+        lb.classList.toggle('bg-white', !isGrid);
+        lb.classList.toggle('shadow-sm', !isGrid);
+        if (lb.querySelector('svg')) {
+            lb.querySelector('svg').classList.toggle('text-gray-900', !isGrid);
+            lb.querySelector('svg').classList.toggle('text-gray-500', isGrid);
+        }
+    }
+}
 window.salonTechToggleView = function(view) {
     currentView = view;
     localStorage.setItem('techniciansView', view);
-    var g = document.getElementById('gridView'), l = document.getElementById('listView'), gb = document.getElementById('gridViewBtn'), lb = document.getElementById('listViewBtn');
-    if (view === 'grid') { g.classList.remove('hidden'); l.classList.add('hidden'); if (gb && gb.querySelector('svg')) { gb.querySelector('svg').classList.add('text-gray-900'); gb.querySelector('svg').classList.remove('text-gray-500'); } if (lb && lb.querySelector('svg')) { lb.querySelector('svg').classList.remove('text-gray-900'); lb.querySelector('svg').classList.add('text-gray-500'); } renderGrid(); }
-    else { g.classList.add('hidden'); l.classList.remove('hidden'); if (lb && lb.querySelector('svg')) { lb.querySelector('svg').classList.add('text-gray-900'); lb.querySelector('svg').classList.remove('text-gray-500'); } if (gb && gb.querySelector('svg')) { gb.querySelector('svg').classList.remove('text-gray-900'); gb.querySelector('svg').classList.add('text-gray-500'); } renderList(); }
+    setViewUI(view);
+    if (view === 'grid') {
+        renderGrid();
+        return;
+    }
+    renderList();
 };
 function initializeTechnicianLoginStates() {
     allTechnicians.forEach(function(technician) {
@@ -459,25 +500,33 @@ window.salonTechPrintTicket = function(techId) {
         showErrorMessage('Failed to load technician ticket');
     });
 };
-fetch(base + '/users').then(function(r) { return r.json(); }).then(function(data) {
-    allTechnicians = (data.users || []).filter(function(u) { return u.role === 'technician' || u.userlevel === 'technician'; });
+function bootTechnicians(users) {
+    allTechnicians = (users || []).filter(function(u) { return u.role === 'technician' || u.userlevel === 'technician'; });
     allTechnicians.forEach(function(tech) {
         technicianData[tech.id] = { name: tech.firstName + ' ' + tech.lastName, email: tech.email, role: 'Technician', initials: tech.initials || (tech.firstName || '')[0] + (tech.lastName || '')[0] };
     });
     techniciansData = allTechnicians;
+
     var saved = localStorage.getItem('techniciansPerPage');
     if (saved) { var sel = document.getElementById('perPageSelect'); if (sel) { sel.value = saved; PAGE_SIZE = saved === 'all' ? Infinity : parseInt(saved, 10); } }
+
+    setViewUI(currentView);
+
     var urlParams = new URLSearchParams(window.location.search);
     var statusParam = urlParams.get('status');
     if (statusParam === 'online') statusParam = 'active';
     else if (statusParam === 'offline') statusParam = 'inactive';
-    var defaultStatus = statusParam || 'all';
-    currentStatusFilter = defaultStatus;
-    if (defaultStatus === 'active') currentStatusFilter = 'active';
-    else if (defaultStatus === 'inactive') currentStatusFilter = 'inactive';
+    var defaultStatus = statusParam || currentStatusFilter || 'all';
     salonTechFilter(defaultStatus);
     salonTechToggleView(currentView);
-}).catch(function(err) { console.error(err); showErrorMessage('Failed to load technicians'); });
+}
+if (window.salonTechniciansBootstrap && window.salonTechniciansBootstrap.users) {
+    bootTechnicians(window.salonTechniciansBootstrap.users);
+} else {
+    fetch(base + '/users').then(function(r) { return r.json(); }).then(function(data) {
+        bootTechnicians(data.users || []);
+    }).catch(function(err) { console.error(err); showErrorMessage('Failed to load technicians'); });
+}
 })();
 </script>
 @endpush

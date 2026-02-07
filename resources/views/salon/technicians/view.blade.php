@@ -145,14 +145,21 @@
 @push('scripts')
 <script>
 (function() {
+    window.salonTechnicianViewBootstrap = @json($technicianViewBootstrap ?? null);
     var base = '{{ $baseUrl }}';
     var apiSalonUrl = '{{ $apiSalonUrl }}';
+    var bootstrap = window.salonTechnicianViewBootstrap || null;
     var technicianId = null;
     var technicianData = null;
     var filteredCommissionsData = [];
     var dateRangeFrom = null;
     var dateRangeTo = null;
     var payoutTransactions = [];
+    var bootstrapTransactionsKey = null;
+    if (bootstrap && Array.isArray(bootstrap.transactions)) {
+        payoutTransactions = bootstrap.transactions;
+        bootstrapTransactionsKey = (bootstrap.dateRangeFrom || '') + '|' + (bootstrap.dateRangeTo || '');
+    }
 
     function formatYmd(date) {
         if (!date) return '';
@@ -216,6 +223,10 @@
     }
     function fetchPayoutTransactions() {
         if (!technicianId) return Promise.resolve([]);
+        var currentKey = (dateRangeFrom || '') + '|' + (dateRangeTo || '');
+        if (bootstrapTransactionsKey && currentKey === bootstrapTransactionsKey && Array.isArray(payoutTransactions)) {
+            return Promise.resolve(payoutTransactions);
+        }
         var url = base + '/payout?technician_id=' + encodeURIComponent(technicianId);
         if (dateRangeFrom) url += '&from=' + encodeURIComponent(dateRangeFrom);
         if (dateRangeTo) url += '&to=' + encodeURIComponent(dateRangeTo);
@@ -497,6 +508,47 @@
         }
         technicianId = id;
         var url = base + '/technicians/' + id;
+
+        if (bootstrap && bootstrap.error) {
+            document.getElementById('technicianLoading').classList.add('hidden');
+            document.getElementById('technicianNotFound').classList.remove('hidden');
+            return;
+        }
+
+        if (bootstrap && bootstrap.technician && bootstrap.technician.id != null && bootstrap.technician.id.toString() === id.toString()) {
+            document.getElementById('technicianLoading').classList.add('hidden');
+            technicianData = bootstrap.technician;
+            renderTechnician(technicianData);
+            document.getElementById('technicianContent').classList.remove('hidden');
+            var urlFrom = params.get('from');
+            var urlTo = params.get('to');
+            var urlDateType = params.get('datetype');
+            if (urlFrom && urlTo) {
+                dateRangeFrom = urlFrom;
+                dateRangeTo = urlTo;
+                document.getElementById('dateRangeFrom').value = dateRangeFrom;
+                document.getElementById('dateRangeTo').value = dateRangeTo;
+                setActivePreset(urlDateType || null);
+            } else if (bootstrap.dateRangeFrom && bootstrap.dateRangeTo) {
+                dateRangeFrom = bootstrap.dateRangeFrom;
+                dateRangeTo = bootstrap.dateRangeTo;
+                document.getElementById('dateRangeFrom').value = dateRangeFrom;
+                document.getElementById('dateRangeTo').value = dateRangeTo;
+                updateURLWithDateRange(dateRangeFrom, dateRangeTo, bootstrap.dateType || 'today');
+                setActivePreset(bootstrap.dateType || 'today');
+            } else {
+                var today = new Date();
+                dateRangeFrom = formatYmd(today);
+                dateRangeTo = formatYmd(today);
+                document.getElementById('dateRangeFrom').value = dateRangeFrom;
+                document.getElementById('dateRangeTo').value = dateRangeTo;
+                updateURLWithDateRange(dateRangeFrom, dateRangeTo, 'today');
+                setActivePreset('today');
+            }
+            applyDateRangeFilter(true);
+            return;
+        }
+
         fetch(url).then(function(r) {
             if (!r.ok) throw new Error('Not found');
             return r.json();
