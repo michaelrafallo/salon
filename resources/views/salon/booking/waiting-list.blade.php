@@ -461,25 +461,171 @@ function doRemoveFromWaitingList(appointmentId) {
     });
 }
 
-var availableTechnicians = [], originalTechnicianOrder = [], assignedTechnicianIds = [], currentCustomerId = null, currentCustomerName = '', currentAppointmentId = null, technicianSearchTerm = '', startSessionEnabled = false, selectedStatus = 'waiting';
+var availableTechnicians = [], originalTechnicianOrder = [], assignedTechnicianIds = [], currentCustomerId = null, currentCustomerName = '', currentAppointmentId = null, technicianSearchTerm = '', assignedTechnicianSearchTerm = '', selectedStatus = 'waiting', resizeHandlerForTechnicians = null;
 window.assignCustomer = function(customerId, customerName) {
-    currentCustomerId = customerId; currentCustomerName = customerName; technicianSearchTerm = ''; startSessionEnabled = false; selectedStatus = 'waiting';
+    currentCustomerId = customerId; currentCustomerName = customerName; technicianSearchTerm = ''; assignedTechnicianSearchTerm = ''; selectedStatus = 'waiting';
     var customer = customersData.find(function(c) { return c.id.toString() === customerId.toString(); });
     currentAppointmentId = customer && customer.appointmentId ? customer.appointmentId : null;
     assignedTechnicianIds = (customer && customer.assigned_technician && Array.isArray(customer.assigned_technician)) ? customer.assigned_technician.map(function(id) { return id.toString(); }) : [];
     var isWaiting = customer && customer.status && customer.status.toLowerCase() === 'waiting';
     if (!isWaiting && customer && customer.status) { var s = customer.status.toLowerCase(); selectedStatus = (s === 'in-progress' || s === 'completed') ? s : 'in-progress'; }
-    var modalHtml = '<div class="p-6"><div class="flex items-center justify-between mb-6"><h3 class="text-xl font-bold text-gray-900">Assign Technician to ' + customerName.replace(/'/g, "\\'") + '</h3><button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><div class="grid grid-cols-2 gap-6"><div class="border border-gray-200 rounded-lg p-4"><div class="flex items-center justify-between mb-2"><h4 class="text-sm font-semibold text-gray-900">Available Technicians</h4><span id="availableCount" class="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">0</span></div><p class="text-xs text-gray-500 mb-2">Click to assign technicians</p><div class="relative mb-4"><svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg><input type="text" id="technicianSearchInput" placeholder="Search technicians..." oninput="window.waitingListSearchTechnicians(this.value)" class="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] text-sm"><button id="clearTechnicianSearchBtn" onclick="window.waitingListClearTechnicianSearch()" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 hidden"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><div id="availableTechniciansContainer" class="space-y-3 min-h-[200px] max-h-[300px] overflow-y-auto"></div></div><div class="border border-gray-200 rounded-lg p-4"><div class="flex items-center justify-between mb-2"><h4 class="text-sm font-semibold text-gray-900">Assigned Technicians</h4><span id="assignedCount" class="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">0</span></div><p class="text-xs text-gray-500 mb-4">Click to remove</p><div id="assignedTechniciansContainer" class="space-y-3 min-h-[200px] max-h-[300px] overflow-y-auto"></div></div></div>' + (isWaiting ? '<div class="pt-6 mt-6 border-t border-gray-200"><div class="flex items-center justify-between"><div class="flex items-center gap-4"><button type="button" id="startSessionToggle" onclick="window.waitingListToggleStartSession()" disabled class="relative inline-flex h-7 w-14 items-center rounded-full bg-gray-200 transition-colors focus:outline-none focus:ring-2 focus:ring-[#003047] focus:ring-offset-2 opacity-50 cursor-not-allowed" role="switch" aria-checked="false"><span id="startSessionToggleThumb" class="inline-block h-5 w-5 transform rounded-full bg-white transition-transform translate-x-1"></span></button><label for="startSessionToggle" class="text-base font-medium text-gray-400 cursor-not-allowed">Start Session</label></div><div class="flex gap-3"><button onclick="closeModal()" class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium">Cancel</button><button onclick="window.waitingListConfirmAssign()" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium">Save Assignment</button></div></div></div>' : '<div class="pt-6 mt-6 border-t border-gray-200"><div class="flex items-center justify-between"><div class="flex-1 max-w-xs"><div class="relative"><button type="button" id="statusDropdownButton" onclick="window.waitingListToggleStatusDropdown()" class="w-full px-4 py-3 text-left bg-white border border-gray-300 rounded-lg shadow-sm hover:border-[#003047] focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-[#003047] transition-all flex items-center justify-between"><span id="statusDropdownText" class="text-base text-gray-900">In Progress</span><svg id="statusDropdownIcon" class="w-5 h-5 text-gray-500 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg></button><div id="statusDropdownMenu" class="hidden absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg"><div class="py-1"><button type="button" id="statusOptionWaiting" onclick="window.waitingListSelectStatus(\'waiting\')" class="w-full px-4 py-3 text-left text-base text-gray-900 hover:bg-gray-50 transition flex items-center gap-2"><span>Waiting</span></button><button type="button" id="statusOptionInProgress" onclick="window.waitingListSelectStatus(\'in-progress\')" class="w-full px-4 py-3 text-left text-base text-gray-900 hover:bg-gray-50 transition flex items-center gap-2"><span>In Progress</span></button><button type="button" id="statusOptionCompleted" onclick="window.waitingListSelectStatus(\'completed\')" class="w-full px-4 py-3 text-left text-base text-gray-900 hover:bg-gray-50 transition flex items-center gap-2"><span>Completed</span></button></div></div></div></div><div class="flex gap-3"><button onclick="closeModal()" class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium">Cancel</button><button onclick="window.waitingListConfirmAssign()" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium">Save Assignment</button></div></div></div>') + '</div>';
-    openModal(modalHtml, 'large', false);
+    var modalHtml = '<div class="flex flex-col h-[80vh] max-h-[80vh] overflow-hidden">' +
+        '<!-- Fixed Header -->' +
+        '<div class="flex-shrink-0 px-4 sm:px-6 py-4 border-b border-gray-200 bg-white">' +
+            '<div class="flex items-center justify-between">' +
+                '<h3 class="text-lg sm:text-xl font-bold text-gray-900">Assign Technician to ' + customerName.replace(/'/g, "\\'") + '</h3>' +
+                '<button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 transition">' +
+                    '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
+                        '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>' +
+                    '</svg>' +
+                '</button>' +
+            '</div>' +
+        '</div>' +
+        '<!-- Content Area -->' +
+        '<div class="flex-1 min-h-0 px-4 sm:px-6 py-4 sm:py-6 bg-gray-50">' +
+            '<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 h-full">' +
+                '<!-- Available Technicians Column -->' +
+                '<div class="border border-gray-200 rounded-lg p-3 sm:p-4 flex flex-col h-full bg-white">' +
+                    '<div class="flex-shrink-0">' +
+                        '<div class="flex items-center justify-between mb-2">' +
+                            '<h4 class="text-sm font-semibold text-gray-900">Available Technicians</h4>' +
+                            '<span id="availableCount" class="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">0</span>' +
+                        '</div>' +
+                        '<p class="text-xs text-gray-500 mb-3">Click to assign technicians</p>' +
+                        '<div class="relative mb-4">' +
+                            '<svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
+                                '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>' +
+                            '</svg>' +
+                            '<input type="text" id="technicianSearchInput" placeholder="Search technicians..." oninput="window.waitingListSearchTechnicians(this.value)" class="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] text-sm">' +
+                            '<button id="clearTechnicianSearchBtn" onclick="window.waitingListClearTechnicianSearch()" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition hidden">' +
+                                '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
+                                    '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>' +
+                                '</svg>' +
+                            '</button>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div id="availableTechniciansContainer" class="overflow-y-auto space-y-3"></div>' +
+                '</div>' +
+                '<!-- Assigned Technicians Column -->' +
+                '<div class="border border-gray-200 rounded-lg p-3 sm:p-4 flex flex-col h-full bg-white">' +
+                    '<div class="flex-shrink-0">' +
+                        '<div class="flex items-center justify-between mb-2">' +
+                            '<h4 class="text-sm font-semibold text-gray-900">Assigned Technicians</h4>' +
+                            '<span id="assignedCount" class="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">0</span>' +
+                        '</div>' +
+                        '<p class="text-xs text-gray-500 mb-3">Click to remove</p>' +
+                        '<div class="relative mb-4">' +
+                            '<svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
+                                '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>' +
+                            '</svg>' +
+                            '<input type="text" id="assignedTechnicianSearchInput" placeholder="Search assigned..." oninput="window.waitingListSearchAssignedTechnicians(this.value)" class="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] text-sm">' +
+                            '<button id="clearAssignedSearchBtn" onclick="window.waitingListClearAssignedSearch()" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition hidden">' +
+                                '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
+                                    '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>' +
+                                '</svg>' +
+                            '</button>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div id="assignedTechniciansContainer" class="overflow-y-auto space-y-3"></div>' +
+                '</div>' +
+            '</div>' +
+        '</div>' +
+        '<!-- Fixed Footer -->' +
+        '<div class="flex-shrink-0 px-4 sm:px-6 py-4 border-t border-gray-200 bg-white">' +
+            (isWaiting ?
+                '<div class="flex items-center justify-end">' +
+                    '<div class="flex flex-col-reverse sm:flex-row gap-3 w-full sm:w-auto">' +
+                        '<button onclick="closeModal()" class="w-full sm:w-auto px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium">Cancel</button>' +
+                        '<button onclick="window.waitingListConfirmAssign()" class="w-full sm:w-auto px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium">Confirm Assignment</button>' +
+                    '</div>' +
+                '</div>'
+            :
+                '<div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">' +
+                    '<div class="flex-shrink-0 w-full sm:w-auto sm:max-w-xs">' +
+                        '<div class="relative">' +
+                            '<button type="button" id="statusDropdownButton" onclick="window.waitingListToggleStatusDropdown()" class="w-full px-4 py-3 text-left bg-white border border-gray-300 rounded-lg shadow-sm hover:border-[#003047] focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-[#003047] transition-all flex items-center justify-between">' +
+                                '<span id="statusDropdownText" class="text-base text-gray-900">In Progress</span>' +
+                                '<svg id="statusDropdownIcon" class="w-5 h-5 text-gray-500 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">' +
+                                    '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>' +
+                                '</svg>' +
+                            '</button>' +
+                            '<div id="statusDropdownMenu" class="hidden absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg">' +
+                                '<div class="py-1">' +
+                                    '<button type="button" id="statusOptionWaiting" onclick="window.waitingListSelectStatus(\'waiting\')" class="w-full px-4 py-3 text-left text-base text-gray-900 hover:bg-gray-50 transition flex items-center gap-2"><span>Waiting</span></button>' +
+                                    '<button type="button" id="statusOptionInProgress" onclick="window.waitingListSelectStatus(\'in-progress\')" class="w-full px-4 py-3 text-left text-base text-gray-900 hover:bg-gray-50 transition flex items-center gap-2"><span>In Progress</span></button>' +
+                                    '<button type="button" id="statusOptionCompleted" onclick="window.waitingListSelectStatus(\'completed\')" class="w-full px-4 py-3 text-left text-base text-gray-900 hover:bg-gray-50 transition flex items-center gap-2"><span>Completed</span></button>' +
+                                '</div>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="flex flex-col-reverse sm:flex-row gap-3 w-full sm:w-auto">' +
+                        '<button onclick="closeModal()" class="w-full sm:w-auto px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium">Cancel</button>' +
+                        '<button onclick="window.waitingListConfirmAssign()" class="w-full sm:w-auto px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium">Confirm Assignment</button>' +
+                    '</div>' +
+                '</div>'
+            ) +
+        '</div>' +
+    '</div>';
+    openModal(modalHtml, 'large-flex', false);
+
+    // Remove previous resize handler if exists
+    if (resizeHandlerForTechnicians) {
+        window.removeEventListener('resize', resizeHandlerForTechnicians);
+    }
+
+    // Function to set dynamic height for both technician containers
+    resizeHandlerForTechnicians = function() {
+        var availableContainer = document.getElementById('availableTechniciansContainer');
+        var assignedContainer = document.getElementById('assignedTechniciansContainer');
+
+        var screenHeight = window.innerHeight;
+        var screenWidth = window.innerWidth;
+        var containerHeight;
+
+        // Modal is 80vh, need to account for header (~10vh), footer (~12vh),
+        // content area padding (~4vh), column headers with search (~18vh)
+        // Available space: ~36vh maximum
+
+        if (screenWidth < 640) {
+            // Mobile: stacked columns, smaller height to fit both sections
+            containerHeight = Math.floor(screenHeight * 0.25) + 'px'; // ~25vh
+        } else if (screenWidth < 1024) {
+            // Tablet: still might be stacked, medium height
+            containerHeight = Math.floor(screenHeight * 0.30) + 'px'; // ~30vh
+        } else {
+            // Desktop: side-by-side columns, can use more height
+            containerHeight = Math.floor(screenHeight * 0.35) + 'px'; // ~35vh
+        }
+
+        // Set height for both containers
+        if (availableContainer) {
+            availableContainer.style.height = containerHeight;
+        }
+        if (assignedContainer) {
+            assignedContainer.style.height = containerHeight;
+        }
+    };
+
     setTimeout(function() {
-        var modal = document.getElementById('modalContainer');
-        if (modal) modal.style.maxHeight = '95vh';
         loadTechniciansForAssign();
+
         var searchInput = document.getElementById('technicianSearchInput');
         var clearBtn = document.getElementById('clearTechnicianSearchBtn');
         if (searchInput && clearBtn) {
             clearBtn.classList.add('hidden');
         }
+
+        var assignedSearchInput = document.getElementById('assignedTechnicianSearchInput');
+        var assignedClearBtn = document.getElementById('clearAssignedSearchBtn');
+        if (assignedSearchInput && assignedClearBtn) {
+            assignedClearBtn.classList.add('hidden');
+        }
+
+        // Set initial height on load
+        resizeHandlerForTechnicians();
+
+        // Add resize event listener to adapt height on window resize
+        window.addEventListener('resize', resizeHandlerForTechnicians);
     }, 50);
 }
 function loadTechniciansForAssign() {
@@ -488,8 +634,7 @@ function loadTechniciansForAssign() {
         originalTechnicianOrder = availableTechnicians.map(function(t) { return t.id; });
         renderAvailableTechnicians();
         renderAssignedTechnicians();
-        updateCounts();
-        updateStartSessionToggleState();
+    updateCounts();
         var dropdownText = document.getElementById('statusDropdownText');
         if (dropdownText) {
             if (selectedStatus === 'waiting') dropdownText.textContent = 'Waiting';
@@ -506,8 +651,7 @@ function loadTechniciansForAssign() {
         originalTechnicianOrder = availableTechnicians.map(function(t) { return t.id; });
         renderAvailableTechnicians();
         renderAssignedTechnicians();
-        updateCounts();
-        updateStartSessionToggleState();
+    updateCounts();
         var dropdownText = document.getElementById('statusDropdownText');
         if (dropdownText) {
             if (selectedStatus === 'waiting') dropdownText.textContent = 'Waiting';
@@ -533,6 +677,22 @@ window.waitingListClearTechnicianSearch = function() {
     if (inp) { inp.value = ''; technicianSearchTerm = ''; inp.focus(); }
     if (btn) btn.classList.add('hidden');
     renderAvailableTechnicians();
+};
+window.waitingListSearchAssignedTechnicians = function(val) {
+    assignedTechnicianSearchTerm = (val || '').toLowerCase().trim();
+    var btn = document.getElementById('clearAssignedSearchBtn');
+    if (btn) {
+        if (val.trim()) btn.classList.remove('hidden');
+        else btn.classList.add('hidden');
+    }
+    renderAssignedTechnicians();
+};
+window.waitingListClearAssignedSearch = function() {
+    var inp = document.getElementById('assignedTechnicianSearchInput');
+    var btn = document.getElementById('clearAssignedSearchBtn');
+    if (inp) { inp.value = ''; assignedTechnicianSearchTerm = ''; inp.focus(); }
+    if (btn) btn.classList.add('hidden');
+    renderAssignedTechnicians();
 };
 function renderAvailableTechnicians() {
     var container = document.getElementById('availableTechniciansContainer');
@@ -590,9 +750,28 @@ function renderAssignedTechnicians() {
         container.innerHTML = '<div class="flex items-center justify-center h-full min-h-[200px]"><p class="text-sm text-gray-400">No technicians assigned</p></div>';
         return;
     }
-    container.innerHTML = assignedTechnicianIds.map(function(idStr) {
-        var tech = availableTechnicians.find(function(t) { return t.id.toString() === idStr; });
-        if (!tech) return '';
+
+    // Get all assigned technicians
+    var assignedTechs = assignedTechnicianIds.map(function(idStr) {
+        return availableTechnicians.find(function(t) { return t.id.toString() === idStr; });
+    }).filter(function(t) { return t != null; });
+
+    // Filter by search term if exists
+    if (assignedTechnicianSearchTerm) {
+        assignedTechs = assignedTechs.filter(function(t) {
+            var name = (t.firstName + ' ' + t.lastName).toLowerCase();
+            var inits = (t.initials || (t.firstName || '')[0] + (t.lastName || '')[0]).toLowerCase();
+            return (name + ' ' + inits).indexOf(assignedTechnicianSearchTerm) >= 0;
+        });
+    }
+
+    // Show "no results" message if search filtered everything out
+    if (!assignedTechs.length) {
+        container.innerHTML = '<div class="flex items-center justify-center h-full min-h-[200px]"><p class="text-sm text-gray-400">No technicians found</p></div>';
+        return;
+    }
+
+    container.innerHTML = assignedTechs.map(function(tech) {
         var inits = tech.initials || (tech.firstName || '')[0] + (tech.lastName || '')[0];
         var name = tech.firstName + ' ' + tech.lastName;
         var isOnline = !!(tech.clock_in && !tech.clock_out);
@@ -608,8 +787,7 @@ window.assignTechnician = function(techId) {
         assignedTechnicianIds.push(idStr);
         renderAvailableTechnicians();
         renderAssignedTechnicians();
-        updateCounts();
-        updateStartSessionToggleState();
+    updateCounts();
     }
 };
 window.removeAssignedTechnician = function(techId) {
@@ -617,7 +795,6 @@ window.removeAssignedTechnician = function(techId) {
     renderAvailableTechnicians();
     renderAssignedTechnicians();
     updateCounts();
-    updateStartSessionToggleState();
 };
 function updateCounts() {
     var availEl = document.getElementById('availableCount');
@@ -625,59 +802,7 @@ function updateCounts() {
     if (availEl) availEl.textContent = availableTechnicians.length.toString();
     if (assignEl) assignEl.textContent = assignedTechnicianIds.length.toString();
 }
-function updateStartSessionToggleState() {
-    var toggle = document.getElementById('startSessionToggle');
-    var label = document.querySelector('label[for="startSessionToggle"]');
-    if (!toggle) return;
-    var hasAssigned = assignedTechnicianIds.length > 0;
-    if (hasAssigned) {
-        toggle.disabled = false;
-        toggle.classList.remove('opacity-50', 'cursor-not-allowed');
-        toggle.classList.add('cursor-pointer');
-        if (label) {
-            label.classList.remove('text-gray-400', 'cursor-not-allowed');
-            label.classList.add('text-gray-700', 'cursor-pointer');
-        }
-    } else {
-        toggle.disabled = true;
-        toggle.classList.add('opacity-50', 'cursor-not-allowed');
-        toggle.classList.remove('cursor-pointer');
-        if (label) {
-            label.classList.add('text-gray-400', 'cursor-not-allowed');
-            label.classList.remove('text-gray-700', 'cursor-pointer');
-        }
-        startSessionEnabled = false;
-        var thumb = document.getElementById('startSessionToggleThumb');
-        if (thumb) {
-            toggle.classList.remove('bg-[#003047]');
-            toggle.classList.add('bg-gray-200');
-            toggle.setAttribute('aria-checked', 'false');
-            thumb.classList.remove('translate-x-8');
-            thumb.classList.add('translate-x-1');
-        }
-    }
-}
-window.waitingListToggleStartSession = function() {
-    if (assignedTechnicianIds.length === 0) return;
-    startSessionEnabled = !startSessionEnabled;
-    var toggle = document.getElementById('startSessionToggle');
-    var thumb = document.getElementById('startSessionToggleThumb');
-    if (toggle && thumb) {
-        if (startSessionEnabled) {
-            toggle.classList.remove('bg-gray-200');
-            toggle.classList.add('bg-[#003047]');
-            toggle.setAttribute('aria-checked', 'true');
-            thumb.classList.remove('translate-x-1');
-            thumb.classList.add('translate-x-8');
-        } else {
-            toggle.classList.remove('bg-[#003047]');
-            toggle.classList.add('bg-gray-200');
-            toggle.setAttribute('aria-checked', 'false');
-            thumb.classList.remove('translate-x-8');
-            thumb.classList.add('translate-x-1');
-        }
-    }
-};
+// Start session toggle removed — functionality deprecated. Confirm Assignment will set status to 'unpaid'.
 window.waitingListToggleStatusDropdown = function() {
     var menu = document.getElementById('statusDropdownMenu');
     var icon = document.getElementById('statusDropdownIcon');
@@ -734,8 +859,7 @@ document.addEventListener('click', function(e) {
 window.waitingListConfirmAssign = function() {
     if (!assignedTechnicianIds.length) { alert('Please assign at least one technician'); return; }
     if (!currentAppointmentId) { showErrorMessage('Appointment not found.'); return; }
-    var payload = { assigned_technician: assignedTechnicianIds.map(function(id) { return parseInt(id, 10); }) };
-    if (startSessionEnabled) payload.status = 'unpaid';
+    var payload = { assigned_technician: assignedTechnicianIds.map(function(id) { return parseInt(id, 10); }), status: 'unpaid' };
     var btn = document.querySelector('[onclick*="waitingListConfirmAssign"]');
     if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
     salonApi.put(apiAppointmentsUrl + '/' + currentAppointmentId, payload).then(function(res) {
@@ -754,11 +878,11 @@ window.waitingListConfirmAssign = function() {
         currentCustomerId = null;
         currentCustomerName = '';
         currentAppointmentId = null;
-        startSessionEnabled = false;
+        // startSessionEnabled removed; status is always set to 'unpaid' on confirm
     }).catch(function(err) {
         showErrorMessage(err.message || 'Failed to save assignment.');
     }).finally(function() {
-        if (btn) { btn.disabled = false; btn.textContent = 'Save Assignment'; }
+        if (btn) { btn.disabled = false; btn.textContent = 'Confirm Assignment'; }
     });
 };
 

@@ -64,7 +64,13 @@ class SalonServiceController extends Controller
      */
     private function processImageUpload(array $data): array
     {
-        if (isset($data['image']) && $data['image'] instanceof UploadedFile) {
+        // Handle image removal
+        if (isset($data['remove_image']) && $data['remove_image'] === '1') {
+            $data['image'] = null;
+            unset($data['remove_image']);
+        }
+        // Handle new image upload
+        elseif (isset($data['image']) && $data['image'] instanceof UploadedFile) {
             $data['image'] = $data['image']->store('services', 'public');
         }
 

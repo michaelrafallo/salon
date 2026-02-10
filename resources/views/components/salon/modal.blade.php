@@ -37,7 +37,17 @@ function openModal(content, size = 'default', closeOnOutsideClick = true) {
     modalContainer.style.transform = 'scale(0.95)';
     modalContent.style.overflowY = '';
     modalContent.style.maxHeight = '';
-    if (size === 'large') {
+    modalContent.style.overflow = '';
+    modalContent.style.display = '';
+    modalContent.style.flexDirection = '';
+    if (size === 'large-flex') {
+        modalContainer.classList.add('max-w-6xl');
+        modalContainer.style.maxHeight = '90vh';
+        modalContent.style.maxHeight = '90vh';
+        modalContent.style.overflow = 'hidden';
+        modalContent.style.display = 'flex';
+        modalContent.style.flexDirection = 'column';
+    } else if (size === 'large') {
         modalContainer.classList.add('max-w-6xl');
         modalContainer.style.maxHeight = '95vh';
         modalContent.style.maxHeight = '95vh';
@@ -90,13 +100,41 @@ function openNestedModal(content, size = 'default', closeOnOutsideClick = true) 
 
     if (!overlay || !modalContent || !modalContainer) return;
 
-    modalContainer.className = 'bg-white rounded-2xl shadow-2xl w-full max-h-[90vh] overflow-hidden transform transition-all duration-300 relative z-10';
+    modalContainer.className = 'bg-white rounded-2xl shadow-2xl w-full transform transition-all duration-300 relative z-10';
     modalContainer.style.transform = 'scale(0.95)';
-    if (size === 'large') modalContainer.classList.add('max-w-6xl');
-    else if (size === 'xl') modalContainer.classList.add('max-w-7xl');
-    else if (size === 'medium') modalContainer.classList.add('max-w-4xl');
-    else if (size === 'small') modalContainer.classList.add('max-w-md');
-    else modalContainer.classList.add('max-w-2xl');
+    modalContent.style.overflowY = '';
+    modalContent.style.maxHeight = '';
+    modalContent.style.overflow = '';
+    modalContent.style.display = '';
+    modalContent.style.flexDirection = '';
+
+    if (size === 'large-flex') {
+        modalContainer.classList.add('max-w-6xl');
+        modalContainer.style.maxHeight = '90vh';
+        modalContent.style.maxHeight = '90vh';
+        modalContent.style.overflow = 'hidden';
+        modalContent.style.display = 'flex';
+        modalContent.style.flexDirection = 'column';
+    } else if (size === 'large') {
+        modalContainer.classList.add('max-w-6xl');
+        modalContainer.style.maxHeight = '90vh';
+        modalContent.style.maxHeight = '90vh';
+        modalContent.style.overflowY = 'auto';
+    } else if (size === 'xl') {
+        modalContainer.classList.add('max-w-7xl');
+        modalContainer.style.maxHeight = '90vh';
+        modalContent.style.maxHeight = '90vh';
+        modalContent.style.overflowY = 'auto';
+    } else if (size === 'medium') {
+        modalContainer.classList.add('max-w-4xl');
+        modalContainer.style.maxHeight = '90vh';
+    } else if (size === 'small') {
+        modalContainer.classList.add('max-w-md');
+        modalContainer.style.maxHeight = '90vh';
+    } else {
+        modalContainer.classList.add('max-w-2xl');
+        modalContainer.style.maxHeight = '90vh';
+    }
 
     modalContent.innerHTML = content;
     overlay.classList.remove('hidden');

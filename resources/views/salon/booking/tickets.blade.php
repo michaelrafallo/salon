@@ -91,6 +91,8 @@ var assignedTechnicianIds = [];
 var currentCustomerId = null, currentAppointmentId = null;
 var currentCustomerName = '';
 var technicianSearchTerm = '';
+var assignedTechnicianSearchTerm = '';
+var resizeHandlerForTechnicians = null;
 var colorClasses = [
     { bg: 'bg-[#e6f0f3]', text: 'text-[#003047]' }, { bg: 'bg-purple-100', text: 'text-purple-600' },
     { bg: 'bg-teal-100', text: 'text-teal-600' }, { bg: 'bg-indigo-100', text: 'text-indigo-600' },
@@ -695,20 +697,107 @@ window.salonTicketsAssignCustomer = function(customerId, customerName) {
     } else {
         assignedTechnicianIds = [];
     }
-    var content = '<div class="p-6"><div class="flex items-center justify-between mb-6"><h3 class="text-xl font-bold text-gray-900">Assign Technician to ' + customerName + '</h3><button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><div class="grid grid-cols-2 gap-6"><div class="border border-gray-200 rounded-lg p-4"><div class="flex items-center justify-between mb-2"><h4 class="text-sm font-semibold text-gray-900">Available Technicians</h4><span id="availableCount" class="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">0</span></div><p class="text-xs text-gray-500 mb-2">Click to assign technicians to services</p><div class="mb-4"><div class="relative"><svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg><input type="text" id="technicianSearchInput" placeholder="Search technicians..." oninput="salonTicketsSearchTechnicians(this.value)" class="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent text-sm"><button id="clearTechnicianSearchBtn" onclick="salonTicketsClearTechnicianSearch()" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 hidden"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div></div><div id="availableTechniciansContainer" class="space-y-3 min-h-[500px] max-h-[500px] overflow-y-auto"></div></div><div class="border border-gray-200 rounded-lg p-4"><div class="flex items-center justify-between mb-2"><h4 class="text-sm font-semibold text-gray-900">Assigned Technicians</h4><span id="assignedCount" class="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">0</span></div><p class="text-xs text-gray-500 mb-4">Click to remove assigned technicians</p><div id="assignedTechniciansContainer" class="space-y-3 min-h-[500px] max-h-[500px] overflow-y-auto"><div class="flex items-center justify-center h-full min-h-[500px]"><p class="text-sm text-gray-400">No technicians assigned</p></div></div></div></div><div class="pt-6 mt-6 border-t border-gray-200"><div class="flex items-center justify-end"><div class="flex gap-3"><button onclick="closeModal()" class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium active:scale-95">Cancel</button><button onclick="salonTicketsConfirmAssign()" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">Save Assignment</button></div></div></div></div>';
-    openModal(content, 'large', false);
+    var modalHtml = '<div class="flex flex-col h-[80vh] max-h-[80vh] overflow-hidden">' +
+        '<!-- Fixed Header -->' +
+        '<div class="flex-shrink-0 px-4 sm:px-6 py-4 border-b border-gray-200 bg-white">' +
+            '<div class="flex items-center justify-between">' +
+                '<h3 class="text-xl font-bold text-gray-900">Assign Technician to ' + customerName + '</h3>' +
+                '<button onclick="salonTicketsCloseAssignModal()" class="p-2 -m-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2" aria-label="Close">' +
+                    '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>' +
+                '</button>' +
+            '</div>' +
+        '</div>' +
+        '<!-- Content Area -->' +
+        '<div class="flex-1 min-h-0 px-4 sm:px-6 py-4 sm:py-6 bg-gray-50">' +
+            '<div class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 h-full">' +
+                '<!-- Available Technicians Column -->' +
+                '<div class="border border-gray-200 rounded-lg p-3 sm:p-4 flex flex-col h-full bg-white">' +
+                    '<div class="flex-shrink-0">' +
+                        '<div class="flex items-center justify-between mb-2">' +
+                            '<h4 class="text-sm font-semibold text-gray-900">Available Technicians</h4>' +
+                            '<span id="availableCount" class="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">0</span>' +
+                        '</div>' +
+                        '<p class="text-xs text-gray-500 mb-3">Click to assign technicians</p>' +
+                        '<div class="relative mb-4">' +
+                            '<svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>' +
+                            '<input type="text" id="technicianSearchInput" placeholder="Search available..." oninput="window.salonTicketsSearchTechnicians(this.value)" class="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] text-sm">' +
+                            '<button id="clearSearchBtn" onclick="window.salonTicketsClearTechnicianSearch()" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition hidden">' +
+                                '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>' +
+                            '</button>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div id="availableTechniciansContainer" class="overflow-y-auto space-y-3"></div>' +
+                '</div>' +
+                '<!-- Assigned Technicians Column -->' +
+                '<div class="border border-gray-200 rounded-lg p-3 sm:p-4 flex flex-col h-full bg-white">' +
+                    '<div class="flex-shrink-0">' +
+                        '<div class="flex items-center justify-between mb-2">' +
+                            '<h4 class="text-sm font-semibold text-gray-900">Assigned Technicians</h4>' +
+                            '<span id="assignedCount" class="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">0</span>' +
+                        '</div>' +
+                        '<p class="text-xs text-gray-500 mb-3">Click to remove technicians</p>' +
+                        '<div class="relative mb-4">' +
+                            '<svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>' +
+                            '<input type="text" id="assignedTechnicianSearchInput" placeholder="Search assigned..." oninput="window.salonTicketsSearchAssignedTechnicians(this.value)" class="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] text-sm">' +
+                            '<button id="clearAssignedSearchBtn" onclick="window.salonTicketsClearAssignedSearch()" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition hidden">' +
+                                '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>' +
+                            '</button>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div id="assignedTechniciansContainer" class="overflow-y-auto space-y-3"></div>' +
+                '</div>' +
+            '</div>' +
+        '</div>' +
+        '<!-- Fixed Footer -->' +
+        '<div class="flex-shrink-0 px-4 sm:px-6 py-4 border-t border-gray-200 bg-white">' +
+            '<div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3">' +
+                '<button onclick="salonTicketsCloseAssignModal()" class="min-w-[5rem] px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium active:scale-95 text-center">' +
+                    'Cancel' +
+                '</button>' +
+                '<button onclick="salonTicketsConfirmAssign()" class="min-w-[5rem] px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95 text-center">' +
+                    'Save Assignment' +
+                '</button>' +
+            '</div>' +
+        '</div>' +
+    '</div>';
+    openModal(modalHtml, 'large-flex', false);
     setTimeout(function() {
-        var modalContainer = document.getElementById('modalContainer');
-        if (modalContainer) modalContainer.style.maxHeight = '95vh';
-        var modalContent = document.getElementById('modalContent');
-        if (modalContent) modalContent.style.overflowY = '';
+        // Setup dynamic height for containers based on screen size
+        resizeHandlerForTechnicians = function() {
+            var availableContainer = document.getElementById('availableTechniciansContainer');
+            var assignedContainer = document.getElementById('assignedTechniciansContainer');
+            var screenHeight = window.innerHeight;
+            var screenWidth = window.innerWidth;
+            var containerHeight;
+
+            if (screenWidth < 640) {
+                containerHeight = Math.floor(screenHeight * 0.25) + 'px'; // ~25vh for small screens
+            } else if (screenWidth < 1024) {
+                containerHeight = Math.floor(screenHeight * 0.30) + 'px'; // ~30vh for medium screens
+            } else {
+                containerHeight = Math.floor(screenHeight * 0.35) + 'px'; // ~35vh for large screens
+            }
+
+            if (availableContainer) availableContainer.style.height = containerHeight;
+            if (assignedContainer) assignedContainer.style.height = containerHeight;
+        };
+
+        resizeHandlerForTechnicians();
+        window.addEventListener('resize', resizeHandlerForTechnicians);
+
+        salonTicketsLoadTechnicians();
     }, 50);
-    salonTicketsLoadTechnicians();
-    setTimeout(function() {
-        var searchInput = document.getElementById('technicianSearchInput');
-        var clearBtn = document.getElementById('clearTechnicianSearchBtn');
-        if (searchInput && clearBtn) clearBtn.classList.add('hidden');
-    }, 100);
+};
+window.salonTicketsCloseAssignModal = function() {
+    // Cleanup resize handler
+    if (resizeHandlerForTechnicians) {
+        window.removeEventListener('resize', resizeHandlerForTechnicians);
+        resizeHandlerForTechnicians = null;
+    }
+    // Reset search terms
+    assignedTechnicianSearchTerm = '';
+    technicianSearchTerm = '';
+    closeModal();
 };
 window.salonTicketsLoadTechnicians = function() {
     fetch(base + '/users').then(function(r) { return r.json(); }).then(function(data) {
@@ -725,7 +814,7 @@ window.salonTicketsLoadTechnicians = function() {
 };
 window.salonTicketsSearchTechnicians = function(val) {
     technicianSearchTerm = (val || '').toLowerCase().trim();
-    var clearBtn = document.getElementById('clearTechnicianSearchBtn');
+    var clearBtn = document.getElementById('clearSearchBtn');
     if (clearBtn) {
         if (val.trim()) clearBtn.classList.remove('hidden');
         else clearBtn.classList.add('hidden');
@@ -734,16 +823,32 @@ window.salonTicketsSearchTechnicians = function(val) {
 };
 window.salonTicketsClearTechnicianSearch = function() {
     var searchInput = document.getElementById('technicianSearchInput');
-    var clearBtn = document.getElementById('clearTechnicianSearchBtn');
+    var clearBtn = document.getElementById('clearSearchBtn');
     if (searchInput) { searchInput.value = ''; technicianSearchTerm = ''; searchInput.focus(); }
     if (clearBtn) clearBtn.classList.add('hidden');
     salonTicketsRenderAvailableTechnicians();
+};
+window.salonTicketsSearchAssignedTechnicians = function(val) {
+    assignedTechnicianSearchTerm = (val || '').toLowerCase().trim();
+    var btn = document.getElementById('clearAssignedSearchBtn');
+    if (btn) {
+        if (val.trim()) btn.classList.remove('hidden');
+        else btn.classList.add('hidden');
+    }
+    salonTicketsRenderAssignedTechnicians();
+};
+window.salonTicketsClearAssignedSearch = function() {
+    var inp = document.getElementById('assignedTechnicianSearchInput');
+    var btn = document.getElementById('clearAssignedSearchBtn');
+    if (inp) { inp.value = ''; assignedTechnicianSearchTerm = ''; inp.focus(); }
+    if (btn) btn.classList.add('hidden');
+    salonTicketsRenderAssignedTechnicians();
 };
 window.salonTicketsRenderAvailableTechnicians = function() {
     var container = document.getElementById('availableTechniciansContainer');
     if (!container) return;
     if (!availableTechnicians.length) {
-        container.innerHTML = '<div class="flex items-center justify-center h-full min-h-[500px]"><p class="text-sm text-gray-400">No technicians available</p></div>';
+        container.innerHTML = '<div class="flex items-center justify-center h-full min-h-[200px]"><p class="text-sm text-gray-400">No technicians available</p></div>';
         return;
     }
     var filtered = technicianSearchTerm ? availableTechnicians.filter(function(t) {
@@ -752,7 +857,7 @@ window.salonTicketsRenderAvailableTechnicians = function() {
         return (name + ' ' + inits).indexOf(technicianSearchTerm) >= 0;
     }) : availableTechnicians;
     if (!filtered.length) {
-        container.innerHTML = '<div class="flex items-center justify-center h-full min-h-[500px]"><p class="text-sm text-gray-400">No technicians found</p></div>';
+        container.innerHTML = '<div class="flex items-center justify-center h-full min-h-[200px]"><p class="text-sm text-gray-400">No technicians found</p></div>';
         return;
     }
     filtered.sort(function(a, b) {
@@ -796,14 +901,32 @@ window.salonTicketsRenderAssignedTechnicians = function() {
     var container = document.getElementById('assignedTechniciansContainer');
     if (!container) return;
     if (!assignedTechnicianIds.length) {
-        container.innerHTML = '<div class="flex items-center justify-center h-full min-h-[500px]"><p class="text-sm text-gray-400">No technicians assigned</p></div>';
+        container.innerHTML = '<div class="flex items-center justify-center h-full min-h-[200px]"><p class="text-sm text-gray-400">No technicians assigned</p></div>';
         return;
     }
+
+    // Get assigned technicians from IDs
+    var assignedTechs = assignedTechnicianIds.map(function(idStr) {
+        return availableTechnicians.find(function(t) { return t.id.toString() === idStr; });
+    }).filter(function(t) { return t != null; });
+
+    // Apply search filter if search term exists
+    if (assignedTechnicianSearchTerm) {
+        assignedTechs = assignedTechs.filter(function(t) {
+            var name = (t.firstName + ' ' + t.lastName).toLowerCase();
+            var inits = (t.initials || (t.firstName || '')[0] + (t.lastName || '')[0]).toLowerCase();
+            return (name + ' ' + inits).indexOf(assignedTechnicianSearchTerm) >= 0;
+        });
+    }
+
+    if (!assignedTechs.length) {
+        container.innerHTML = '<div class="flex items-center justify-center h-full min-h-[200px]"><p class="text-sm text-gray-400">No technicians found</p></div>';
+        return;
+    }
+
     var badgeStyle = 'bottom: -5px; right: -5px;';
     var html = '';
-    assignedTechnicianIds.forEach(function(techIdStr) {
-        var technician = availableTechnicians.find(function(t) { return t.id.toString() === techIdStr; });
-        if (!technician) return;
+    assignedTechs.forEach(function(technician) {
         var initials = technician.initials || (technician.firstName || '')[0] + (technician.lastName || '')[0];
         var fullName = technician.firstName + ' ' + technician.lastName;
         var isOnline = !!(technician.clock_in && !technician.clock_out);
@@ -860,7 +983,9 @@ window.salonTicketsConfirmAssign = function() {
         }).filter(Boolean);
         var message = res.message || (currentCustomerName + ' assigned to ' + assignedNames.join(', ') + ' successfully.');
         showSuccessMessage(message);
-        closeModal();
+
+        // Use custom close function to cleanup
+        salonTicketsCloseAssignModal();
         assignedTechnicianIds = [];
         currentCustomerId = null;
         currentCustomerName = '';

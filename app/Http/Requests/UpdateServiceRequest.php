@@ -22,6 +22,7 @@ class UpdateServiceRequest extends FormRequest
             'price' => ['sometimes', 'numeric', 'min:0'],
             'active' => ['nullable', 'boolean'],
             'image' => ['nullable', 'image', 'max:2048'],
+            'remove_image' => ['nullable', 'in:0,1'],
             'categories' => ['nullable', 'array'],
             'categories.*' => ['string', 'max:100'],
         ];

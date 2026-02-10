@@ -346,7 +346,10 @@ function openServiceModalContent(service) {
         var k = entry[0], v = entry[1], checked = cats.indexOf(k) >= 0 ? 'checked' : '';
         return '<label class="flex items-center p-2 bg-white rounded-lg border border-gray-200 hover:border-[#003047] hover:bg-[#e6f0f3] cursor-pointer transition-all duration-200 group has-[:checked]:border-[#003047] has-[:checked]:bg-[#e6f0f3]"><input type="checkbox" name="category[]" value="' + k + '" ' + checked + ' class="w-4 h-4 text-[#003047] border-gray-300 rounded focus:ring-[#003047] focus:ring-2 cursor-pointer" style="accent-color: #003047;"><span class="ml-2 text-sm font-medium text-gray-700 group-hover:text-[#003047] has-[:checked]:text-[#003047]">' + v + '</span></label>';
     }).join('');
-    var fileBlock = '<div><label class="block text-sm font-medium text-gray-700 mb-2">Image</label>' + (imgUrl ? '<div class="mb-2"><img src="' + imgUrl.replace(/"/g, '&quot;') + '" alt="" class="h-20 w-20 object-cover rounded-lg border border-gray-200"></div>' : '') + '<input type="file" name="image" accept="image/*" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent text-sm"><p class="mt-1 text-xs text-gray-500">Optional. Max 2 MB. Leave empty to keep current.</p></div>';
+    var fileBlock = '<div><label class="block text-sm font-medium text-gray-700 mb-2">Image</label>' +
+        (imgUrl ? '<div id="currentImagePreview" class="mb-3 flex items-start gap-3"><img src="' + imgUrl.replace(/"/g, '&quot;') + '" alt="" class="h-20 w-20 object-cover rounded-lg border border-gray-200 flex-shrink-0"><button type="button" onclick="removeServiceImage()" class="px-3 py-1.5 text-sm text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition font-medium active:scale-95">Remove Image</button></div>' : '') +
+        '<input type="hidden" id="removeImageFlag" name="remove_image" value="0">' +
+        '<input type="file" name="image" accept="image/*" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent text-sm"><p class="mt-1 text-xs text-gray-500">Optional. Max 2 MB. Leave empty to keep current.</p></div>';
     var deleteBtn = id ? '<button type="button" onclick="deleteService(' + id + ', \'' + (name || '').replace(/'/g, "\\'") + '\')" class="px-6 py-3 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition font-medium active:scale-95">Delete</button>' : '';
     var content = '<div class="p-6"><div class="flex items-center justify-between mb-4"><h3 class="text-xl font-bold text-gray-900">' + (id ? 'Edit Service' : 'View Service') + '</h3><button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><form onsubmit="saveService(event)" class="space-y-4" enctype="multipart/form-data"><div><label class="block text-sm font-medium text-gray-700 mb-2">Service Name</label><input type="text" name="name" required value="' + (name || '').replace(/"/g, '&quot;') + '" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="Classic Manicure"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Category</label><div class="border border-gray-300 rounded-lg p-2 bg-gray-50"><div class="grid grid-cols-1 sm:grid-cols-2 gap-2">' + checkboxes + '</div></div><p class="mt-2 text-xs text-gray-500">Select one or more categories for this service</p></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Description</label><textarea name="description" rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="Service description">' + (description || '').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</textarea></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Price ($)</label><input type="number" name="price" required step="0.01" value="' + (price || 0) + '" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="35.00"></div>' + fileBlock + '<div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg"><div><label class="text-sm font-medium text-gray-900">Active</label></div><label class="relative inline-flex items-center cursor-pointer"><input type="checkbox" name="active" class="sr-only peer" ' + (active ? 'checked' : '') + '><div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#b3d1d9] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[\'\'] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#003047]"></div></label></div><div class="flex justify-end gap-3 pt-4">' + deleteBtn + '<button type="submit" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">Save Service</button></div></form></div>';
     openModal(content);
@@ -361,6 +364,8 @@ function buildServiceFormData(form) {
     form.querySelectorAll('input[name="category[]"]:checked').forEach(function(cb) { fd.append('categories[]', cb.value); });
     var fileEl = form.querySelector('input[name="image"]');
     if (fileEl && fileEl.files && fileEl.files[0]) fd.append('image', fileEl.files[0]);
+    var removeImageFlag = form.querySelector('input[name="remove_image"]');
+    if (removeImageFlag && removeImageFlag.value === '1') fd.append('remove_image', '1');
     return fd;
 }
 function saveService(event) {
@@ -411,6 +416,16 @@ function deleteService(id, name) {
             });
         }
     });
+}
+function removeServiceImage() {
+    var preview = document.getElementById('currentImagePreview');
+    var flag = document.getElementById('removeImageFlag');
+    if (preview) {
+        preview.style.display = 'none';
+    }
+    if (flag) {
+        flag.value = '1';
+    }
 }
 function populateCategoryDropdown() {
     var sel = document.getElementById('categoryFilter');

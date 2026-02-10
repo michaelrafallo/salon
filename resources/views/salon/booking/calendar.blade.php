@@ -87,6 +87,8 @@ let statusBeforeNoShow = {}; // When marking no-show, remember previous status f
 let selectedTechnicianIds = []; // Selected technician IDs for appointment
 let currentAppointmentId = null; // Current appointment ID being edited
 let technicianSearchTerm = ''; // Search term for technician search
+let assignedTechnicianSearchTerm = ''; // Search term for assigned technicians
+let resizeHandlerForTechnicians = null; // Resize handler for dynamic container heights
 let currentEvent = null; // Current FullCalendar event being edited
 let currentEventModalElement = null; // Reference to the technician display element in the event modal
 
@@ -193,6 +195,7 @@ function convertAppointmentsToEvents(appointments) {
             'in-progress': { class: 'event-in-progress', display: 'In Progress' },
             'completed': { class: 'event-completed', display: 'Completed' },
             'paid': { class: 'event-completed', display: 'Paid' },
+            'unpaid': { class: 'fc-event-unpaid', display: 'Unpaid' },
             'no-show': { class: 'event-no-show', display: 'No Show' }
         };
         
@@ -1979,14 +1982,20 @@ function showAppointmentModal(appointmentData) {
             
             <div class="flex items-center justify-end pt-4 border-t border-gray-200">
                 <div class="flex gap-3">
-                    <button onclick="closeModal()" class="px-4 py-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-all font-medium flex items-center justify-center gap-2">
+                    <button onclick="closeModal()" class="px-4 py-2.5 border-2 border-gray-300 text-gray-700 bg-transparent rounded-lg hover:bg-gray-50 transition-all font-medium flex items-center justify-center gap-2 active:scale-95">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
                     Close
                 </button>
                 ${!isTechnician ? `
-                    <button onclick="editBooking(${appointmentId})" class="px-4 py-3 bg-[#003047] text-white rounded-xl hover:bg-[#002535] transition-all font-medium flex items-center justify-center gap-2 shadow-md hover:shadow-lg">
+                    <button onclick="assignAndUpdateStatus('${appointmentId}', '${customerName}')" class="px-4 py-2.5 border-2 border-[#003047] text-[#003047] bg-transparent rounded-lg hover:bg-[#e6f0f3] transition-all font-medium flex items-center justify-center gap-2 active:scale-95">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    Assign
+                </button>
+                    <button onclick="editBooking(${appointmentId})" class="px-4 py-2.5 border-2 border-[#003047] text-[#003047] bg-transparent rounded-lg hover:bg-[#e6f0f3] transition-all font-medium flex items-center justify-center gap-2 active:scale-95">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                     </svg>
@@ -2490,6 +2499,56 @@ function grayOutPastDays() {
     });
 }
 
+// Assign and update status to unpaid
+async function assignAndUpdateStatus(appointmentId, customerName) {
+    const apiUrl = window.salonCalendarAppointmentsApiUrl;
+
+    // Update status to unpaid
+    if (apiUrl && typeof salonApi !== 'undefined' && salonApi.put) {
+        try {
+            await salonApi.put(apiUrl + '/' + appointmentId, { status: 'unpaid' });
+
+            // Update local appointment data
+            const appointment = bookingsData.find(apt => apt.id.toString() === appointmentId.toString());
+            if (appointment) {
+                appointment.status = 'unpaid';
+            }
+
+            // Update calendar event color
+            if (calendarInstance) {
+                const events = calendarInstance.getEvents();
+                const event = events.find(e => e.id && e.id.toString() === appointmentId.toString());
+                if (event) {
+                    event.setProp('className', 'fc-event-unpaid');
+                }
+            }
+
+            // Close the modal
+            if (typeof closeModal === 'function') {
+                closeModal();
+            }
+
+            // Show success message
+            if (typeof showSuccessMessage === 'function') {
+                showSuccessMessage('Appointment successfully assigned.');
+            }
+        } catch (err) {
+            console.error('Error updating appointment status:', err);
+            if (typeof showErrorMessage === 'function') {
+                showErrorMessage('Failed to update appointment status.');
+            }
+        }
+    } else {
+        // Close modal and show message even if API is not available
+        if (typeof closeModal === 'function') {
+            closeModal();
+        }
+        if (typeof showSuccessMessage === 'function') {
+            showSuccessMessage('Appointment successfully assigned.');
+        }
+    }
+}
+
 // Open technician selection modal with event reference
 function openTechnicianSelectionModalWithEvent(appointmentId, customerName) {
     // Find the FullCalendar event from the calendar instance
@@ -2497,7 +2556,7 @@ function openTechnicianSelectionModalWithEvent(appointmentId, customerName) {
         const events = calendarInstance.getEvents();
         currentEvent = events.find(e => e.id && e.id.toString() === appointmentId.toString());
     }
-    
+
     openTechnicianSelectionModal(appointmentId, customerName);
 }
 
@@ -2521,77 +2580,137 @@ function openTechnicianSelectionModal(appointmentId, customerName) {
     }
     
     const modalContent = `
-        <div class="p-4 max-w-6xl">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-xl font-bold text-gray-900">Select Technicians</h3>
-                <button onclick="closeNestedModal()" class="text-gray-400 hover:text-gray-600">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </button>
+        <div class="flex flex-col h-[80vh] max-h-[80vh] overflow-hidden">
+            <!-- Fixed Header -->
+            <div class="flex-shrink-0 px-4 sm:px-6 py-4 border-b border-gray-200 bg-white">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-xl font-bold text-gray-900">Select Technicians for ${customerName}</h3>
+                    <button onclick="closeCalendarTechnicianModal()" class="p-2 -m-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2" aria-label="Close">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
             </div>
-            
-            <div class="grid grid-cols-2 gap-4">
-                <!-- Available Technicians Section -->
-                <div class="border-r border-gray-200 pr-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <h4 class="text-sm font-semibold text-gray-900">Available Technicians</h4>
-                        <span id="availableCount" class="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">${techniciansData.length}</span>
-                    </div>
-                    <p class="text-xs text-gray-500 mb-2">Click to assign technicians to services</p>
-                    <!-- Search Bar -->
-                    <div class="mb-3">
-                        <div class="relative">
-                            <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-                            </svg>
-                            <input type="text" id="technicianSearchInput" placeholder="Search technicians..." oninput="searchTechnicians(this.value)" class="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent text-sm">
-                            <button id="clearTechnicianSearchBtn" onclick="clearTechnicianSearch()" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 hidden">
-                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+
+            <!-- Content Area -->
+            <div class="flex-1 min-h-0 px-4 sm:px-6 py-4 sm:py-6 bg-gray-50">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 h-full">
+                    <!-- Available Technicians Column -->
+                    <div class="border border-gray-200 rounded-lg p-3 sm:p-4 flex flex-col h-full bg-white">
+                        <div class="flex-shrink-0">
+                            <div class="flex items-center justify-between mb-2">
+                                <h4 class="text-sm font-semibold text-gray-900">Available Technicians</h4>
+                                <span id="availableCount" class="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">${techniciansData.length}</span>
+                            </div>
+                            <p class="text-xs text-gray-500 mb-3">Click to assign technicians</p>
+                            <div class="relative mb-4">
+                                <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
                                 </svg>
-                            </button>
+                                <input type="text" id="technicianSearchInput" placeholder="Search technicians..." oninput="searchTechnicians(this.value)" class="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] text-sm">
+                                <button id="clearTechnicianSearchBtn" onclick="clearTechnicianSearch()" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition hidden">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
+                        <div id="availableTechniciansContainer" class="overflow-y-auto space-y-3"></div>
                     </div>
-                    <div id="availableTechniciansContainer" class="space-y-2 min-h-[300px] max-h-[60vh] overflow-y-auto">
-                        <!-- Technicians will be loaded here -->
-                    </div>
-                </div>
-                
-                <!-- Assigned Technicians Section -->
-                <div class="pl-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <h4 class="text-sm font-semibold text-gray-900">Assigned Technicians</h4>
-                        <span id="assignedCount" class="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">${selectedTechnicianIds.length}</span>
-                    </div>
-                    <p class="text-xs text-gray-500 mb-3">Click to remove assigned technicians</p>
-                    <div id="assignedTechniciansContainer" class="space-y-2 min-h-[300px] max-h-[60vh] overflow-y-auto">
-                        <!-- Assigned technicians will be loaded here -->
+
+                    <!-- Assigned Technicians Column -->
+                    <div class="border border-gray-200 rounded-lg p-3 sm:p-4 flex flex-col h-full bg-white">
+                        <div class="flex-shrink-0">
+                            <div class="flex items-center justify-between mb-2">
+                                <h4 class="text-sm font-semibold text-gray-900">Assigned Technicians</h4>
+                                <span id="assignedCount" class="px-2 py-1 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">${selectedTechnicianIds.length}</span>
+                            </div>
+                            <p class="text-xs text-gray-500 mb-3">Click to remove technicians</p>
+                            <div class="relative mb-4">
+                                <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                </svg>
+                                <input type="text" id="assignedTechnicianSearchInput" placeholder="Search assigned..." oninput="searchAssignedTechnicians(this.value)" class="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] text-sm">
+                                <button id="clearAssignedSearchBtn" onclick="clearAssignedSearch()" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition hidden">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div id="assignedTechniciansContainer" class="overflow-y-auto space-y-3"></div>
                     </div>
                 </div>
             </div>
-            
-            <!-- Action Buttons -->
-            <div class="flex justify-end gap-3 mt-4 pt-4 border-t border-gray-200">
-                <button onclick="closeNestedModal()" class="px-5 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium active:scale-95">
-                    Cancel
-                </button>
-                <button onclick="confirmTechnicianSelection()" class="px-5 py-2 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">
-                    Confirm
-                </button>
+
+            <!-- Fixed Footer -->
+            <div class="flex-shrink-0 px-4 sm:px-6 py-4 border-t border-gray-200 bg-white">
+                <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3">
+                    <button onclick="closeCalendarTechnicianModal()" class="min-w-[5rem] px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium active:scale-95 text-center">
+                        Cancel
+                    </button>
+                    <button onclick="confirmTechnicianSelection()" class="min-w-[5rem] px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95 text-center">
+                        Confirm
+                    </button>
+                </div>
             </div>
         </div>
     `;
-    
-    openNestedModal(modalContent, 'large', false);
-    renderAvailableTechnicians();
-    renderAssignedTechnicians();
+
+    openNestedModal(modalContent, 'large-flex', false);
+
+    // Setup dynamic height for containers based on screen size
+    setTimeout(function() {
+        // Remove previous resize handler if exists
+        if (resizeHandlerForTechnicians) {
+            window.removeEventListener('resize', resizeHandlerForTechnicians);
+        }
+
+        resizeHandlerForTechnicians = function() {
+            const availableContainer = document.getElementById('availableTechniciansContainer');
+            const assignedContainer = document.getElementById('assignedTechniciansContainer');
+            const screenHeight = window.innerHeight;
+            const screenWidth = window.innerWidth;
+            let containerHeight;
+
+            if (screenWidth < 640) {
+                containerHeight = Math.floor(screenHeight * 0.25) + 'px'; // ~25vh for small screens
+            } else if (screenWidth < 1024) {
+                containerHeight = Math.floor(screenHeight * 0.30) + 'px'; // ~30vh for medium screens
+            } else {
+                containerHeight = Math.floor(screenHeight * 0.35) + 'px'; // ~35vh for large screens
+            }
+
+            if (availableContainer) availableContainer.style.height = containerHeight;
+            if (assignedContainer) assignedContainer.style.height = containerHeight;
+        };
+
+        resizeHandlerForTechnicians();
+        window.addEventListener('resize', resizeHandlerForTechnicians);
+
+        renderAvailableTechnicians();
+        renderAssignedTechnicians();
+    }, 50);
+}
+
+// Close calendar technician modal with cleanup
+function closeCalendarTechnicianModal() {
+    // Cleanup resize handler
+    if (resizeHandlerForTechnicians) {
+        window.removeEventListener('resize', resizeHandlerForTechnicians);
+        resizeHandlerForTechnicians = null;
+    }
+    // Reset search terms
+    technicianSearchTerm = '';
+    assignedTechnicianSearchTerm = '';
+    closeNestedModal();
 }
 
 // Search technicians
 function searchTechnicians(searchTerm) {
     technicianSearchTerm = searchTerm.toLowerCase().trim();
-    
+
     const clearBtn = document.getElementById('clearTechnicianSearchBtn');
     if (clearBtn) {
         if (searchTerm.trim() !== '') {
@@ -2600,42 +2719,76 @@ function searchTechnicians(searchTerm) {
             clearBtn.classList.add('hidden');
         }
     }
-    
+
     renderAvailableTechnicians();
+}
+
+// Search assigned technicians
+function searchAssignedTechnicians(searchTerm) {
+    assignedTechnicianSearchTerm = searchTerm.toLowerCase().trim();
+
+    const clearBtn = document.getElementById('clearAssignedSearchBtn');
+    if (clearBtn) {
+        if (searchTerm.trim() !== '') {
+            clearBtn.classList.remove('hidden');
+        } else {
+            clearBtn.classList.add('hidden');
+        }
+    }
+
+    renderAssignedTechnicians();
 }
 
 // Clear technician search
 function clearTechnicianSearch() {
     const searchInput = document.getElementById('technicianSearchInput');
     const clearBtn = document.getElementById('clearTechnicianSearchBtn');
-    
+
     if (searchInput) {
         searchInput.value = '';
         technicianSearchTerm = '';
         searchInput.focus();
     }
-    
+
     if (clearBtn) {
         clearBtn.classList.add('hidden');
     }
-    
+
     renderAvailableTechnicians();
+}
+
+// Clear assigned technician search
+function clearAssignedSearch() {
+    const searchInput = document.getElementById('assignedTechnicianSearchInput');
+    const clearBtn = document.getElementById('clearAssignedSearchBtn');
+
+    if (searchInput) {
+        searchInput.value = '';
+        assignedTechnicianSearchTerm = '';
+        searchInput.focus();
+    }
+
+    if (clearBtn) {
+        clearBtn.classList.add('hidden');
+    }
+
+    renderAssignedTechnicians();
 }
 
 // Render available technicians
 function renderAvailableTechnicians() {
     const container = document.getElementById('availableTechniciansContainer');
     if (!container) return;
-    
+
     if (techniciansData.length === 0) {
         container.innerHTML = `
-            <div class="flex items-center justify-center h-full min-h-[300px]">
+            <div class="flex items-center justify-center h-full min-h-[200px]">
                 <p class="text-sm text-gray-400">No technicians available</p>
             </div>
         `;
         return;
     }
-    
+
     let filteredTechnicians = techniciansData;
     if (technicianSearchTerm !== '') {
         filteredTechnicians = techniciansData.filter(technician => {
@@ -2645,10 +2798,10 @@ function renderAvailableTechnicians() {
             return searchText.includes(technicianSearchTerm);
         });
     }
-    
+
     if (filteredTechnicians.length === 0) {
         container.innerHTML = `
-            <div class="flex items-center justify-center h-full min-h-[300px]">
+            <div class="flex items-center justify-center h-full min-h-[200px]">
                 <p class="text-sm text-gray-400">No technicians found</p>
             </div>
         `;
@@ -2733,21 +2886,45 @@ function renderAvailableTechnicians() {
 function renderAssignedTechnicians() {
     const container = document.getElementById('assignedTechniciansContainer');
     if (!container) return;
-    
+
     if (selectedTechnicianIds.length === 0) {
         container.innerHTML = `
-            <div class="flex items-center justify-center h-full min-h-[300px]">
+            <div class="flex items-center justify-center h-full min-h-[200px]">
                 <p class="text-sm text-gray-400">No technicians assigned</p>
             </div>
         `;
         updateCounts();
         return;
     }
-    
+
+    // Get assigned technicians from IDs
+    let assignedTechs = selectedTechnicianIds.map(technicianIdStr => {
+        return techniciansData.find(t => t.id.toString() === technicianIdStr);
+    }).filter(t => t != null);
+
+    // Apply search filter if search term exists
+    if (assignedTechnicianSearchTerm !== '') {
+        assignedTechs = assignedTechs.filter(technician => {
+            const fullName = `${technician.firstName} ${technician.lastName}`.toLowerCase();
+            const initials = (technician.initials || (technician.firstName?.[0] || '') + (technician.lastName?.[0] || '')).toLowerCase();
+            const searchText = fullName + ' ' + initials;
+            return searchText.includes(assignedTechnicianSearchTerm);
+        });
+    }
+
+    if (assignedTechs.length === 0) {
+        container.innerHTML = `
+            <div class="flex items-center justify-center h-full min-h-[200px]">
+                <p class="text-sm text-gray-400">No technicians found</p>
+            </div>
+        `;
+        updateCounts();
+        return;
+    }
+
     const badgeStyle = 'bottom: -5px; right: -5px;';
     let html = '';
-    selectedTechnicianIds.forEach(technicianIdStr => {
-        const technician = techniciansData.find(t => t.id.toString() === technicianIdStr);
+    assignedTechs.forEach(technician => {
         if (!technician) return;
         
         const initials = technician.initials || (technician.firstName?.[0] || '') + (technician.lastName?.[0] || '');
@@ -2840,12 +3017,12 @@ function confirmTechnicianSelection() {
                 renderTechnicianListView();
             }
         }
-        closeNestedModal();
+        closeCalendarTechnicianModal();
         if (typeof showSuccessMessage === 'function') {
             showSuccessMessage('Technician assignment saved.');
         }
     };
-    
+
     if (apiUrl && typeof salonApi !== 'undefined' && salonApi.put) {
         const btn = document.querySelector('[onclick="confirmTechnicianSelection()"]');
         if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
@@ -2872,7 +3049,7 @@ function confirmTechnicianSelection() {
                 renderTechnicianListView();
             }
         }
-        closeNestedModal();
+        closeCalendarTechnicianModal();
     }
 }
 
@@ -3425,6 +3602,21 @@ body.fc-drag-not-allowed * {
     background-color: #6b7280 !important;
     border-color: #4b5563 !important;
     color: #003047 !important;
+}
+
+/* Unpaid Events - Green */
+.fc-event-unpaid {
+    background-color: #005c04 !important;
+    background: #005c04 !important;
+    border-color: #005c04 !important;
+    color: #ffffff !important;
+}
+
+.fc-event-unpaid:hover {
+    background-color: #004503 !important;
+    background: #004503 !important;
+    border-color: #004503 !important;
+    color: #ffffff !important;
 }
 
 /* Events with assigned technicians - blue background with white text */

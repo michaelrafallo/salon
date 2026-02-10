@@ -311,13 +311,42 @@ async function salonPayFetchTechnicians() {
 function salonPayInitializeCategoriesList() {
     var list = document.getElementById('categoriesList');
     if (!list) return;
-    var html = '<button type="button" onclick="salonPayFilterByCategory(null)" class="category-card px-4 py-2 bg-[#e6f0f3] border border-[#003047] text-[#003047] rounded-lg hover:bg-[#e6f0f3] hover:text-[#003047] transition-all duration-200 font-medium text-sm shadow-sm active:scale-95 whitespace-nowrap" data-category-key="all">All Categories</button>';
+
+    // Generate category buttons wrapped in divs for Slick carousel
+    // Fixed height: 70px, text wrapping enabled, centered content
+    var html = '<div><button type="button" onclick="salonPayFilterByCategory(null)" class="category-card w-full h-[70px] px-4 py-2 bg-[#e6f0f3] border border-[#003047] text-[#003047] rounded-lg hover:bg-[#e6f0f3] hover:text-[#003047] transition-all duration-200 font-medium text-sm shadow-sm active:scale-95 flex items-center justify-center text-center break-words" data-category-key="all">All Categories</button></div>';
+
     var sorted = Object.entries(categoriesMap).sort(function(a, b) { return a[1].localeCompare(b[1]); });
     sorted.forEach(function(entry) {
         var key = entry[0], displayName = entry[1];
-        html += '<button type="button" onclick="salonPayFilterByCategory(\'' + key + '\')" class="category-card px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:border-[#003047] hover:bg-[#e6f0f3] hover:text-[#003047] transition-all duration-200 font-medium text-sm active:scale-95 whitespace-nowrap" data-category-key="' + key + '">' + displayName + '</button>';
+        html += '<div><button type="button" onclick="salonPayFilterByCategory(\'' + key + '\')" class="category-card w-full h-[70px] px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:border-[#003047] hover:bg-[#e6f0f3] hover:text-[#003047] transition-all duration-200 font-medium text-sm active:scale-95 flex items-center justify-center text-center break-words" data-category-key="' + key + '">' + displayName + '</button></div>';
     });
+
     list.innerHTML = html;
+
+    // Initialize Slick carousel after DOM update
+    setTimeout(function() {
+        if (typeof window.salonPayInitializeSlickCarousel === 'function') {
+            window.salonPayInitializeSlickCarousel();
+        } else {
+            // Fallback: show carousel if Slick function not available
+            var carousel = document.getElementById('categoriesList');
+            if (carousel) {
+                carousel.style.opacity = '1';
+                carousel.style.visibility = 'visible';
+            }
+        }
+
+        // Safety fallback: ensure carousel is visible after 1 second
+        setTimeout(function() {
+            var carousel = document.getElementById('categoriesList');
+            if (carousel && carousel.style.visibility !== 'visible') {
+                carousel.style.opacity = '1';
+                carousel.style.visibility = 'visible';
+                console.warn('Slick carousel fallback: forcing visibility');
+            }
+        }, 1000);
+    }, 100);
 }
 window.salonPayFilterByCategory = function(categoryKey) {
     selectedCategory = categoryKey;
@@ -365,7 +394,31 @@ function salonPayInitializeServicesList() {
             }) : null;
             var categorySlug = (service.categories && service.categories[0]) ? String(service.categories[0]).replace(/'/g, "\\'") : '';
             var sid = (service.id != null) ? service.id : '';
-            html += '<div class="service-item bg-white border border-gray-200 rounded-lg overflow-hidden hover:border-[#003047] hover:shadow-md transition-all flex flex-col h-full"><div class="w-full h-32 ' + color.bg + ' flex items-center justify-center flex-shrink-0"><svg class="w-12 h-12 ' + color.text + '" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg></div><div class="p-4 flex flex-col flex-1"><div class="flex-1"><h3 class="text-sm font-semibold text-gray-900 mb-1">' + service.name + '</h3><p class="text-lg font-bold text-[#003047] mb-3">' + window.salonFormatMoney(service.price) + '</p></div><button type="button" onclick="salonPayAddServiceToCart(\'' + service.name.replace(/'/g, "\\'") + '\', ' + service.price + ', \'' + categorySlug + '\', ' + sid + ')" class="w-full px-6 py-3 ' + (!selectedTechnicianId ? 'bg-gray-400 cursor-not-allowed' : isInCart ? 'bg-green-600 hover:bg-green-700' : 'bg-[#003047] hover:bg-[#002535]') + ' text-white rounded-lg transition font-medium text-sm active:scale-95 flex items-center justify-center gap-2 mt-auto" ' + (!selectedTechnicianId ? 'disabled title="Please select a technician first"' : '') + '><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>' + (!selectedTechnicianId ? 'Select Technician First' : isInCart ? 'In Cart (' + isInCart.quantity + 'x)' : 'Add to Cart') + '</button></div></div>';
+
+            // Get service image URL (matching services page pattern)
+            var storageUrl = window.salonStorageUrl || '';
+            var imgUrl = (service.image ? (storageUrl + '/' + service.image) : null) || service.image_url || null;
+            var thumbnailHtml = '';
+
+            if (imgUrl) {
+                // If service has an image, display it with wrapper and object-cover
+                thumbnailHtml = '<div class="flex items-start"><img src="' + imgUrl.replace(/"/g, '&quot;').replace(/'/g, '&#39;') + '" alt="" class="w-full h-32 object-cover rounded-lg" onerror="this.parentElement.style.display=\'none\'"></div>';
+            }
+            // No wrapper or image if no image URL exists
+
+            html += '<div class="service-item bg-white border border-gray-200 rounded-lg overflow-hidden hover:border-[#003047] hover:shadow-md transition-all flex flex-col h-full">' +
+                thumbnailHtml +
+                '<div class="p-4 flex flex-col flex-1">' +
+                '<div class="flex-1">' +
+                '<h3 class="text-lg font-semibold text-gray-900 mb-1">' + service.name + '</h3>' +
+                '<p class="text-lg font-normal text-gray-600 mb-3">' + window.salonFormatMoney(service.price) + '</p>' +
+                '</div>' +
+                '<button type="button" onclick="salonPayAddServiceToCart(\'' + service.name.replace(/'/g, "\\'") + '\', ' + service.price + ', \'' + categorySlug + '\', ' + sid + ')" class="w-full px-6 py-3 ' + (!selectedTechnicianId ? 'bg-gray-400 cursor-not-allowed' : isInCart ? 'bg-green-600 hover:bg-green-700' : 'bg-[#003047] hover:bg-[#002535]') + ' text-white rounded-lg transition font-medium text-sm active:scale-95 flex items-center justify-center gap-2 mt-auto" ' + (!selectedTechnicianId ? 'disabled title="Please select a technician first"' : '') + '>' +
+                '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>' +
+                (!selectedTechnicianId ? 'Select Technician First' : isInCart ? 'In Cart (' + isInCart.quantity + 'x)' : 'Add to Cart') +
+                '</button>' +
+                '</div>' +
+                '</div>';
         });
     }
     grid.innerHTML = html;

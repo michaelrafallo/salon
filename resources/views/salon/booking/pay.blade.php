@@ -99,7 +99,7 @@
                         </div>
                     </div>
                     <!-- Left Column: Services Grid -->
-                    <div class="w-full lg:w-2/3 lg:order-1 flex flex-col min-w-0">
+                    <div class="w-full lg:w-2/3 lg:order-1 grid min-w-0">
                         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 flex flex-col h-full overflow-hidden">
                             <div class="mb-3 flex-shrink-0 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
                                 <div>
@@ -121,10 +121,10 @@
                                     </div>
                                 </div>
                             </div>
-                            <!-- Categories Horizontal List -->
-                            <div class="mb-4 flex-shrink-0">
-                                <div id="categoriesList" class="flex flex-wrap gap-2">
-                                    <!-- Categories will be loaded dynamically -->
+                            <!-- Categories Horizontal List (Slick Carousel) -->
+                            <div class="mb-4 flex-shrink-0 categories-carousel-wrapper">
+                                <div id="categoriesList" class="categories-slick-carousel">
+                                    <!-- Categories will be loaded dynamically and initialized as Slick carousel -->
                                 </div>
                             </div>
                             <!-- Services Section -->
@@ -398,7 +398,106 @@
         </div>
     </div>
 </main>
+@push('styles')
+<!-- Slick Carousel CSS -->
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick.css"/>
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick-theme.css"/>
+<style>
+    /* Slick carousel custom styling - Equal heights */
+    .categories-carousel-wrapper {
+        position: relative;
+        padding: 0 40px;
+    }
+    /* Hide carousel until Slick initializes to prevent FOUC (Flash of Unstyled Content) */
+    .categories-slick-carousel {
+        height: 70px; /* Fixed carousel height */
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s ease-in-out;
+    }
+    .categories-slick-carousel.slick-initialized {
+        opacity: 1;
+        visibility: visible;
+    }
+    .categories-slick-carousel .slick-slide {
+        margin: 0 4px;
+        height: 70px !important; /* Force equal height */
+        display: flex;
+        align-items: stretch;
+    }
+    .categories-slick-carousel .slick-slide > div {
+        height: 70px !important; /* Force inner div height */
+        width: 100%;
+        display: flex;
+    }
+    .categories-slick-carousel .slick-list {
+        margin: 0 -4px;
+        height: 70px; /* Match carousel height */
+    }
+    .categories-slick-carousel .slick-track {
+        display: flex !important;
+        align-items: stretch;
+        height: 70px; /* Match carousel height */
+    }
+    .category-card {
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        hyphens: auto;
+        height: 70px !important; /* Force button height */
+        min-height: 70px;
+        max-height: 70px;
+    }
+    .categories-slick-carousel .slick-prev,
+    .categories-slick-carousel .slick-next {
+        width: 32px;
+        height: 32px;
+        background: white;
+        border: 1px solid #d1d5db;
+        border-radius: 50%;
+        box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+        z-index: 10;
+    }
+    .categories-slick-carousel .slick-prev {
+        left: -40px;
+    }
+    .categories-slick-carousel .slick-next {
+        right: -40px;
+    }
+    /* Chevron icons for arrows */
+    .categories-slick-carousel .slick-prev:before,
+    .categories-slick-carousel .slick-next:before {
+        content: '';
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+        opacity: 1;
+    }
+    .categories-slick-carousel .slick-prev:before {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%234b5563'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M15 19l-7-7 7-7'/%3E%3C/svg%3E");
+    }
+    .categories-slick-carousel .slick-next:before {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%234b5563'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9 5l7 7-7 7'/%3E%3C/svg%3E");
+    }
+    .categories-slick-carousel .slick-prev:hover,
+    .categories-slick-carousel .slick-next:hover {
+        background: #f9fafb;
+    }
+    .categories-slick-carousel .slick-disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+</style>
+@endpush
+
 @push('scripts')
+<!-- jQuery (required for Slick) -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<!-- Slick Carousel JS -->
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick.min.js"></script>
+
 <script>
 window.salonJsonBase = '{{ url("api/salon/data") }}';
 window.salonTicketsUrl = '{{ $ticketsUrl }}';
@@ -406,6 +505,64 @@ window.salonApiAppointmentsUrl = '{{ url("api/salon/appointments") }}';
 window.salonApiBase = '{{ url("api/salon") }}';
 window.salonCurrencySymbol = '{{ $currencySymbol }}';
 window.salonPayBootstrap = @json($payBootstrap ?? null);
+window.salonStorageUrl = '{{ rtrim(asset("storage"), "/") }}';
+
+// Slick Carousel initialization function
+window.salonPayInitializeSlickCarousel = function() {
+    var $carousel = $('#categoriesList');
+
+    if ($carousel.length === 0) return;
+
+    // Destroy existing instance if any
+    if ($carousel.hasClass('slick-initialized')) {
+        $carousel.slick('unslick');
+    }
+
+    try {
+        // Initialize Slick carousel with equal heights
+        $carousel.slick({
+            slidesToShow: 6,
+            slidesToScroll: 6,
+            infinite: false,
+            arrows: true,
+            dots: false,
+            adaptiveHeight: false, // Maintain equal height for all slides
+            variableWidth: false,   // Ensure consistent width
+            lazyLoad: 'ondemand',   // Improve performance
+            responsive: [
+                {
+                    breakpoint: 1024,
+                    settings: {
+                        slidesToShow: 4,
+                        slidesToScroll: 4,
+                        adaptiveHeight: false
+                    }
+                },
+                {
+                    breakpoint: 640,
+                    settings: {
+                        slidesToShow: 2,
+                        slidesToScroll: 2,
+                        adaptiveHeight: false
+                    }
+                }
+            ]
+        });
+
+        // Ensure carousel is visible after initialization
+        $carousel.css({
+            'opacity': '1',
+            'visibility': 'visible'
+        });
+    } catch (error) {
+        console.error('Slick carousel initialization failed:', error);
+        // Fallback: show carousel even if Slick fails
+        $carousel.css({
+            'opacity': '1',
+            'visibility': 'visible'
+        });
+    }
+};
 </script>
 <script src="{{ asset('js/salon-pay.js') }}"></script>
 @endpush
