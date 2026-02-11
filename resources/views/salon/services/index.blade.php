@@ -173,14 +173,14 @@ function renderGridView() {
         var color = colorClasses[i % colorClasses.length];
         var imgUrl = (s.image ? (storageUrl + '/' + s.image) : null) || s.image_url || null;
         var thumbHtml = imgUrl
-            ? '<img src="' + imgUrl.replace(/"/g, '&quot;').replace(/'/g, '&#39;') + '" alt="" class="w-full h-32 object-cover rounded-lg" onerror="this.style.display=\'none\'">'
-            : '<div class="w-full h-32 ' + color.bg + ' rounded-lg flex items-center justify-center"><svg class="w-10 h-10 ' + color.text + '" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg></div>';
+            ? '<div class="flex items-start mb-3"><img src="' + imgUrl.replace(/"/g, '&quot;').replace(/'/g, '&#39;') + '" alt="" class="w-full h-32 object-cover rounded-lg" onerror="this.style.display=\'none\'"></div>'
+            : '';
         var card = document.createElement('div');
         card.className = 'bg-white rounded-lg shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer active:scale-95';
         card.onclick = function() {
             openServiceModal(s);
         };
-        card.innerHTML = '<div class="flex items-start mb-3">' + thumbHtml + '</div><h3 class="font-semibold text-gray-900 text-lg mb-2">' + (s.name || '') + '</h3><p class="text-sm text-gray-600 mb-4 line-clamp-2">' + (s.description || '') + '</p><div class="pt-4 border-t border-gray-200"><span class="text-2xl font-bold text-gray-900">' + window.salonFormatMoney(parseFloat(s.price || 0)) + '</span></div>';
+        card.innerHTML = thumbHtml + '<h3 class="font-semibold text-gray-900 text-lg mb-2">' + (s.name || '') + '</h3><p class="text-sm text-gray-600 mb-4 line-clamp-2">' + (s.description || '') + '</p><div class="pt-4 border-t border-gray-200"><span class="text-2xl font-bold text-gray-900">' + window.salonFormatMoney(parseFloat(s.price || 0)) + '</span></div>';
         el.appendChild(card);
     });
 }
@@ -198,14 +198,14 @@ function renderListView() {
         var imgUrl = (s.image ? (storageUrl + '/' + s.image) : null) || s.image_url || null;
         var thumbCell = imgUrl
             ? '<img src="' + imgUrl.replace(/"/g, '&quot;').replace(/'/g, '&#39;') + '" alt="" class="w-10 h-10 rounded-lg object-cover flex-shrink-0 mr-3" onerror="this.style.display=\'none\'">'
-            : '<div class="w-10 h-10 ' + color.bg + ' rounded-lg flex items-center justify-center flex-shrink-0 mr-3"><svg class="w-6 h-6 ' + color.text + '" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547z"></path></svg></div>';
+            : '';
         var row = document.createElement('tr');
         row.className = 'hover:bg-gray-50 cursor-pointer transition';
         row.onclick = function() {
             openServiceModal(s);
         };
         var statusHtml = s.active ? '<span class="text-sm font-medium text-green-600">Active</span>' : '<span class="text-sm font-medium text-gray-500">Inactive</span>';
-        row.innerHTML = '<td class="px-6 py-4 whitespace-nowrap"><div class="flex items-center">' + thumbCell + '<div class="ml-3 text-sm font-medium text-gray-900">' + (s.name || '') + '</div></div></td><td class="px-6 py-4"><div class="text-sm text-gray-900">' + (s.description || '') + '</div></td><td class="px-6 py-4 whitespace-nowrap"><div class="text-sm font-bold text-gray-900">' + window.salonFormatMoney(parseFloat(s.price || 0)) + '</div></td><td class="px-6 py-4 whitespace-nowrap">' + statusHtml + '</td>';
+        row.innerHTML = '<td class="px-6 py-4 whitespace-nowrap"><div class="flex items-center">' + thumbCell + '<div class="' + (imgUrl ? 'ml-3 ' : '') + 'text-sm font-medium text-gray-900">' + (s.name || '') + '</div></div></td><td class="px-6 py-4"><div class="text-sm text-gray-900">' + (s.description || '') + '</div></td><td class="px-6 py-4 whitespace-nowrap"><div class="text-sm font-bold text-gray-900">' + window.salonFormatMoney(parseFloat(s.price || 0)) + '</div></td><td class="px-6 py-4 whitespace-nowrap">' + statusHtml + '</td>';
         tbody.appendChild(row);
     });
 }

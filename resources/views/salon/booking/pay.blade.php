@@ -419,6 +419,29 @@
         opacity: 1;
         visibility: visible;
     }
+    /* Fallback: show carousel if Slick doesn't initialize after 3 seconds */
+    .categories-slick-carousel.show-fallback {
+        opacity: 1 !important;
+        visibility: visible !important;
+        display: flex !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+        overflow-x: auto !important;
+    }
+    .categories-slick-carousel.show-fallback > div {
+        flex: 0 0 auto;
+        width: calc(16.666% - 7px); /* ~6 items per row */
+    }
+    @media (max-width: 1024px) {
+        .categories-slick-carousel.show-fallback > div {
+            width: calc(25% - 6px); /* 4 items per row */
+        }
+    }
+    @media (max-width: 640px) {
+        .categories-slick-carousel.show-fallback > div {
+            width: calc(50% - 4px); /* 2 items per row */
+        }
+    }
     .categories-slick-carousel .slick-slide {
         margin: 0 4px;
         height: 70px !important; /* Force equal height */
@@ -494,7 +517,7 @@
 
 @push('scripts')
 <!-- jQuery (required for Slick) -->
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
 <!-- Slick Carousel JS -->
 <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick.min.js"></script>
 
@@ -507,15 +530,46 @@ window.salonCurrencySymbol = '{{ $currencySymbol }}';
 window.salonPayBootstrap = @json($payBootstrap ?? null);
 window.salonStorageUrl = '{{ rtrim(asset("storage"), "/") }}';
 
-// Slick Carousel initialization function
+// Slick Carousel initialization function - with better error handling
 window.salonPayInitializeSlickCarousel = function() {
+    // Check if jQuery is available
+    if (typeof jQuery === 'undefined' || typeof $ === 'undefined') {
+        console.error('jQuery is not loaded. Slick carousel cannot initialize.');
+        // Show carousel anyway without Slick
+        var carousel = document.getElementById('categoriesList');
+        if (carousel) {
+            carousel.style.opacity = '1';
+            carousel.style.visibility = 'visible';
+        }
+        return;
+    }
+
+    // Check if Slick is available
+    if (typeof $.fn.slick === 'undefined') {
+        console.error('Slick carousel library is not loaded.');
+        // Show carousel anyway without Slick
+        var carousel = document.getElementById('categoriesList');
+        if (carousel) {
+            carousel.style.opacity = '1';
+            carousel.style.visibility = 'visible';
+        }
+        return;
+    }
+
     var $carousel = $('#categoriesList');
 
-    if ($carousel.length === 0) return;
+    if ($carousel.length === 0) {
+        console.warn('Categories carousel element not found');
+        return;
+    }
 
     // Destroy existing instance if any
     if ($carousel.hasClass('slick-initialized')) {
-        $carousel.slick('unslick');
+        try {
+            $carousel.slick('unslick');
+        } catch (e) {
+            console.warn('Error destroying previous slick instance:', e);
+        }
     }
 
     try {
@@ -549,6 +603,8 @@ window.salonPayInitializeSlickCarousel = function() {
             ]
         });
 
+        console.log('Slick carousel initialized successfully');
+
         // Ensure carousel is visible after initialization
         $carousel.css({
             'opacity': '1',
@@ -563,6 +619,29 @@ window.salonPayInitializeSlickCarousel = function() {
         });
     }
 };
+
+// Ensure scripts are loaded before initializing
+(function() {
+    var scriptsLoaded = 0;
+    var scriptsNeeded = 2; // jQuery + Slick
+
+    function checkScriptsLoaded() {
+        scriptsLoaded++;
+        if (scriptsLoaded >= scriptsNeeded) {
+            console.log('All carousel dependencies loaded');
+        }
+    }
+
+    // Check if jQuery is already loaded
+    if (typeof jQuery !== 'undefined') {
+        checkScriptsLoaded();
+    }
+
+    // Check if Slick is already loaded
+    if (typeof $.fn !== 'undefined' && typeof $.fn.slick !== 'undefined') {
+        checkScriptsLoaded();
+    }
+})();
 </script>
 <script src="{{ asset('js/salon-pay.js') }}"></script>
 @endpush

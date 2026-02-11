@@ -28,6 +28,10 @@
                             <span class="text-xs text-gray-600 font-medium">Assigned</span>
                         </div>
                         <div class="flex items-center gap-2">
+                            <svg class="rotating-clock" style="width: 16px; height: 16px; color: #008106;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <span class="text-xs text-gray-600 font-medium">Unpaid</span>
+                        </div>
+                        <div class="flex items-center gap-2">
                             <div class="w-4 h-4 rounded-full bg-[#9ca3af] border-2 border-[#9ca3af]"></div>
                             <span class="text-xs text-gray-600 font-medium">No Show</span>
                         </div>
@@ -47,6 +51,22 @@
                 </div>
             </div>
         </div>
+
+        <!-- Appointment Filter Tabs -->
+        <div class="mb-4">
+            <div class="flex items-center gap-2 bg-white rounded-lg p-1 shadow-sm border border-gray-200 w-fit">
+                <button id="tabAll" onclick="switchAppointmentTab('all')" class="px-6 py-2.5 rounded-md transition-all font-medium text-sm appointment-tab-btn active">
+                    All
+                </button>
+                <button id="tabBooked" onclick="switchAppointmentTab('booked')" class="px-6 py-2.5 rounded-md transition-all font-medium text-sm appointment-tab-btn">
+                    Booked
+                </button>
+                <button id="tabWalkIn" onclick="switchAppointmentTab('walkin')" class="px-6 py-2.5 rounded-md transition-all font-medium text-sm appointment-tab-btn">
+                    Walk-In
+                </button>
+            </div>
+        </div>
+
         <div id="calendarContainer" class="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
             <div id="calendar" class="w-full p-4 sm:p-6"></div>
         </div>
@@ -91,6 +111,7 @@ let assignedTechnicianSearchTerm = ''; // Search term for assigned technicians
 let resizeHandlerForTechnicians = null; // Resize handler for dynamic container heights
 let currentEvent = null; // Current FullCalendar event being edited
 let currentEventModalElement = null; // Reference to the technician display element in the event modal
+let activeAppointmentFilter = 'all'; // Track active appointment type filter (all, booked, walkin)
 
 // --- Date helpers (avoid UTC date shifting for YYYY-MM-DD inputs) ---
 function formatYmdLocal(date) {
@@ -178,7 +199,10 @@ async function fetchBookings() {
         (bookingsData || []).forEach(function(apt) {
             if (apt.status === 'no-show') noShowStatus[apt.id] = true;
         });
-        return convertAppointmentsToEvents(bookingsData);
+
+        // Apply appointment type filter
+        const filteredAppointments = getFilteredAppointments(bookingsData);
+        return convertAppointmentsToEvents(filteredAppointments);
     } catch (error) {
         console.error('Error fetching appointments:', error);
         showErrorMessage('Failed to load appointments data');
@@ -195,7 +219,6 @@ function convertAppointmentsToEvents(appointments) {
             'in-progress': { class: 'event-in-progress', display: 'In Progress' },
             'completed': { class: 'event-completed', display: 'Completed' },
             'paid': { class: 'event-completed', display: 'Paid' },
-            'unpaid': { class: 'fc-event-unpaid', display: 'Unpaid' },
             'no-show': { class: 'event-no-show', display: 'No Show' }
         };
         
@@ -365,14 +388,21 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
         }
     }
-    
+
+    // Initialize appointment type filter from localStorage
+    const savedFilter = localStorage.getItem('activeAppointmentFilter');
+    if (savedFilter && ['all', 'booked', 'walkin'].includes(savedFilter)) {
+        activeAppointmentFilter = savedFilter;
+    }
+    updateAppointmentTabButtons(activeAppointmentFilter);
+
     // Handle initial view - show calendar or list view
     const calendarContainer = document.getElementById('calendarContainer');
     const listViewContainer = document.getElementById('listViewContainer');
-    
-    // Fetch bookings and convert to events
-    const events = await fetchBookings();
-    
+
+    // Fetch bookings initially to populate bookingsData
+    await fetchBookings();
+
     if (viewParam === 'list') {
         if (calendarContainer) calendarContainer.classList.add('hidden');
         if (listViewContainer) listViewContainer.classList.remove('hidden');
@@ -384,7 +414,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (listViewContainer) listViewContainer.classList.add('hidden');
         updateViewButtons('grid');
     }
-    
+
     var calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: initialView,
         initialDate: initialDate || undefined,
@@ -394,7 +424,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             right: ''
         },
         height: 'auto',
-        events: events,
+        events: fetchBookings,
         eventClick: function(info) {
             const event = info.event;
             const extendedProps = event.extendedProps;
@@ -640,6 +670,47 @@ document.addEventListener('DOMContentLoaded', async function() {
             minute: '2-digit',
             meridiem: 'short'
         },
+        eventContent: function(arg) {
+            // Check if event is unpaid
+            const isUnpaid = arg.event.extendedProps.originalStatus === 'unpaid';
+
+            // Format time
+            const timeText = arg.timeText;
+
+            // Create custom content
+            const arrayOfDomNodes = [];
+
+            // Create time wrapper with flex layout for proper alignment
+            const timeEl = document.createElement('div');
+            timeEl.className = 'fc-event-time';
+            timeEl.style.display = 'flex';
+            timeEl.style.alignItems = 'center';
+            timeEl.style.gap = '4px';
+
+            if (isUnpaid) {
+                // Add green clock icon before time for unpaid events
+                const clockIcon = document.createElement('span');
+                clockIcon.className = 'rotating-clock';
+                clockIcon.style.display = 'inline-flex';
+                clockIcon.style.alignItems = 'center';
+                clockIcon.innerHTML = `<svg style="width: 12px; height: 12px; color: #008106;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+                timeEl.appendChild(clockIcon);
+            }
+
+            const timeSpan = document.createElement('span');
+            timeSpan.innerText = timeText;
+            timeEl.appendChild(timeSpan);
+
+            arrayOfDomNodes.push(timeEl);
+
+            // Create title
+            const titleEl = document.createElement('div');
+            titleEl.className = 'fc-event-title';
+            titleEl.innerText = arg.event.title;
+            arrayOfDomNodes.push(titleEl);
+
+            return { domNodes: arrayOfDomNodes };
+        },
         slotMinTime: '08:00:00',
         slotMaxTime: '20:00:00',
         businessHours: {
@@ -691,20 +762,22 @@ document.addEventListener('DOMContentLoaded', async function() {
                     
                     // Only update URL for month view when arrows are clicked
                     if (currentView === 'dayGridMonth') {
-                        // Get the month being displayed - use the start of the visible month
-                        const currentDate = new Date(dateInfo.start);
-                        const monthNames = ['january', 'february', 'march', 'april', 'may', 'june', 
+                        // Get the actual month being displayed from the view's current start date
+                        // dateInfo.start gives us the first visible day (which might be from previous month)
+                        // We need to find a day that's actually in the month being displayed
+
+                        // Get a date in the middle of the visible range to ensure we're in the target month
+                        const startDate = new Date(dateInfo.start);
+                        const endDate = new Date(dateInfo.end);
+                        const middleDate = new Date((startDate.getTime() + endDate.getTime()) / 2);
+
+                        const monthNames = ['january', 'february', 'march', 'april', 'may', 'june',
                                           'july', 'august', 'september', 'october', 'november', 'december'];
-                        // Get month index (0-11) - dateInfo.start might be from previous month's week
-                        // So we get the actual month from the view's current date
-                        // For month view, we need to find the first day of the actual month being displayed
-                        // Get the month from the calendar's current date
-                        let monthIndex = currentDate.getMonth();
-                        // Add +1 to fix month index issue as requested
-                        monthIndex = (monthIndex + 1) % 12;
-                        const monthName = monthNames[monthIndex].toLowerCase();
-                        const year = currentDate.getFullYear();
-                        
+
+                        const monthIndex = middleDate.getMonth(); // 0-11
+                        const monthName = monthNames[monthIndex];
+                        const year = middleDate.getFullYear();
+
                         // Update URL with month and year parameters
                         var url = new URL(window.location);
                         url.searchParams.set('view', 'month');
@@ -835,11 +908,14 @@ function updateViewButtons(activeView) {
 function renderTechnicianListView() {
     const container = document.getElementById('technicianListView');
     if (!container) return;
-    
+
     if (!techniciansData || techniciansData.length === 0) {
         container.innerHTML = '<p class="text-center text-gray-500 py-8">No technicians available</p>';
         return;
     }
+
+    // Apply appointment type filter
+    const filteredBookings = getFilteredAppointments(bookingsData);
 
     // Match the technician ordering used in the Waiting List "Assign Technician" modal (Available Technicians).
     // Sort priority: assigned-to-current-context last (not applicable here), online first, fewer services first,
@@ -947,7 +1023,7 @@ function renderTechnicianListView() {
         salonSlotEnd.setHours(salonHours + 1, 0, 0, 0);
         
         // Find appointments without assigned technician in this time slot
-        const salonAppointments = bookingsData.filter(apt => {
+        const salonAppointments = filteredBookings.filter(apt => {
             // Check if appointment has NO assigned technician
             if (apt.assigned_technician && Array.isArray(apt.assigned_technician) && apt.assigned_technician.length > 0) {
                 return false;
@@ -1038,10 +1114,13 @@ function renderTechnicianListView() {
                 
                 const startTime = aptStart.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
                 const endTime = aptEnd.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-                
+
                 // Check if appointment is marked as no show
                 const isNoShow = noShowStatus[apt.id] === true;
-                
+
+                // Check if appointment is unpaid
+                const isUnpaid = apt.status === 'unpaid';
+
                 // Apply color coding based on no show
                 let colorClass = '';
                 if (isNoShow) {
@@ -1050,15 +1129,19 @@ function renderTechnicianListView() {
                     // White background with blue border for salon appointments
                     colorClass = 'bg-white text-[#003047] border-[#003047]';
                 }
-                
-                html += `<div class="mb-1 p-2 rounded border-2 text-xs font-medium ${colorClass} cursor-move hover:opacity-80 draggable-appointment" 
-                    draggable="true" 
+
+                // Build time display with optional clock icon
+                const clockIcon = isUnpaid ? '<svg style="width: 12px; height: 12px; color: #008106; display: inline-block; margin-right: 4px;" class="rotating-clock" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>' : '';
+                const timeDisplay = `${clockIcon}${startTime} - ${endTime}`;
+
+                html += `<div class="mb-1 p-2 rounded border-2 text-xs font-medium ${colorClass} cursor-move hover:opacity-80 draggable-appointment"
+                    draggable="true"
                     data-appointment-id="${apt.id}"
                     ondragstart="handleAppointmentDragStart(event, ${apt.id})"
                     ondragend="handleAppointmentDragEnd(event)"
                     onclick="if (!event.target.classList.contains('dragging')) { event.stopPropagation(); viewAppointment(${apt.id}); }">`;
                 html += `<div class="font-semibold">${customerName}</div>`;
-                html += `<div class="text-xs opacity-75">${startTime} - ${endTime}</div>`;
+                html += `<div class="text-xs opacity-75" style="display: flex; align-items: center;">${timeDisplay}</div>`;
                 html += `</div>`;
             });
         }
@@ -1074,7 +1157,7 @@ function renderTechnicianListView() {
             slotEnd.setHours(hours + 1, 0, 0, 0);
             
             // Find appointments for this technician in this time slot
-            const appointments = bookingsData.filter(apt => {
+            const appointments = filteredBookings.filter(apt => {
                 // First check if technician is assigned (quick check)
                 if (!apt.assigned_technician || !Array.isArray(apt.assigned_technician)) return false;
                 if (!apt.assigned_technician.some(id => id.toString() === technicianId)) return false;
@@ -1169,13 +1252,16 @@ function renderTechnicianListView() {
                     
                     const startTime = aptStart.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
                     const endTime = aptEnd.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-                    
+
                     // Check if appointment is marked as no show
                     const isNoShow = noShowStatus[apt.id] === true;
-                    
+
+                    // Check if appointment is unpaid
+                    const isUnpaid = apt.status === 'unpaid';
+
                     // Check if technician is assigned
                     const hasTechnician = apt.assigned_technician && Array.isArray(apt.assigned_technician) && apt.assigned_technician.length > 0;
-                    
+
                     // Apply color coding based on no show and technician assignment
                     let colorClass = '';
                     if (isNoShow) {
@@ -1188,15 +1274,19 @@ function renderTechnicianListView() {
                         // White background with blue border for no assigned technician
                         colorClass = 'bg-white text-[#003047] border-[#003047]';
                     }
-                    
-                    html += `<div class="mb-1 p-2 rounded border-2 text-xs font-medium ${colorClass} cursor-move hover:opacity-80 draggable-appointment" 
-                        draggable="true" 
+
+                    // Build time display with optional clock icon
+                    const clockIcon = isUnpaid ? '<svg style="width: 12px; height: 12px; color: #008106; display: inline-block; margin-right: 4px;" class="rotating-clock" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>' : '';
+                    const timeDisplay = `${clockIcon}${startTime} - ${endTime}`;
+
+                    html += `<div class="mb-1 p-2 rounded border-2 text-xs font-medium ${colorClass} cursor-move hover:opacity-80 draggable-appointment"
+                        draggable="true"
                         data-appointment-id="${apt.id}"
                         ondragstart="handleAppointmentDragStart(event, ${apt.id})"
                         ondragend="handleAppointmentDragEnd(event)"
                         onclick="if (!event.target.classList.contains('dragging')) { event.stopPropagation(); viewAppointment(${apt.id}); }">`;
                     html += `<div class="font-semibold">${customerName}</div>`;
-                    html += `<div class="text-xs opacity-75">${startTime} - ${endTime}</div>`;
+                    html += `<div class="text-xs opacity-75" style="display: flex; align-items: center;">${timeDisplay}</div>`;
                     html += `</div>`;
                 });
             }
@@ -1231,9 +1321,12 @@ function showTechnicianMessageModal(technicianId, technicianName) {
     // Get selected date
     const selectedDate = new Date(selectedListViewDate);
     selectedDate.setHours(0, 0, 0, 0);
-    
+
+    // Apply appointment type filter
+    const filteredBookings = getFilteredAppointments(bookingsData);
+
     // Find all appointments for this technician on the selected date
-    const technicianAppointments = bookingsData.filter(apt => {
+    const technicianAppointments = filteredBookings.filter(apt => {
         // Check if technician is assigned
         if (!apt.assigned_technician || !Array.isArray(apt.assigned_technician)) return false;
         if (!apt.assigned_technician.some(id => id.toString() === technicianId.toString())) return false;
@@ -1515,9 +1608,12 @@ function sendTechnicianMessages(technicianId, technicianName) {
     // Get selected date
     const selectedDate = new Date(selectedListViewDate);
     selectedDate.setHours(0, 0, 0, 0);
-    
+
+    // Apply appointment type filter
+    const filteredBookings = getFilteredAppointments(bookingsData);
+
     // Find all appointments for this technician on the selected date
-    const technicianAppointments = bookingsData.filter(apt => {
+    const technicianAppointments = filteredBookings.filter(apt => {
         if (!apt.assigned_technician || !Array.isArray(apt.assigned_technician)) return false;
         if (!apt.assigned_technician.some(id => id.toString() === technicianId.toString())) return false;
         
@@ -2520,7 +2616,14 @@ async function assignAndUpdateStatus(appointmentId, customerName) {
                 const event = events.find(e => e.id && e.id.toString() === appointmentId.toString());
                 if (event) {
                     event.setProp('className', 'fc-event-unpaid');
+                    event.setExtendedProp('originalStatus', 'unpaid');
                 }
+            }
+
+            // Re-render list view if it's currently visible
+            const listViewContainer = document.getElementById('listViewContainer');
+            if (listViewContainer && !listViewContainer.classList.contains('hidden') && typeof renderTechnicianListView === 'function') {
+                renderTechnicianListView();
             }
 
             // Close the modal
@@ -3127,6 +3230,69 @@ function updateCalendarEventDisplay() {
     currentEvent.setProp('classNames', classNames);
 }
 
+// =========================================================================
+// Appointment Type Filter Functions
+// =========================================================================
+
+/**
+ * Filter appointments based on the active tab selection
+ */
+function getFilteredAppointments(appointments) {
+    if (activeAppointmentFilter === 'all') {
+        return appointments;
+    } else if (activeAppointmentFilter === 'booked') {
+        return appointments.filter(apt => apt.appointment === 'booked' || !apt.appointment);
+    } else if (activeAppointmentFilter === 'walkin') {
+        return appointments.filter(apt => apt.appointment === 'walk-in');
+    }
+    return appointments;
+}
+
+/**
+ * Switch between appointment type tabs
+ */
+function switchAppointmentTab(tabType) {
+    activeAppointmentFilter = tabType;
+
+    // Save to localStorage for persistence
+    localStorage.setItem('activeAppointmentFilter', tabType);
+
+    // Update tab button styles
+    updateAppointmentTabButtons(tabType);
+
+    // Refresh calendar events
+    if (calendarInstance) {
+        calendarInstance.refetchEvents();
+    }
+
+    // Also refresh list view if it's currently visible
+    const listViewContainer = document.getElementById('listViewContainer');
+    if (listViewContainer && !listViewContainer.classList.contains('hidden')) {
+        renderTechnicianListView();
+    }
+}
+
+/**
+ * Update tab button active states
+ */
+function updateAppointmentTabButtons(activeTab) {
+    const tabs = {
+        'all': document.getElementById('tabAll'),
+        'booked': document.getElementById('tabBooked'),
+        'walkin': document.getElementById('tabWalkIn')
+    };
+
+    // Remove active class from all tabs
+    Object.values(tabs).forEach(tab => {
+        if (tab) tab.classList.remove('active');
+    });
+
+    // Add active class to the selected tab
+    if (tabs[activeTab]) {
+        tabs[activeTab].classList.add('active');
+    }
+}
+
 </script>
 
 <style>
@@ -3151,6 +3317,26 @@ function updateCalendarEventDisplay() {
 .view-toggle-btn.active {
     background: white;
     color: #003047;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Appointment Type Filter Tab Buttons */
+.appointment-tab-btn {
+    color: #6b7280;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.appointment-tab-btn:hover {
+    color: #374151;
+    background: #f3f4f6;
+}
+
+.appointment-tab-btn.active {
+    background: #003047;
+    color: white;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
@@ -3604,21 +3790,6 @@ body.fc-drag-not-allowed * {
     color: #003047 !important;
 }
 
-/* Unpaid Events - Green */
-.fc-event-unpaid {
-    background-color: #005c04 !important;
-    background: #005c04 !important;
-    border-color: #005c04 !important;
-    color: #ffffff !important;
-}
-
-.fc-event-unpaid:hover {
-    background-color: #004503 !important;
-    background: #004503 !important;
-    border-color: #004503 !important;
-    color: #ffffff !important;
-}
-
 /* Events with assigned technicians - blue background with white text */
 .event-has-technician {
     background: #003047 !important;
@@ -3657,6 +3828,21 @@ body.fc-drag-not-allowed * {
     background: #003047 !important;
     color: white !important;
     border-color: #003047 !important;
+}
+
+/* Clock icon rotation animation */
+@keyframes rotate-clock {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.rotating-clock {
+    animation: rotate-clock 2s linear infinite;
+    display: inline-block;
 }
 
 /* More Events Link */

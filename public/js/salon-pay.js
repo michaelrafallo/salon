@@ -329,23 +329,32 @@ function salonPayInitializeCategoriesList() {
         if (typeof window.salonPayInitializeSlickCarousel === 'function') {
             window.salonPayInitializeSlickCarousel();
         } else {
+            console.warn('salonPayInitializeSlickCarousel function not available');
             // Fallback: show carousel if Slick function not available
             var carousel = document.getElementById('categoriesList');
             if (carousel) {
+                carousel.classList.add('show-fallback');
                 carousel.style.opacity = '1';
                 carousel.style.visibility = 'visible';
             }
         }
 
-        // Safety fallback: ensure carousel is visible after 1 second
+        // Safety fallback: ensure carousel is visible after 3 seconds
         setTimeout(function() {
             var carousel = document.getElementById('categoriesList');
-            if (carousel && carousel.style.visibility !== 'visible') {
-                carousel.style.opacity = '1';
-                carousel.style.visibility = 'visible';
-                console.warn('Slick carousel fallback: forcing visibility');
+            if (carousel) {
+                var isVisible = carousel.style.visibility === 'visible' ||
+                               window.getComputedStyle(carousel).visibility === 'visible';
+                var hasSlick = carousel.classList.contains('slick-initialized');
+
+                if (!isVisible || !hasSlick) {
+                    console.warn('Slick carousel fallback: forcing visibility without Slick');
+                    carousel.classList.add('show-fallback');
+                    carousel.style.opacity = '1';
+                    carousel.style.visibility = 'visible';
+                }
             }
-        }, 1000);
+        }, 3000);
     }, 100);
 }
 window.salonPayFilterByCategory = function(categoryKey) {
