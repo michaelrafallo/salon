@@ -71,6 +71,45 @@
         </div>
     </div>
 </main>
+@push('styles')
+<style>
+@media print {
+    /* Remove shadows and unnecessary elements for print */
+    #modalOverlay, .shadow, .shadow-sm, .shadow-md, .shadow-lg {
+        box-shadow: none !important;
+    }
+
+    /* Hide modal overlay background */
+    #modalOverlay {
+        background: transparent !important;
+    }
+
+    /* Remove rounded corners and adjust spacing */
+    .rounded-lg, .rounded {
+        border-radius: 0 !important;
+    }
+
+    /* Hide buttons in print view */
+    #modalOverlay button,
+    .no-print {
+        display: none !important;
+    }
+
+    /* Ensure content fits on page */
+    #modalContainer {
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+    }
+
+    /* Clean up the ticket display */
+    body {
+        background: white !important;
+    }
+}
+</style>
+@endpush
 @push('scripts')
 <script>
 (function() {
@@ -292,7 +331,8 @@ function salonPayoutApplyDateRangeFilter(preserveButtonState) {
 window.salonPayoutViewPayoutDetails = function(dateKey) {
     var dateTransactions = filteredPayoutData.filter(function(t) { return t.date === dateKey; });
     if (dateTransactions.length === 0) {
-        alert('No transactions found for this date');
+        var modalContent = '<div class="p-6"><div class="flex items-center justify-center mb-4"><div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center"><svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div></div><h3 class="text-xl font-bold text-gray-900 mb-2 text-center">No Transactions Found</h3><p class="text-gray-600 text-center mb-6">No transactions found for this date.</p><div class="flex justify-center"><button onclick="closeModal()" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">OK</button></div></div>';
+        if (typeof openModal === 'function') openModal(modalContent, 'small');
         return;
     }
     var dateTotal = 0, dateTip = 0, dateCommission = 0, dateGrandTotal = 0;
@@ -384,11 +424,13 @@ function salonPayoutRenderPayouts() {
 }
 window.salonPayoutPrintReport = function() {
     if (!selectedTechnicianId) {
-        alert('Please select a technician first');
+        var modalContent = '<div class="p-6"><div class="flex items-center justify-center mb-4"><div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center"><svg class="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg></div></div><h3 class="text-xl font-bold text-gray-900 mb-2 text-center">Technician Required</h3><p class="text-gray-600 text-center mb-6">Please select a technician first before opening the report.</p><div class="flex justify-center"><button onclick="closeModal()" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">OK</button></div></div>';
+        if (typeof openModal === 'function') openModal(modalContent, 'small');
         return;
     }
     if (!filteredPayoutData || filteredPayoutData.length === 0) {
-        alert('No payout data to print');
+        var modalContent = '<div class="p-6"><div class="flex items-center justify-center mb-4"><div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center"><svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div></div><h3 class="text-xl font-bold text-gray-900 mb-2 text-center">No Data Available</h3><p class="text-gray-600 text-center mb-6">No payout data available to print for the selected filters.</p><div class="flex justify-center"><button onclick="closeModal()" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">OK</button></div></div>';
+        if (typeof openModal === 'function') openModal(modalContent, 'small');
         return;
     }
     var tech = techniciansList.find(function(t) { return t.id.toString() === selectedTechnicianId.toString(); });

@@ -57,7 +57,7 @@ class CustomerService
 
             $current = (float) $freshCustomer->credit_balance;
             $newBalance = match ($operation) {
-                'add' => $current + $amount,
+                'add', 'earned' => $current + $amount,
                 'subtract' => $current - $amount,
                 'redeem' => $current - $amount,
                 'set' => $amount,

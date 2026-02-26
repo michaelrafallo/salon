@@ -50,6 +50,7 @@
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="listViewBody" class="bg-white divide-y divide-gray-200"></tbody>
@@ -176,11 +177,8 @@ function renderGridView() {
             ? '<div class="flex items-start mb-3"><img src="' + imgUrl.replace(/"/g, '&quot;').replace(/'/g, '&#39;') + '" alt="" class="w-full h-32 object-cover rounded-lg" onerror="this.style.display=\'none\'"></div>'
             : '';
         var card = document.createElement('div');
-        card.className = 'bg-white rounded-lg shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow cursor-pointer active:scale-95';
-        card.onclick = function() {
-            openServiceModal(s);
-        };
-        card.innerHTML = thumbHtml + '<h3 class="font-semibold text-gray-900 text-lg mb-2">' + (s.name || '') + '</h3><p class="text-sm text-gray-600 mb-4 line-clamp-2">' + (s.description || '') + '</p><div class="pt-4 border-t border-gray-200"><span class="text-2xl font-bold text-gray-900">' + window.salonFormatMoney(parseFloat(s.price || 0)) + '</span></div>';
+        card.className = 'bg-white rounded-lg shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow flex flex-col';
+        card.innerHTML = thumbHtml + '<div onclick="openServiceModal(' + JSON.stringify(s).replace(/"/g, '&quot;') + ')" class="cursor-pointer flex-1"><h3 class="font-semibold text-gray-900 text-lg mb-2">' + (s.name || '') + '</h3><p class="text-sm text-gray-600 mb-4 line-clamp-2">' + (s.description || '') + '</p><div class="pt-4 border-t border-gray-200"><span class="text-2xl font-bold text-gray-900">' + window.salonFormatMoney(parseFloat(s.price || 0)) + '</span></div></div><div class="flex gap-2 pt-4 mt-4 border-t border-gray-100" onclick="event.stopPropagation()"><button type="button" onclick="openEditServiceModal(' + s.id + ')" class="inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium text-xs active:scale-95 flex-1"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>Edit</button><button type="button" onclick="deleteService(' + s.id + ', \'' + (s.name || '').replace(/'/g, "\\'") + '\')" class="inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium text-xs active:scale-95 flex-1"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>Delete</button></div>';
         el.appendChild(card);
     });
 }
@@ -190,7 +188,7 @@ function renderListView() {
     tbody.innerHTML = '';
     var list = getPaginatedServices();
     if (list.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="px-6 py-12 text-center text-gray-500 text-sm">No services found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-12 text-center text-gray-500 text-sm">No services found.</td></tr>';
         return;
     }
     list.forEach(function(s, i) {
@@ -200,12 +198,9 @@ function renderListView() {
             ? '<img src="' + imgUrl.replace(/"/g, '&quot;').replace(/'/g, '&#39;') + '" alt="" class="w-10 h-10 rounded-lg object-cover flex-shrink-0 mr-3" onerror="this.style.display=\'none\'">'
             : '';
         var row = document.createElement('tr');
-        row.className = 'hover:bg-gray-50 cursor-pointer transition';
-        row.onclick = function() {
-            openServiceModal(s);
-        };
+        row.className = 'hover:bg-gray-50 transition';
         var statusHtml = s.active ? '<span class="text-sm font-medium text-green-600">Active</span>' : '<span class="text-sm font-medium text-gray-500">Inactive</span>';
-        row.innerHTML = '<td class="px-6 py-4 whitespace-nowrap"><div class="flex items-center">' + thumbCell + '<div class="' + (imgUrl ? 'ml-3 ' : '') + 'text-sm font-medium text-gray-900">' + (s.name || '') + '</div></div></td><td class="px-6 py-4"><div class="text-sm text-gray-900">' + (s.description || '') + '</div></td><td class="px-6 py-4 whitespace-nowrap"><div class="text-sm font-bold text-gray-900">' + window.salonFormatMoney(parseFloat(s.price || 0)) + '</div></td><td class="px-6 py-4 whitespace-nowrap">' + statusHtml + '</td>';
+        row.innerHTML = '<td class="px-6 py-4 whitespace-nowrap"><div onclick="openServiceModal(' + JSON.stringify(s).replace(/"/g, '&quot;') + ')" class="flex items-center cursor-pointer">' + thumbCell + '<div class="' + (imgUrl ? 'ml-3 ' : '') + 'text-sm font-medium text-gray-900">' + (s.name || '') + '</div></div></td><td class="px-6 py-4"><div onclick="openServiceModal(' + JSON.stringify(s).replace(/"/g, '&quot;') + ')" class="text-sm text-gray-900 cursor-pointer">' + (s.description || '') + '</div></td><td class="px-6 py-4 whitespace-nowrap"><div onclick="openServiceModal(' + JSON.stringify(s).replace(/"/g, '&quot;') + ')" class="text-sm font-bold text-gray-900 cursor-pointer">' + window.salonFormatMoney(parseFloat(s.price || 0)) + '</div></td><td class="px-6 py-4 whitespace-nowrap"><div onclick="openServiceModal(' + JSON.stringify(s).replace(/"/g, '&quot;') + ')" class="cursor-pointer">' + statusHtml + '</div></td><td class="px-6 py-4 whitespace-nowrap text-sm text-right"><div class="flex items-center justify-end gap-2"><button type="button" onclick="event.stopPropagation(); openEditServiceModal(' + s.id + ')" class="inline-flex items-center gap-1 px-3 py-1.5 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium text-xs active:scale-95"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>Edit</button><button type="button" onclick="event.stopPropagation(); deleteService(' + s.id + ', \'' + (s.name || '').replace(/'/g, "\\'") + '\')" class="inline-flex items-center gap-1 px-3 py-1.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium text-xs active:scale-95"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>Delete</button></div></td>';
         tbody.appendChild(row);
     });
 }
@@ -335,6 +330,11 @@ function openServiceModal(service) {
         return;
     }
     openServiceModalContent(service);
+}
+function openEditServiceModal(id) {
+    var service = allServices.find(function(s) { return s.id === id || s.id === parseInt(id, 10); });
+    if (!service) return;
+    openServiceModal(service);
 }
 function openServiceModalContent(service) {
     var id = service.id, name = service.name || '', description = service.description || '', price = service.price != null ? service.price : 0, active = !!service.active;

@@ -201,6 +201,16 @@
                                         <span class="text-lg font-semibold text-gray-900">Total</span>
                                         <span class="text-2xl font-bold text-gray-900" id="checkoutTotalDisplay">{{ $currencySymbol }}0.00</span>
                                     </div>
+                                    <div id="creditPointsSection" class="hidden pt-2 border-t border-gray-200 space-y-1">
+                                        <div class="flex justify-between text-sm">
+                                            <span class="text-gray-600">Current Points</span>
+                                            <span class="text-gray-900 font-medium" id="checkoutCurrentPointsDisplay">0.00</span>
+                                        </div>
+                                        <div class="flex justify-between text-sm">
+                                            <span class="text-gray-600">Earning Points</span>
+                                            <span class="text-green-600 font-medium" id="checkoutEarningPointsDisplay">+0.00</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

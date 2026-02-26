@@ -30,6 +30,11 @@ var availableCredits = 0;
 var taxRate = 0;
 var taxName = 'Tax';
 var taxApplyToAll = true;
+var pointsRateFixed = false;
+var pointsRatePercentage = false;
+var pointsUnitValue = 0;
+var pointsPerUnit = 0;
+var rewardPercentage = 0;
 var colorClasses = [
     { bg: 'bg-[#e6f0f3]', text: 'text-[#003047]' }, { bg: 'bg-purple-100', text: 'text-purple-600' },
     { bg: 'bg-teal-100', text: 'text-teal-600' }, { bg: 'bg-indigo-100', text: 'text-indigo-600' },
@@ -79,6 +84,14 @@ function salonPayApplyBootstrapSettings() {
 
     var applyAll = data.tax_apply_to_all;
     taxApplyToAll = applyAll === true || applyAll === 1 || applyAll === '1' || applyAll === 'true';
+
+    var prf = data.points_rate_fixed;
+    pointsRateFixed = prf === true || prf === 1 || prf === '1' || prf === 'true';
+    var prp = data.points_rate_percentage;
+    pointsRatePercentage = prp === true || prp === 1 || prp === '1' || prp === 'true';
+    pointsUnitValue = parseFloat(data.points_unit_value) || 0;
+    pointsPerUnit = parseFloat(data.points_per_unit) || 0;
+    rewardPercentage = parseFloat(data.reward_percentage) || 0;
 
     salonPayUpdateTaxLabel();
     salonPayUpdateActionButtonsState();
@@ -1489,6 +1502,27 @@ function salonPayUpdatePaymentTotal() {
     if (checkoutGiftCardDisplay) checkoutGiftCardDisplay.textContent = window.salonFormatMoney(-paymentGiftCard);
     if (checkoutTaxDisplay) checkoutTaxDisplay.textContent = window.salonFormatMoney(paymentTax);
     if (checkoutTotalDisplay) checkoutTotalDisplay.textContent = window.salonFormatMoney(total);
+
+    var creditPointsSection = document.getElementById('creditPointsSection');
+    var currentPointsDisplay = document.getElementById('checkoutCurrentPointsDisplay');
+    var earningPointsDisplay = document.getElementById('checkoutEarningPointsDisplay');
+    if (creditPointsSection) {
+        var earningPoints = 0;
+        if (pointsRateFixed && pointsUnitValue > 0 && pointsPerUnit > 0 && total > 0) {
+            earningPoints = Math.round(((total / pointsUnitValue) * pointsPerUnit) * 100) / 100;
+        } else if (pointsRatePercentage && rewardPercentage > 0 && total > 0) {
+            earningPoints = Math.round((total * (rewardPercentage / 100)) * 100) / 100;
+        }
+        if (pointsRateFixed || pointsRatePercentage) {
+            creditPointsSection.classList.remove('hidden');
+            var currentPts = availableCredits || 0;
+            if (currentPointsDisplay) currentPointsDisplay.textContent = currentPts.toFixed(2);
+            if (earningPointsDisplay) earningPointsDisplay.textContent = '+' + earningPoints.toFixed(2);
+        } else {
+            creditPointsSection.classList.add('hidden');
+        }
+    }
+
     var tipAmountHidden = document.getElementById('tipAmountHidden');
     if (tipAmountHidden) tipAmountHidden.value = totalTipSplitAmount.toFixed(2);
     var discountAmountHidden = document.getElementById('discountAmountHidden');

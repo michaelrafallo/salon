@@ -49,30 +49,48 @@
                 </form>
             </div>
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-                <h2 class="text-lg font-semibold text-gray-900 mb-4">Receipt Settings</h2>
-                <form class="space-y-4 settings-form" data-settings-keys="receipt_print_enabled,receipt_include_business_info">
-                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                        <div>
-                            <label class="text-sm font-medium text-gray-900">Enable Receipt Printing</label>
-                            <p class="text-xs text-gray-500">Automatically print receipts after payment</p>
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">GoHighLevel Webhooks</h2>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Online Check-in</label>
+                    <div class="relative">
+                        <div class="flex items-center gap-2">
+                            <input type="url" id="onlineCheckinUrl" value="{{ url('/check-in') }}" readonly class="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-50 text-gray-700 cursor-default focus:outline-none">
+                            <button type="button" id="copyCheckinBtn" class="px-3 py-3 border border-gray-300 rounded-lg hover:bg-gray-100 transition active:scale-95" title="Copy URL">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                            </button>
                         </div>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" name="receipt_print_enabled" value="1" class="sr-only peer settings-checkbox">
-                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#b3d1d9] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#003047]"></div>
-                        </label>
+                        <span id="copyCheckinToast" class="absolute -top-8 right-0 px-3 py-1 bg-gray-900 text-white text-xs rounded-lg opacity-0 transition-opacity duration-300 pointer-events-none">Copied!</span>
                     </div>
-                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
-                        <div>
-                            <label class="text-sm font-medium text-gray-900">Include Business Info on Receipt</label>
-                            <p class="text-xs text-gray-500">Show business name, address, and contact on receipts</p>
-                        </div>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" name="receipt_include_business_info" value="1" class="sr-only peer settings-checkbox">
-                            <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#b3d1d9] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#003047]"></div>
-                        </label>
+                    <script>
+                        document.getElementById('copyCheckinBtn').addEventListener('click', function() {
+                            var btn = this;
+                            var toast = document.getElementById('copyCheckinToast');
+                            navigator.clipboard.writeText(document.getElementById('onlineCheckinUrl').value).then(function() {
+                                btn.innerHTML = '<svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+                                btn.classList.add('border-green-400', 'bg-green-50');
+                                toast.classList.remove('opacity-0');
+                                toast.classList.add('opacity-100');
+                                setTimeout(function() {
+                                    btn.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>';
+                                    btn.classList.remove('border-green-400', 'bg-green-50');
+                                    toast.classList.remove('opacity-100');
+                                    toast.classList.add('opacity-0');
+                                }, 1500);
+                            });
+                        });
+                    </script>
+                </div>
+                <form class="space-y-4 settings-form" data-settings-keys="ghl_webhook_book_appointment,ghl_webhook_no_show_sms">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Book Appointment</label>
+                        <input type="url" name="ghl_webhook_book_appointment" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="https://...">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">No Show SMS</label>
+                        <input type="url" name="ghl_webhook_no_show_sms" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="https://...">
                     </div>
                     <div class="flex justify-end">
-                        <button type="submit" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">Save Changes</button>
+                        <button type="submit" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">Save Webhook Settings</button>
                     </div>
                 </form>
             </div>
@@ -108,7 +126,7 @@
             </div>
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                 <h2 class="text-lg font-semibold text-gray-900 mb-4">Currency</h2>
-                <form class="space-y-4 settings-form" data-settings-keys="currency_code,commission_rate">
+                <form class="space-y-4 settings-form" data-settings-keys="currency_code,commission_rate,points_rate_fixed,points_rate_percentage,points_unit_value,points_per_unit,reward_percentage">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Select Currency</label>
                         <select name="currency_code" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent bg-white">
@@ -165,6 +183,42 @@
                             <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-500 text-sm">%</span>
                         </div>
                         <p class="text-xs text-gray-500 mt-1">Used to calculate technician commissions (example: 30 = 30%).</p>
+                    </div>
+                    <div class="border-t border-gray-200 pt-4 mt-4">
+                        <h3 class="text-md font-semibold text-gray-900 mb-3">Credit Points Rate</h3>
+                        <div class="flex items-center gap-6 mb-4">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" name="points_rate_fixed" value="1" class="w-4 h-4 text-[#003047] border-gray-300 rounded focus:ring-[#003047] settings-checkbox" id="points-rate-fixed-cb">
+                                <span class="text-sm font-medium text-gray-700">Fixed Rate</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" name="points_rate_percentage" value="1" class="w-4 h-4 text-[#003047] border-gray-300 rounded focus:ring-[#003047] settings-checkbox" id="points-rate-percentage-cb">
+                                <span class="text-sm font-medium text-gray-700">Percentage-Based</span>
+                            </label>
+                        </div>
+                        <div id="points-fixed-fields" class="hidden">
+                            <div class="flex items-end gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Points per Unit</label>
+                                    <input type="number" name="points_per_unit" min="0" step="0.01" inputmode="decimal" class="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="0.00">
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Points Unit Value</label>
+                                    <input type="number" name="points_unit_value" min="0" step="0.01" inputmode="decimal" class="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="0.00">
+                                </div>
+                            </div>
+                        </div>
+                        <div id="points-percentage-fields" class="hidden">
+                            <div class="flex items-end gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Reward Percentage</label>
+                                    <div class="relative inline-flex items-center">
+                                        <input type="number" name="reward_percentage" min="0" max="100" step="0.01" inputmode="decimal" class="pr-12 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="0.00">
+                                        <span class="absolute inset-y-0 right-0 flex items-center pr-4 text-gray-500 text-base font-medium">%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="flex justify-end">
                         <button type="submit" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">Save Currency Settings</button>
@@ -270,6 +324,7 @@ function salonSettingsLoad() {
                 input.value = (val === null || val === undefined) ? '' : String(val);
             }
         });
+        salonPointsRateToggle();
         return;
     }
 
@@ -287,6 +342,7 @@ function salonSettingsLoad() {
                     input.value = (val === null || val === undefined) ? '' : String(val);
                 }
             });
+            salonPointsRateToggle();
         })
         .catch(function() {});
 }
@@ -326,9 +382,33 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     salonSettingsLoad();
+    salonPointsRateInit();
     if (tabToShow === 'discounts') salonSettingsLoadCoupons();
     if (tabToShow === 'gift-cards') salonSettingsLoadGiftCards();
 });
+function salonPointsRateToggle() {
+    var fixedCb = document.getElementById('points-rate-fixed-cb');
+    var pctCb = document.getElementById('points-rate-percentage-cb');
+    var fixedFields = document.getElementById('points-fixed-fields');
+    var pctFields = document.getElementById('points-percentage-fields');
+    if (!fixedCb || !pctCb || !fixedFields || !pctFields) return;
+    fixedFields.classList.toggle('hidden', !fixedCb.checked);
+    pctFields.classList.toggle('hidden', !pctCb.checked);
+}
+function salonPointsRateInit() {
+    var fixedCb = document.getElementById('points-rate-fixed-cb');
+    var pctCb = document.getElementById('points-rate-percentage-cb');
+    if (!fixedCb || !pctCb) return;
+    fixedCb.addEventListener('change', function() {
+        if (fixedCb.checked) { pctCb.checked = false; }
+        salonPointsRateToggle();
+    });
+    pctCb.addEventListener('change', function() {
+        if (pctCb.checked) { fixedCb.checked = false; }
+        salonPointsRateToggle();
+    });
+    salonPointsRateToggle();
+}
 function salonSettingsLoadCoupons() {
     var main = document.querySelector('main[data-coupons-url]');
     var listEl = document.getElementById('settingsCouponsList');

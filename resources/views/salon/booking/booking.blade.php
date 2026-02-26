@@ -124,6 +124,7 @@
 (function() {
 var base = window.salonJsonBase || '{{ url("api/salon/data") }}';
 var calendarUrl = '{{ $calendarUrl }}';
+var webhookApiUrl = '{{ url("api/salon/settings/webhook") }}';
 var allCustomers = [], selectedCustomer = null, selectedAppointmentDate = null, selectedAppointmentTime = null;
 var currentCalendarMonth = new Date().getMonth(), currentCalendarYear = new Date().getFullYear();
 var availableTechnicians = [], assignedTechnicianIds = [], technicianSearchTerm = '';
@@ -524,6 +525,22 @@ window.salonBookingSave = function() {
     salonApi.post(url, payload)
         .then(function() {
             if (typeof showSuccessMessage === 'function') showSuccessMessage('Booking created successfully for ' + selectedCustomer.firstName + ' ' + selectedCustomer.lastName + '!');
+            var webhookPayload = {
+                customer_id: String(selectedCustomer.id),
+                firstname: selectedCustomer.firstName,
+                lastname: selectedCustomer.lastName,
+                phone: selectedCustomer.phone || '',
+                email: selectedCustomer.email || '',
+                datetime: appointmentDatetime
+            };
+            console.log('Book Appointment Webhook URL:', webhookApiUrl);
+            console.log('Book Appointment Webhook Payload:', webhookPayload);
+            salonApi.post(webhookApiUrl, {
+                webhook_key: 'ghl_webhook_book_appointment',
+                payload: webhookPayload
+            }).catch(function(err) {
+                console.error('Book appointment webhook failed:', err);
+            });
             setTimeout(function() { window.location.href = calendarUrl; }, 1500);
         })
         .catch(function(err) {

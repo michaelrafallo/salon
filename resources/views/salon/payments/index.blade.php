@@ -25,7 +25,7 @@
                             <th class="text-left py-3 px-4 text-sm font-medium text-gray-700">Method</th>
                             <th class="text-left py-3 px-4 text-sm font-medium text-gray-700">Status</th>
                             <th class="text-left py-3 px-4 text-sm font-medium text-gray-700">Date</th>
-                            <th class="text-left py-3 px-4 text-sm font-medium text-gray-700">Actions</th>
+                            <th class="text-right py-3 px-4 text-sm font-medium text-gray-700">Actions</th>
                         </tr>
                     </thead>
                     <tbody id="listViewBody" class="divide-y divide-gray-200"></tbody>
@@ -49,6 +49,45 @@
         <div id="paymentsPagination" class="mt-4 flex justify-center"></div>
     </div>
 </main>
+@push('styles')
+<style>
+@media print {
+    /* Remove shadows and unnecessary elements for print */
+    #modalOverlay, .shadow, .shadow-sm, .shadow-md, .shadow-lg {
+        box-shadow: none !important;
+    }
+
+    /* Hide modal overlay background */
+    #modalOverlay {
+        background: transparent !important;
+    }
+
+    /* Remove rounded corners and adjust spacing */
+    .rounded-lg, .rounded {
+        border-radius: 0 !important;
+    }
+
+    /* Hide buttons in print view */
+    #modalOverlay button,
+    .no-print {
+        display: none !important;
+    }
+
+    /* Ensure content fits on page */
+    #modalContainer {
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+    }
+
+    /* Clean up the ticket display */
+    body {
+        background: white !important;
+    }
+}
+</style>
+@endpush
 @push('scripts')
 <script>
 (function() {
@@ -131,7 +170,7 @@ function renderList() {
         var statusColor = p.statusColor || 'bg-gray-100';
         var statusTextColor = p.statusTextColor || 'text-gray-700';
         var date = p.date || formatDate(p.date);
-        return '<tr class="hover:bg-gray-50"><td class="py-3 px-4"><div class="flex items-center gap-3"><div class="w-8 h-8 ' + customerColor + ' rounded-full flex items-center justify-center"><span class="text-xs font-bold ' + customerTextColor + '">' + customerInitials + '</span></div><span class="text-sm font-medium text-gray-900">' + customerName + '</span></div></td><td class="py-3 px-4 text-sm font-semibold text-gray-900">' + formatMoney(amount) + '</td><td class="py-3 px-4"><span class="px-2 py-1 ' + methodColor + ' ' + methodTextColor + ' text-xs font-medium rounded">' + method + '</span></td><td class="py-3 px-4"><span class="px-2 py-1 ' + statusColor + ' ' + statusTextColor + ' text-xs font-medium rounded">' + status + '</span></td><td class="py-3 px-4 text-sm text-gray-600">' + date + '</td><td class="py-3 px-4"><button onclick="salonPaymentsOpenReceiptModal(\'' + p.id + '\')" class="text-[#003047] hover:text-[#002535] text-sm font-medium">View Receipt</button></td></tr>';
+        return '<tr class="hover:bg-gray-50"><td class="py-3 px-4"><div class="flex items-center gap-3"><div class="w-8 h-8 ' + customerColor + ' rounded-full flex items-center justify-center"><span class="text-xs font-bold ' + customerTextColor + '">' + customerInitials + '</span></div><span class="text-sm font-medium text-gray-900">' + customerName + '</span></div></td><td class="py-3 px-4 text-sm font-semibold text-gray-900">' + formatMoney(amount) + '</td><td class="py-3 px-4"><span class="px-2 py-1 ' + methodColor + ' ' + methodTextColor + ' text-xs font-medium rounded">' + method + '</span></td><td class="py-3 px-4"><span class="px-2 py-1 ' + statusColor + ' ' + statusTextColor + ' text-xs font-medium rounded">' + status + '</span></td><td class="py-3 px-4 text-sm text-gray-600">' + date + '</td><td class="py-3 px-4 text-right"><button onclick="salonPaymentsOpenReceiptModal(\'' + p.id + '\')" class="inline-flex items-center gap-1 px-3 py-1.5 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium text-xs active:scale-95"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>View Receipt</button></td></tr>';
     }).join('');
 }
 function renderGrid() {
@@ -152,7 +191,7 @@ function renderGrid() {
         var statusColor = p.statusColor || 'bg-gray-100';
         var statusTextColor = p.statusTextColor || 'text-gray-700';
         var date = p.date || formatDate(p.date);
-        return '<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow"><div class="flex items-center gap-4 mb-4"><div class="w-12 h-12 ' + customerColor + ' rounded-full flex items-center justify-center flex-shrink-0"><span class="text-sm font-bold ' + customerTextColor + '">' + customerInitials + '</span></div><div class="flex-1 min-w-0"><h3 class="font-semibold text-gray-900 text-lg truncate">' + customerName + '</h3><p class="text-xs text-gray-500">' + p.id + '</p></div></div><div class="mb-4"><p class="text-2xl font-bold text-gray-900 mb-2">' + formatMoney(amount) + '</p><div class="flex items-center gap-2"><span class="px-2 py-1 ' + methodColor + ' ' + methodTextColor + ' text-xs font-medium rounded">' + method + '</span><span class="px-2 py-1 ' + statusColor + ' ' + statusTextColor + ' text-xs font-medium rounded">' + status + '</span></div></div><button onclick="salonPaymentsOpenReceiptModal(\'' + p.id + '\')" class="w-full px-4 py-2 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium text-sm active:scale-95">View Receipt</button></div>';
+        return '<div class="bg-white rounded-lg shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow"><div class="flex items-center gap-4 mb-4"><div class="w-12 h-12 ' + customerColor + ' rounded-full flex items-center justify-center flex-shrink-0"><span class="text-sm font-bold ' + customerTextColor + '">' + customerInitials + '</span></div><div class="flex-1 min-w-0"><h3 class="font-semibold text-gray-900 text-lg truncate">' + customerName + '</h3><p class="text-xs text-gray-500">' + p.id + '</p></div></div><div class="mb-4"><p class="text-2xl font-bold text-gray-900 mb-2">' + formatMoney(amount) + '</p><div class="flex items-center gap-2"><span class="px-2 py-1 ' + methodColor + ' ' + methodTextColor + ' text-xs font-medium rounded">' + method + '</span><span class="px-2 py-1 ' + statusColor + ' ' + statusTextColor + ' text-xs font-medium rounded">' + status + '</span></div></div><button onclick="salonPaymentsOpenReceiptModal(\'' + p.id + '\')" class="w-full inline-flex items-center justify-center gap-1 px-3 py-1.5 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium text-xs active:scale-95"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>View Receipt</button></div>';
     }).join('');
 }
 function salonPaymentsRender() {

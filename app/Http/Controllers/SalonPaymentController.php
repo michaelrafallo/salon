@@ -45,7 +45,7 @@ class SalonPaymentController extends Controller
         }
 
         try {
-            $payment = DB::transaction(function () use ($validated, $processedByUserId, $commissionRate, $currency) {
+            $payment = DB::transaction(function () use ($validated, $processedByUserId, $commissionRate, $currency, $settings) {
                 $appointment = Appointment::query()->with('customer')->lockForUpdate()->findOrFail($validated['appointment_id']);
 
                 $paymentId = strtoupper(Str::random(20));
@@ -78,6 +78,34 @@ class SalonPaymentController extends Controller
                             $customer,
                             (float) $validated['credits'],
                             'redeem',
+                            (int) $processedByUserId
+                        );
+                    }
+                }
+
+                $customer = $appointment->customer;
+                if ($customer) {
+                    $paymentTotal = (float) ($validated['amount'] ?? 0);
+                    $earnedCredits = 0.0;
+
+                    if (($settings['points_rate_fixed'] ?? '0') === '1') {
+                        $unitValue = (float) ($settings['points_unit_value'] ?? 0);
+                        $perUnit = (float) ($settings['points_per_unit'] ?? 0);
+                        if ($unitValue > 0 && $perUnit > 0 && $paymentTotal > 0) {
+                            $earnedCredits = round(($paymentTotal / $unitValue) * $perUnit, 2);
+                        }
+                    } elseif (($settings['points_rate_percentage'] ?? '0') === '1') {
+                        $rewardPct = (float) ($settings['reward_percentage'] ?? 0);
+                        if ($rewardPct > 0 && $paymentTotal > 0) {
+                            $earnedCredits = round($paymentTotal * ($rewardPct / 100), 2);
+                        }
+                    }
+
+                    if ($earnedCredits > 0) {
+                        $this->customerService->adjustCredits(
+                            $customer,
+                            $earnedCredits,
+                            'earned',
                             (int) $processedByUserId
                         );
                     }

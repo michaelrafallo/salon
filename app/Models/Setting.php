@@ -38,9 +38,16 @@ class Setting extends Model
             'tax_apply_to_all',
             'currency_code',
             'commission_rate',
+            'points_rate_fixed',
+            'points_rate_percentage',
+            'points_unit_value',
+            'points_per_unit',
+            'reward_percentage',
             'turn_tracker_order',
             'discounts_enabled',
             'gift_cards_enabled',
+            'ghl_webhook_book_appointment',
+            'ghl_webhook_no_show_sms',
         ];
     }
 

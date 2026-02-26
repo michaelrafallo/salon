@@ -15,6 +15,9 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'salon.auth' => EnsureSalonAuthenticated::class,
         ]);
+        $middleware->validateCsrfTokens(except: [
+            'check-in',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

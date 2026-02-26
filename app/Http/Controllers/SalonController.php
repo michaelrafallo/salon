@@ -481,6 +481,11 @@ class SalonController extends Controller
                     'tax_rate' => $settings['tax_rate'] ?? null,
                     'tax_name' => $settings['tax_name'] ?? null,
                     'tax_apply_to_all' => $settings['tax_apply_to_all'] ?? null,
+                    'points_rate_fixed' => $settings['points_rate_fixed'] ?? null,
+                    'points_rate_percentage' => $settings['points_rate_percentage'] ?? null,
+                    'points_unit_value' => $settings['points_unit_value'] ?? null,
+                    'points_per_unit' => $settings['points_per_unit'] ?? null,
+                    'reward_percentage' => $settings['reward_percentage'] ?? null,
                 ];
 
                 $coupons = Coupon::query()

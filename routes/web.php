@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\OnlineCheckinController;
 use App\Http\Controllers\SalonAppointmentController;
 use App\Http\Controllers\SalonController;
 use App\Http\Controllers\SalonCouponController;
@@ -39,6 +40,7 @@ Route::middleware(['web', 'salon.auth'])->prefix('api/salon')->name('api.salon.'
     Route::post('technicians/{user}/clock-out', [SalonTurnTrackerController::class, 'clockOut'])->name('technicians.clock-out');
     Route::get('settings', [SalonSettingsController::class, 'index'])->name('settings.index');
     Route::put('settings', [SalonSettingsController::class, 'update'])->name('settings.update');
+    Route::post('settings/webhook', [SalonSettingsController::class, 'sendWebhook'])->name('settings.webhook');
     Route::get('coupons', [SalonCouponController::class, 'index'])->name('coupons.index');
     Route::post('coupons', [SalonCouponController::class, 'store'])->name('coupons.store');
     Route::put('coupons/{coupon}', [SalonCouponController::class, 'update'])->name('coupons.update');
@@ -60,6 +62,8 @@ Route::prefix('api/salon/data')->name('api.salon.data.')->group(function () {
     Route::get('payout', [SalonDataController::class, 'payout']);
     Route::get('technicians/{id}', [SalonDataController::class, 'technician'])->whereNumber('id');
 });
+
+Route::post('check-in', [OnlineCheckinController::class, 'store'])->name('online-checkin.store');
 
 Route::name('salon.')->group(function () {
     Route::redirect('/', '/dashboard', 302);

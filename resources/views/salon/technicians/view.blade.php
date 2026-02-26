@@ -142,6 +142,46 @@
     </div>
 </main>
 
+@push('styles')
+<style>
+@media print {
+    /* Remove shadows and unnecessary elements for print */
+    #modalOverlay, .shadow, .shadow-sm, .shadow-md, .shadow-lg {
+        box-shadow: none !important;
+    }
+
+    /* Hide modal overlay background */
+    #modalOverlay {
+        background: transparent !important;
+    }
+
+    /* Remove rounded corners and adjust spacing */
+    .rounded-lg, .rounded {
+        border-radius: 0 !important;
+    }
+
+    /* Hide buttons in print view */
+    #modalOverlay button,
+    .no-print {
+        display: none !important;
+    }
+
+    /* Ensure content fits on page */
+    #modalContainer {
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+    }
+
+    /* Clean up the ticket display */
+    body {
+        background: white !important;
+    }
+}
+</style>
+@endpush
+
 @push('scripts')
 <script>
 (function() {

@@ -96,6 +96,7 @@ const currentUserRole = '{{ $currentRole }}';
 const isTechnician = currentUserRole === 'technician';
 var base = window.salonJsonBase || '{{ url("api/salon/data") }}';
 window.salonCalendarAppointmentsApiUrl = '{{ $appointmentsApiUrl }}';
+window.salonWebhookApiUrl = '{{ url("api/salon/settings/webhook") }}';
 
 // Store bookings and customers data
 let bookingsData = [];
@@ -228,6 +229,7 @@ function convertAppointmentsToEvents(appointments) {
         const customer = customersData.find(c => c.id.toString() === appointment.customer_id.toString());
         const customerName = customer ? `${customer.firstName} ${customer.lastName}` : `Customer #${appointment.customer_id}`;
         const customerPhone = customer ? (customer.phone || 'No phone') : 'No phone';
+        const customerEmail = customer ? (customer.email || '') : '';
         
         // Parse appointment datetime as local time (ignore Z so saved time displays correctly in calendar and modal)
         let appointmentDateTime = appointment.appointment_datetime || appointment.created_at;
@@ -334,6 +336,7 @@ function convertAppointmentsToEvents(appointments) {
                 price: price,
                 status: statusInfo.display,
                 phone: customerPhone,
+                email: customerEmail,
                 bookingId: appointment.id,
                 bookingType: appointment.appointment || 'booked',
                 originalStatus: appointment.status,
@@ -442,7 +445,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 customer: extendedProps.customer,
                 technician: extendedProps.technician,
                 phone: extendedProps.phone,
-                status: extendedProps.status,
+                email: extendedProps.email || '',
+                status: extendedProps.originalStatus || extendedProps.status,
                 date: event.start,
                 isNoShow: extendedProps.isNoShow || noShowStatus[event.id] || false,
                 assigned_technician: appointment ? appointment.assigned_technician : null,
@@ -672,7 +676,9 @@ document.addEventListener('DOMContentLoaded', async function() {
         },
         eventContent: function(arg) {
             // Check if event is unpaid
-            const isUnpaid = arg.event.extendedProps.originalStatus === 'unpaid';
+            const originalStatus = arg.event.extendedProps.originalStatus;
+            const isUnpaid = originalStatus === 'unpaid';
+            const isConfirmed = originalStatus === 'confirmed';
 
             // Format time
             const timeText = arg.timeText;
@@ -687,7 +693,13 @@ document.addEventListener('DOMContentLoaded', async function() {
             timeEl.style.alignItems = 'center';
             timeEl.style.gap = '4px';
 
-            if (isUnpaid) {
+            if (isConfirmed) {
+                const checkIcon = document.createElement('span');
+                checkIcon.style.display = 'inline-flex';
+                checkIcon.style.alignItems = 'center';
+                checkIcon.innerHTML = `<svg style="width: 12px; height: 12px; color: #16a34a;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+                timeEl.appendChild(checkIcon);
+            } else if (isUnpaid) {
                 // Add green clock icon before time for unpaid events
                 const clockIcon = document.createElement('span');
                 clockIcon.className = 'rotating-clock';
@@ -1975,12 +1987,21 @@ function showAppointmentModal(appointmentData) {
     const customerName = appointmentData.customer;
     const technicians = appointmentData.technician || 'Not Assigned';
     const customerPhone = appointmentData.phone;
+    const customerEmail = appointmentData.email || '';
+    const hasRealPhone = customerPhone && customerPhone !== 'No phone';
     const status = appointmentData.status;
     const appointmentDate = appointmentData.date;
     const isNoShow = appointmentData.isNoShow || noShowStatus[appointmentId] || false;
     const bookingType = appointmentData.bookingType || 'Booked';
     const typeBadgeClass = bookingType === 'Walk-In' ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-purple-100 text-purple-700 border-purple-200';
-    
+    const statusLower = (status || '').toLowerCase();
+    const statusBadgeClass = statusLower === 'confirmed' ? 'bg-green-100 text-green-700 border-green-200'
+        : statusLower === 'paid' ? 'bg-emerald-100 text-emerald-700 border-emerald-200'
+        : statusLower === 'completed' ? 'bg-teal-100 text-teal-700 border-teal-200'
+        : statusLower === 'refunded' ? 'bg-red-100 text-red-700 border-red-200'
+        : 'bg-yellow-100 text-yellow-700 border-yellow-200';
+    const statusLabel = status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Waiting';
+
     // Find event if it exists (for calendar view)
     if (calendarInstance && !currentEvent) {
         const events = calendarInstance.getEvents();
@@ -1994,9 +2015,14 @@ function showAppointmentModal(appointmentData) {
                 <div>
                     <h3 class="text-2xl font-bold text-gray-900 mb-1">${customerName}</h3>
                 </div>
-                <span class="px-3 py-1.5 rounded-lg text-xs font-semibold border ${typeBadgeClass}">
-                    ${bookingType}
-                </span>
+                <div class="flex items-center gap-2">
+                    <span class="px-3 py-1.5 rounded-lg text-xs font-semibold border ${typeBadgeClass}">
+                        ${bookingType}
+                    </span>
+                    <span class="px-3 py-1.5 rounded-lg text-xs font-semibold border ${statusBadgeClass}">
+                        ${statusLabel}
+                    </span>
+                </div>
             </div>
             
             <div class="space-y-4 mb-6">
@@ -2033,20 +2059,41 @@ function showAppointmentModal(appointmentData) {
                     </div>
                 </div>
                 
-                ${customerPhone ? `
-                <div class="p-4 bg-gray-50 rounded-xl">
-                    <div class="flex items-center gap-3 mb-4">
-                    <div class="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <svg class="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
-                        </svg>
-                    </div>
-                    <div class="flex-1">
-                        <p class="text-xs text-gray-500 mb-0.5">Contact</p>
-                        <p class="font-semibold text-gray-900">${customerPhone}</p>
+                ${customerPhone || customerEmail ? `
+                <div class="grid grid-cols-2 gap-4">
+                    ${customerPhone ? `
+                    <div class="p-4 bg-gray-50 rounded-xl">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-teal-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <svg class="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
+                                </svg>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-xs text-gray-500 mb-0.5">Phone</p>
+                                <p class="font-semibold text-gray-900 truncate">${customerPhone}</p>
+                            </div>
                         </div>
                     </div>
-                    <div class="space-y-4 pt-4 border-t border-gray-200">
+                    ` : ''}
+                    ${customerEmail ? `
+                    <div class="p-4 bg-gray-50 rounded-xl">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+                                </svg>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-xs text-gray-500 mb-0.5">Email</p>
+                                <p class="font-semibold text-gray-900 truncate">${customerEmail}</p>
+                            </div>
+                        </div>
+                    </div>
+                    ` : ''}
+                </div>
+                <div class="p-4 bg-gray-50 rounded-xl">
+                    <div class="space-y-4">
                         <div>
                             <label class="flex items-center justify-between cursor-pointer mb-2">
                                 <div class="flex items-center gap-2">
@@ -2056,11 +2103,11 @@ function showAppointmentModal(appointmentData) {
                             </label>
                             <p class="text-xs text-gray-500 ml-6">Mark this appointment as a no-show if the customer did not arrive for their scheduled appointment.</p>
                         </div>
-                        <div class="hidden">
+                        <div id="smsNotificationSection_${appointmentId}" class="${isNoShow ? '' : 'hidden'}">
                             <div class="flex items-center justify-between mb-2">
                                 <label class="flex items-center gap-2 cursor-pointer">
                                     <input type="checkbox" id="smsNotificationToggle" class="w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500" onchange="toggleSMSNotificationCheckbox(${appointmentId}, this.checked)">
-                                    <span class="text-sm font-medium text-gray-700">Send SMS Notification</span>
+                                    <span class="text-sm font-medium text-gray-700">${hasRealPhone ? 'Send SMS Notification' : 'Send Email Notification'}</span>
                                 </label>
                                 <button id="sendSMSBtn_${appointmentId}" onclick="sendSMSNotification(${appointmentId})" disabled class="px-4 py-2 bg-gray-300 text-gray-500 rounded-lg hover:bg-gray-400 transition-all font-medium text-sm flex items-center gap-2 cursor-not-allowed">
                                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2069,7 +2116,7 @@ function showAppointmentModal(appointmentData) {
                                     Send
                                 </button>
                             </div>
-                            <p class="text-xs text-gray-500 ml-6">Send an SMS notification to the customer about this appointment.</p>
+                            <p class="text-xs text-gray-500 ml-6">${hasRealPhone ? 'Send a SMS notification to the customer about this appointment.' : 'Send an email notification to the customer about this appointment.'}</p>
                         </div>
                     </div>
                 </div>
@@ -2123,17 +2170,10 @@ function viewAppointment(bookingId) {
     const customer = customersData.find(c => c.id.toString() === appointment.customer_id.toString());
     const customerName = customer ? `${customer.firstName} ${customer.lastName}` : `Customer #${appointment.customer_id}`;
     const customerPhone = customer ? (customer.phone || null) : null;
-    
+    const customerEmail = customer ? (customer.email || '') : '';
+
     const aptDateTime = appointment.appointment_datetime || appointment.created_at;
     const aptDate = new Date(aptDateTime);
-    
-    const statusMap = {
-        'waiting': 'In Booking',
-        'in-progress': 'In Progress',
-        'completed': 'Completed',
-        'paid': 'Paid'
-    };
-    const status = statusMap[appointment.status] || 'Booked';
     
     // Get technician names
     let technicians = 'Not Assigned';
@@ -2152,7 +2192,8 @@ function viewAppointment(bookingId) {
         customer: customerName,
         technician: technicians,
         phone: customerPhone,
-        status: status,
+        email: customerEmail,
+        status: appointment.status,
         date: aptDate,
         isNoShow: noShowStatus[appointment.id] || false,
         assigned_technician: appointment.assigned_technician,
@@ -2271,41 +2312,83 @@ function toggleSMSNotificationCheckbox(bookingId, isChecked) {
 }
 
 function sendSMSNotification(bookingId) {
-    // Find the appointment
     const appointment = bookingsData.find(apt => apt.id.toString() === bookingId.toString());
     if (!appointment) {
         showToastMessage('Appointment not found', 'error');
         return;
     }
-    
-    // Find customer phone
+
     const customer = customersData.find(c => c.id.toString() === appointment.customer_id.toString());
-    const phoneNumber = customer ? (customer.phone || '') : '';
-    
-    if (!phoneNumber) {
-        showToastMessage('No phone number available for this customer', 'error');
+    if (!customer) {
+        showToastMessage('Customer not found', 'error');
         return;
     }
-    
-    // TODO: Implement actual SMS sending logic
-    // You can integrate with SMS service providers like Twilio, AWS SNS, etc.
-    console.log('Sending SMS to:', phoneNumber, 'for appointment:', bookingId);
-    
-    // Show success message
-    showToastMessage(`SMS notification sent to ${phoneNumber}`, 'success');
-    
-    // Disable the checkbox and button after sending
-    const checkbox = document.getElementById('smsNotificationToggle');
+
+    const phoneNumber = customer.phone || '';
+    const emailAddress = customer.email || '';
+    if (!phoneNumber && !emailAddress) {
+        showToastMessage('No phone number or email available for this customer', 'error');
+        return;
+    }
+
     const sendBtn = document.getElementById(`sendSMSBtn_${bookingId}`);
-    if (checkbox) checkbox.checked = false;
+    const checkbox = document.getElementById('smsNotificationToggle');
     if (sendBtn) {
         sendBtn.disabled = true;
-        sendBtn.classList.remove('bg-green-500', 'text-white', 'hover:bg-green-600', 'cursor-pointer');
-        sendBtn.classList.add('bg-gray-300', 'text-gray-500', 'cursor-not-allowed', 'hover:bg-gray-400');
+        sendBtn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path></svg> Sending...';
     }
+
+    const webhookPayload = {
+        firstname: customer.firstName || '',
+        lastname: customer.lastName || '',
+        email: emailAddress,
+        phone: phoneNumber,
+    };
+
+    console.log('No Show Webhook Payload:', JSON.stringify(webhookPayload, null, 2));
+
+    salonApi.post(window.salonWebhookApiUrl, {
+        webhook_key: 'ghl_webhook_no_show_sms',
+        payload: webhookPayload,
+    })
+    .then(function(res) {
+        if (res && res.success) {
+            showToastMessage('No Show notification sent successfully', 'success');
+            if (checkbox) checkbox.checked = false;
+            if (sendBtn) {
+                sendBtn.disabled = true;
+                sendBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Sent';
+                sendBtn.classList.remove('bg-green-500', 'hover:bg-green-600', 'cursor-pointer');
+                sendBtn.classList.add('bg-gray-300', 'text-gray-500', 'cursor-not-allowed');
+            }
+        } else {
+            showToastMessage(res.message || 'Failed to send notification', 'error');
+            if (sendBtn) {
+                sendBtn.disabled = false;
+                sendBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg> Send';
+            }
+        }
+    })
+    .catch(function(err) {
+        console.error('Webhook error:', err);
+        showToastMessage('Failed to send notification', 'error');
+        if (sendBtn) {
+            sendBtn.disabled = false;
+            sendBtn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg> Send';
+        }
+    });
 }
 
 function toggleNoShow(bookingId, isNoShow) {
+    const smsSection = document.getElementById(`smsNotificationSection_${bookingId}`);
+    if (smsSection) {
+        if (isNoShow) {
+            smsSection.classList.remove('hidden');
+        } else {
+            smsSection.classList.add('hidden');
+        }
+    }
+
     const event = calendarInstance ? calendarInstance.getEventById(bookingId.toString()) : null;
     const appointment = bookingsData.find(function(apt) { return apt.id.toString() === bookingId.toString(); });
     const currentStatus = (event && event.extendedProps && event.extendedProps.originalStatus) || (appointment && appointment.status) || 'waiting';

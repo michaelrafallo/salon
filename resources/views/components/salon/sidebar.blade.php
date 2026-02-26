@@ -130,7 +130,7 @@
     </div>
 </aside>
 
-<div class="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden hidden" id="sidebarOverlay"></div>
+<div class="fixed inset-0 z-40 lg:hidden hidden" id="sidebarOverlay" style="background-color: #00000085;"></div>
 <button type="button" class="lg:hidden fixed top-4 left-4 z-50 p-2 bg-white rounded-lg shadow-md" id="mobileMenuBtn" aria-label="Toggle menu">
     <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
 </button>
@@ -144,6 +144,7 @@
     function toggleSidebar() {
         sidebar.classList.toggle('-translate-x-full');
         sidebarOverlay.classList.toggle('hidden');
+        mobileMenuBtn.classList.toggle('hidden');
     }
     mobileMenuBtn.addEventListener('click', toggleSidebar);
     sidebarOverlay.addEventListener('click', toggleSidebar);
