@@ -218,6 +218,8 @@ function showErrorMessage(message) {
  * Open a modern confirmation modal (e.g. for delete).
  * @param {Object} options - title, message, confirmLabel (optional), onConfirm (function), nested (boolean) - if true, opens on top of current modal (z-60)
  */
+function escHtml(str) { return (str + '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function boldName(name) { return '<strong class="text-gray-900 font-semibold">' + escHtml(name) + '</strong>'; }
 function openConfirmModal(options) {
     const title = (options && options.title) || 'Confirm';
     const message = (options && options.message) || 'Are you sure you want to continue?';
@@ -244,7 +246,7 @@ function openConfirmModal(options) {
                         </svg>
                     </div>
                     <div class="flex-1 min-w-0 pt-0.5 space-y-1">
-                        <p class="text-sm text-gray-600 leading-relaxed">${(message + '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>
+                        <p class="text-sm text-gray-600 leading-relaxed">${message}</p>
                     </div>
                 </div>
             </div>

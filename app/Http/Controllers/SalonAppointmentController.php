@@ -62,6 +62,10 @@ class SalonAppointmentController extends Controller
             $updates['status'] = $request->validated('status');
         }
 
+        if ($request->has('color')) {
+            $updates['color'] = $request->validated('color');
+        }
+
         if (! empty($updates)) {
             $appointment->update($updates);
         }
@@ -103,6 +107,7 @@ class SalonAppointmentController extends Controller
             'customer_id' => $appointment->customer_id,
             'appointment' => $appointment->type,
             'status' => $appointment->status,
+            'color' => $appointment->color,
             'created_at' => $appointment->created_at?->toIso8601String(),
             'appointment_datetime' => $appointment->appointment_datetime?->toIso8601String(),
             'assigned_technician' => $appointment->technicians->pluck('id')->values()->all(),

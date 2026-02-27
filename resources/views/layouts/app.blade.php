@@ -11,6 +11,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <style>
         body.font-poppins { font-family: 'Poppins', sans-serif; }
+        a, button, [onclick], [role="button"], select, label[for], input[type="checkbox"], input[type="radio"], .cursor-pointer { cursor: pointer; }
     </style>
     @stack('styles')
 </head>

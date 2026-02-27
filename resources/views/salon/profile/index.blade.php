@@ -12,6 +12,7 @@
     $avatarText = 'text-[#003047]';
     $initials = $profileUser?->initials ?? strtoupper(mb_substr($userName, 0, 1) . mb_substr(strrchr($userName . ' ', ' ') ?: 'U', 0, 1));
     $apiSalonUrl = rtrim(url('api/salon'), '/');
+    $profilePhotoUrl = $profileUser?->profile_photo ? asset('storage/' . $profileUser->profile_photo) : null;
 @endphp
 <main class="flex-1 overflow-y-auto bg-gray-50 lg:ml-0 pt-16 lg:pt-0">
     <div class="p-4 sm:p-6 lg:p-8">
@@ -22,8 +23,38 @@
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
             <div class="flex items-start justify-between mb-4">
                 <div class="flex items-start gap-6 flex-1">
-                    <div class="w-24 h-24 {{ $avatarBg }} rounded-full flex items-center justify-center flex-shrink-0">
-                        <span class="text-4xl font-bold {{ $avatarText }}">{{ $initials }}</span>
+                    <div class="flex-shrink-0 flex flex-col items-center gap-2 w-full max-w-[300px]">
+                        <div class="relative group cursor-pointer w-full" onclick="document.getElementById('profilePhotoInput').click()">
+                            <div id="profileAvatar" class="w-full aspect-square {{ $avatarBg }} flex items-center justify-center overflow-hidden rounded-lg">
+                                @if($profilePhotoUrl)
+                                    <img src="{{ $profilePhotoUrl }}" alt="Profile Photo" class="w-full h-full object-cover">
+                                @else
+                                    <span class="text-4xl font-bold {{ $avatarText }}">{{ $initials }}</span>
+                                @endif
+                            </div>
+                            <div class="absolute inset-0 bg-black bg-opacity-40 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                </svg>
+                            </div>
+                            <input type="file" id="profilePhotoInput" accept="image/*" class="hidden" onchange="salonProfileUploadPhoto(this)">
+                        </div>
+                        <div class="flex items-center gap-2 mt-1">
+                            <button type="button" onclick="document.getElementById('profilePhotoInput').click()" class="px-3 py-1.5 text-xs font-medium bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition active:scale-95 flex items-center gap-1.5">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                </svg>
+                                Upload
+                            </button>
+                            <button type="button" id="profileRemovePhotoBtn" onclick="salonProfileRemovePhoto()" class="px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition active:scale-95 flex items-center gap-1.5 {{ $profilePhotoUrl ? '' : 'hidden' }}">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                </svg>
+                                Remove
+                            </button>
+                        </div>
                     </div>
                     <div class="flex-1">
                         <h1 class="text-3xl font-bold text-gray-900 mb-2" id="profileUserName">{{ $userName }}</h1>
@@ -95,6 +126,7 @@
             'join_date' => $joinDate,
             'avatar_color' => 'pink',
             'initials' => $initials,
+            'profile_photo_url' => $profilePhotoUrl,
         ]
         : [
             'id' => 0,
@@ -106,6 +138,7 @@
             'join_date' => $joinDate,
             'avatar_color' => 'pink',
             'initials' => $initials,
+            'profile_photo_url' => null,
         ];
 @endphp
 @push('scripts')
@@ -124,6 +157,83 @@ document.addEventListener('DOMContentLoaded', function() {
         salonProfileUserData.phone = phoneEl.textContent.trim();
     }
 });
+window.salonProfileUploadPhoto = function(input) {
+    if (!input.files || !input.files[0]) return;
+    var file = input.files[0];
+    if (file.size > 2 * 1024 * 1024) {
+        if (typeof showErrorMessage === 'function') showErrorMessage('Image must be less than 2 MB.');
+        input.value = '';
+        return;
+    }
+    var fd = new FormData();
+    fd.append('profile_photo', file);
+    fd.append('first_name', salonProfileUserData.first_name);
+    fd.append('last_name', salonProfileUserData.last_name);
+    fd.append('email', salonProfileUserData.email);
+    fd.append('phone', salonProfileUserData.phone || '');
+    fd.append('_method', 'PUT');
+    var csrfToken = document.querySelector('meta[name="csrf-token"]');
+    fetch(salonProfileApiUrl + '/profile', {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': csrfToken ? csrfToken.getAttribute('content') : ''
+        },
+        credentials: 'same-origin',
+        body: fd
+    }).then(function(r) { return r.json(); }).then(function(res) {
+        if (res.success && res.data && res.data.profilePhotoUrl) {
+            salonProfileUserData.profile_photo_url = res.data.profilePhotoUrl;
+            var avatar = document.getElementById('profileAvatar');
+            if (avatar) {
+                avatar.innerHTML = '<img src="' + res.data.profilePhotoUrl + '" alt="Profile Photo" class="w-full h-full object-cover">';
+            }
+            var removeBtn = document.getElementById('profileRemovePhotoBtn');
+            if (removeBtn) removeBtn.classList.remove('hidden');
+            if (typeof showSuccessMessage === 'function') showSuccessMessage('Profile photo updated!');
+        } else if (res.message) {
+            if (typeof showErrorMessage === 'function') showErrorMessage(res.message);
+        }
+    }).catch(function() {
+        if (typeof showErrorMessage === 'function') showErrorMessage('Failed to upload photo.');
+    });
+    input.value = '';
+};
+window.salonProfileRemovePhoto = function() {
+    if (!confirm('Remove your profile photo?')) return;
+    var fd = new FormData();
+    fd.append('remove_photo', '1');
+    fd.append('first_name', salonProfileUserData.first_name);
+    fd.append('last_name', salonProfileUserData.last_name);
+    fd.append('email', salonProfileUserData.email);
+    fd.append('phone', salonProfileUserData.phone || '');
+    fd.append('_method', 'PUT');
+    var csrfToken = document.querySelector('meta[name="csrf-token"]');
+    fetch(salonProfileApiUrl + '/profile', {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': csrfToken ? csrfToken.getAttribute('content') : ''
+        },
+        credentials: 'same-origin',
+        body: fd
+    }).then(function(r) { return r.json(); }).then(function(res) {
+        if (res.success) {
+            salonProfileUserData.profile_photo_url = null;
+            var avatar = document.getElementById('profileAvatar');
+            if (avatar) {
+                avatar.innerHTML = '<span class="w-full h-full flex items-center justify-center text-4xl font-bold {{ $avatarText }}">' + (salonProfileUserData.initials || '{{ $initials }}') + '</span>';
+            }
+            var removeBtn = document.getElementById('profileRemovePhotoBtn');
+            if (removeBtn) removeBtn.classList.add('hidden');
+            if (typeof showSuccessMessage === 'function') showSuccessMessage('Profile photo removed.');
+        } else if (res.message) {
+            if (typeof showErrorMessage === 'function') showErrorMessage(res.message);
+        }
+    }).catch(function() {
+        if (typeof showErrorMessage === 'function') showErrorMessage('Failed to remove photo.');
+    });
+};
 window.salonProfileOpenEditModal = function() {
     var first = (salonProfileUserData.first_name || '').replace(/"/g, '&quot;');
     var last = (salonProfileUserData.last_name || '').replace(/"/g, '&quot;');

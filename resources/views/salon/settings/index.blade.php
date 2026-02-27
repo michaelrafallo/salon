@@ -229,10 +229,9 @@
         <div id="tab-discounts" class="settings-tab {{ $settingsTab === 'discounts' ? '' : 'hidden' }}">
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
                 <div class="flex items-center justify-between mb-4">
-                    <h2 class="text-lg font-semibold text-gray-900">Discounts & Coupons</h2>
-                    <button type="button" onclick="salonSettingsOpenAddCouponModal()" class="px-4 py-2 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium text-sm active:scale-95">+ Add Coupon</button>
+                    <h2 class="text-lg font-semibold text-gray-900">Discount Settings</h2>
                 </div>
-                <form class="space-y-4 settings-form mb-4" data-settings-keys="discounts_enabled">
+                <form class="space-y-4 settings-form" data-settings-keys="discounts_enabled">
                     <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
                         <div>
                             <label class="text-sm font-medium text-gray-900">Enable Discount System</label>
@@ -247,6 +246,12 @@
                         <button type="submit" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">Save</button>
                     </div>
                 </form>
+            </div>
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-semibold text-gray-900">Coupons</h2>
+                    <button type="button" onclick="salonSettingsOpenAddCouponModal()" class="px-4 py-2 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium text-sm active:scale-95">+ Add Coupon</button>
+                </div>
                 <div id="settingsCouponsList" class="space-y-3">
                     <div class="text-center py-6 text-gray-500 text-sm">Loading coupons...</div>
                 </div>
@@ -430,7 +435,7 @@ function salonSettingsLoadCoupons() {
                 var statusClass = c.active ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600';
                 var statusText = c.active ? 'Active' : 'Inactive';
                 var dataCoupon = (typeof JSON !== 'undefined' && JSON.stringify) ? JSON.stringify(c).replace(/&/g, '&amp;').replace(/"/g, '&quot;') : '';
-                html += '<div class="p-4 border border-gray-200 rounded-lg"><div class="flex items-center justify-between mb-2"><div><p class="font-medium text-gray-900">' + codeEsc + '</p><p class="text-xs text-gray-500">' + descEsc + ' &middot; ' + (c.discount_type === 'percent' ? c.discount_value + '%' : (window.salonCurrencySymbol || '$') + c.discount_value) + (c.min_order_amount ? ' (min ' + (window.salonCurrencySymbol || '$') + c.min_order_amount + ')' : '') + '</p></div><div class="flex items-center gap-2"><span class="px-2 py-1 ' + statusClass + ' text-xs font-medium rounded">' + statusText + '</span><button type="button" class="salon-settings-edit-coupon text-[#003047] hover:text-[#002535] text-sm font-medium" data-coupon="' + dataCoupon + '">Edit</button><button type="button" class="salon-settings-delete-coupon text-red-600 hover:text-red-700 text-sm font-medium" data-id="' + c.id + '" data-code="' + codeEsc + '">Remove</button></div></div></div>';
+                html += '<div class="p-4 border border-gray-200 rounded-lg"><div class="flex items-center justify-between mb-2"><div><p class="font-medium text-gray-900">' + codeEsc + '</p><p class="text-xs text-gray-500">' + descEsc + ' &middot; ' + (c.discount_type === 'percent' ? c.discount_value + '%' : (window.salonCurrencySymbol || '$') + c.discount_value) + (c.min_order_amount ? ' (min ' + (window.salonCurrencySymbol || '$') + c.min_order_amount + ')' : '') + '</p></div><div class="flex items-center gap-2"><span class="px-2 py-1 ' + statusClass + ' text-xs font-medium rounded">' + statusText + '</span><button type="button" class="salon-settings-edit-coupon inline-flex items-center justify-center w-8 h-8 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition active:scale-95" data-coupon="' + dataCoupon + '" title="Edit"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg></button><button type="button" class="salon-settings-delete-coupon inline-flex items-center justify-center w-8 h-8 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition active:scale-95" data-id="' + c.id + '" data-code="' + codeEsc + '" title="Remove"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button></div></div></div>';
             });
             listEl.innerHTML = html;
             listEl.querySelectorAll('.salon-settings-edit-coupon').forEach(function(btn) {
@@ -476,7 +481,7 @@ function salonSettingsLoadGiftCards() {
                 var statusClass = c.active ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600';
                 var statusText = c.active ? 'Active' : 'Inactive';
                 var dataCard = (typeof JSON !== 'undefined' && JSON.stringify) ? JSON.stringify(c).replace(/&/g, '&amp;').replace(/"/g, '&quot;') : '';
-                html += '<div class="p-4 border border-gray-200 rounded-lg"><div class="flex items-center justify-between mb-2"><div><p class="font-medium text-gray-900">' + codeEsc + '</p><p class="text-xs text-gray-500">' + descEsc + ' &middot; Balance ' + window.salonFormatMoney(Number(c.balance || 0)) + ' / Initial ' + window.salonFormatMoney(Number(c.initial_value || 0)) + '</p></div><div class="flex items-center gap-2"><span class="px-2 py-1 ' + statusClass + ' text-xs font-medium rounded">' + statusText + '</span><button type="button" class="salon-settings-edit-gift-card text-[#003047] hover:text-[#002535] text-sm font-medium" data-gift-card="' + dataCard + '">Edit</button><button type="button" class="salon-settings-delete-gift-card text-red-600 hover:text-red-700 text-sm font-medium" data-id="' + c.id + '" data-code="' + codeEsc + '">Remove</button></div></div></div>';
+                html += '<div class="p-4 border border-gray-200 rounded-lg"><div class="flex items-center justify-between mb-2"><div><p class="font-medium text-gray-900">' + codeEsc + '</p><p class="text-xs text-gray-500">' + descEsc + ' &middot; Balance ' + window.salonFormatMoney(Number(c.balance || 0)) + ' / Initial ' + window.salonFormatMoney(Number(c.initial_value || 0)) + '</p></div><div class="flex items-center gap-2"><span class="px-2 py-1 ' + statusClass + ' text-xs font-medium rounded">' + statusText + '</span><button type="button" class="salon-settings-edit-gift-card inline-flex items-center justify-center w-8 h-8 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition active:scale-95" data-gift-card="' + dataCard + '" title="Edit"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg></button><button type="button" class="salon-settings-delete-gift-card inline-flex items-center justify-center w-8 h-8 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition active:scale-95" data-id="' + c.id + '" data-code="' + codeEsc + '" title="Remove"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button></div></div></div>';
             });
             listEl.innerHTML = html;
             listEl.querySelectorAll('.salon-settings-edit-gift-card').forEach(function(btn) {

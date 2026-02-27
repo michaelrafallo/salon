@@ -27,6 +27,7 @@ class UpdateAppointmentRequest extends FormRequest
                 Rule::exists('users', 'id')->where('role', 'technician'),
             ],
             'status' => ['nullable', 'string', Rule::in(['waiting', 'in-progress', 'completed', 'unpaid', 'paid', 'cancelled', 'refunded', 'closed', 'no-show'])],
+            'color' => ['nullable', 'string', 'max:7'],
         ];
     }
 

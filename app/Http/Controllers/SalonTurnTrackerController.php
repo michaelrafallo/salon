@@ -28,7 +28,7 @@ class SalonTurnTrackerController extends Controller
             ->all();
 
         $entries = TurnTracker::query()
-            ->with('user:id,first_name,last_name,initials')
+            ->with('user:id,first_name,last_name,initials,profile_photo')
             ->whereIn('user_id', $technicianIds)
             ->whereNull('clock_out')
             ->orderBy('id')
@@ -47,7 +47,7 @@ class SalonTurnTrackerController extends Controller
                 'lastName' => $u?->last_name,
                 'fullName' => trim(($u?->first_name ?? '').' '.($u?->last_name ?? '')),
                 'initials' => $u?->initials ?? strtoupper(substr($u?->first_name ?? '', 0, 1).substr($u?->last_name ?? '', 0, 1)),
-                'photo' => null,
+                'photo' => $u?->profile_photo ? asset('storage/'.$u->profile_photo) : null,
             ];
         });
 

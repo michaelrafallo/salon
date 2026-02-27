@@ -14,6 +14,7 @@ class Appointment extends Model
         'customer_id',
         'type',
         'status',
+        'color',
         'appointment_datetime',
     ];
 

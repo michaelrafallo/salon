@@ -1,5 +1,10 @@
 @php
     $currentRole = session('salon_role', 'admin');
+    $sidebarUser = \App\Models\User::where('email', session('salon_user_email'))->first();
+    $sidebarUserName = $sidebarUser ? trim($sidebarUser->first_name . ' ' . $sidebarUser->last_name) : 'Admin User';
+    $sidebarUserRole = ucfirst($sidebarUser->role ?? $currentRole);
+    $sidebarInitials = $sidebarUser->initials ?? strtoupper(mb_substr($sidebarUserName, 0, 1) . mb_substr(strrchr($sidebarUserName . ' ', ' ') ?: 'U', 0, 1));
+    $sidebarPhotoUrl = $sidebarUser?->profile_photo ? asset('storage/' . $sidebarUser->profile_photo) : null;
     $menuItems = [
         'dashboard' => ['admin', 'technician', 'receptionist'],
         'waiting_list' => ['admin', 'receptionist'],
@@ -115,12 +120,16 @@
 
     <div class="p-4 border-t border-gray-200">
         <a href="{{ route('salon.profile.index') }}" class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-gray-50 transition {{ request()->routeIs('salon.profile.*') ? 'bg-[#e6f0f3]' : '' }}">
-            <div class="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center overflow-hidden">
-                <svg class="w-6 h-6 text-gray-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path></svg>
+            <div class="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0 {{ $sidebarPhotoUrl ? '' : 'bg-[#e6f0f3]' }}">
+                @if($sidebarPhotoUrl)
+                    <img src="{{ $sidebarPhotoUrl }}" alt="{{ $sidebarUserName }}" class="w-full h-full object-cover">
+                @else
+                    <span class="text-sm font-bold text-[#003047]">{{ $sidebarInitials }}</span>
+                @endif
             </div>
-            <div class="flex-1">
-                <p class="text-sm font-medium text-gray-900">Admin User</p>
-                <p class="text-xs text-gray-500">Admin</p>
+            <div class="flex-1 min-w-0">
+                <p class="text-sm font-medium text-gray-900 truncate">{{ $sidebarUserName }}</p>
+                <p class="text-xs text-gray-500">{{ $sidebarUserRole }}</p>
             </div>
         </a>
         <a href="{{ route('salon.logout') }}" class="flex items-center gap-2 px-2 py-2 mt-2 text-gray-600 hover:text-gray-900 transition">

@@ -319,7 +319,15 @@ function convertAppointmentsToEvents(appointments) {
             eventBorderColor = '#6b7280';
             eventTextColor = '#003047';
         }
-        
+
+        // Custom color override
+        if (appointment.color) {
+            eventBgColor = appointment.color;
+            eventBorderColor = appointment.color;
+            eventTextColor = '#ffffff';
+            classNames.push('event-custom-color');
+        }
+
         return {
             id: appointment.id,
             title: customerName,
@@ -341,7 +349,8 @@ function convertAppointmentsToEvents(appointments) {
                 bookingType: appointment.appointment || 'booked',
                 originalStatus: appointment.status,
                 hasTechnician: hasTechnician,
-                isNoShow: isNoShow
+                isNoShow: isNoShow,
+                color: appointment.color || null
             }
         };
     });
@@ -450,7 +459,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 date: event.start,
                 isNoShow: extendedProps.isNoShow || noShowStatus[event.id] || false,
                 assigned_technician: appointment ? appointment.assigned_technician : null,
-                bookingType: bookingTypeRaw === 'walk-in' ? 'Walk-In' : 'Booked'
+                bookingType: bookingTypeRaw === 'walk-in' ? 'Walk-In' : 'Booked',
+                color: extendedProps.color || (appointment ? appointment.color : null) || null
             };
             
             // Use shared modal function
@@ -458,6 +468,16 @@ document.addEventListener('DOMContentLoaded', async function() {
         },
         eventMouseEnter: function(info) {
             info.el.style.cursor = 'pointer';
+        },
+        eventDidMount: function(info) {
+            var customColor = info.event.extendedProps.color;
+            if (customColor) {
+                info.el.style.setProperty('background-color', customColor, 'important');
+                info.el.style.setProperty('background', customColor, 'important');
+                info.el.style.setProperty('border-color', customColor, 'important');
+                info.el.style.setProperty('color', '#ffffff', 'important');
+                info.el.setAttribute('data-custom-color', customColor);
+            }
         },
         eventDragStart: function(info) {
             // Add class to body for global cursor styling
@@ -994,7 +1014,7 @@ function renderTechnicianListView() {
     orderedTechnicians.forEach(technician => {
         const initials = technician.initials || (technician.firstName?.[0] || '') + (technician.lastName?.[0] || '');
         const fullName = `${technician.firstName} ${technician.lastName}`;
-        const profilePhoto = technician.photo || technician.profilePhoto || null;
+        const profilePhoto = technician.profilePhotoUrl || technician.photo || null;
         const isOnline = !!(technician.clock_in && !technician.clock_out);
         const onlineBadgeClass = isOnline ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-gray-100 text-gray-700 border border-gray-200';
         const onlineBadgeText = isOnline ? 'Online' : 'Offline';
@@ -1133,9 +1153,13 @@ function renderTechnicianListView() {
                 // Check if appointment is unpaid
                 const isUnpaid = apt.status === 'unpaid';
 
-                // Apply color coding based on no show
+                // Apply color coding based on no show or custom color
                 let colorClass = '';
-                if (isNoShow) {
+                let inlineStyle = '';
+                if (apt.color && !isNoShow) {
+                    colorClass = 'text-white';
+                    inlineStyle = 'background-color:' + apt.color + ' !important;border-color:' + apt.color + ' !important;color:#fff !important;';
+                } else if (isNoShow) {
                     colorClass = 'bg-[#9ca3af] text-[#003047] border-[#6b7280] opacity-70';
                 } else {
                     // White background with blue border for salon appointments
@@ -1146,7 +1170,7 @@ function renderTechnicianListView() {
                 const clockIcon = isUnpaid ? '<svg style="width: 12px; height: 12px; color: #008106; display: inline-block; margin-right: 4px;" class="rotating-clock" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>' : '';
                 const timeDisplay = `${clockIcon}${startTime} - ${endTime}`;
 
-                html += `<div class="mb-1 p-2 rounded border-2 text-xs font-medium ${colorClass} cursor-move hover:opacity-80 draggable-appointment"
+                html += `<div class="mb-1 p-2 rounded border-2 text-xs font-medium ${colorClass} cursor-move hover:opacity-80 draggable-appointment" style="${inlineStyle}"
                     draggable="true"
                     data-appointment-id="${apt.id}"
                     ondragstart="handleAppointmentDragStart(event, ${apt.id})"
@@ -1274,9 +1298,13 @@ function renderTechnicianListView() {
                     // Check if technician is assigned
                     const hasTechnician = apt.assigned_technician && Array.isArray(apt.assigned_technician) && apt.assigned_technician.length > 0;
 
-                    // Apply color coding based on no show and technician assignment
+                    // Apply color coding based on custom color, no show, and technician assignment
                     let colorClass = '';
-                    if (isNoShow) {
+                    let inlineStyle = '';
+                    if (apt.color && !isNoShow) {
+                        colorClass = 'text-white';
+                        inlineStyle = 'background-color:' + apt.color + ' !important;border-color:' + apt.color + ' !important;color:#fff !important;';
+                    } else if (isNoShow) {
                         // Gray background for no show
                         colorClass = 'bg-[#9ca3af] text-[#003047] border-[#6b7280] opacity-70';
                     } else if (hasTechnician) {
@@ -1291,7 +1319,7 @@ function renderTechnicianListView() {
                     const clockIcon = isUnpaid ? '<svg style="width: 12px; height: 12px; color: #008106; display: inline-block; margin-right: 4px;" class="rotating-clock" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>' : '';
                     const timeDisplay = `${clockIcon}${startTime} - ${endTime}`;
 
-                    html += `<div class="mb-1 p-2 rounded border-2 text-xs font-medium ${colorClass} cursor-move hover:opacity-80 draggable-appointment"
+                    html += `<div class="mb-1 p-2 rounded border-2 text-xs font-medium ${colorClass} cursor-move hover:opacity-80 draggable-appointment" style="${inlineStyle}"
                         draggable="true"
                         data-appointment-id="${apt.id}"
                         ondragstart="handleAppointmentDragStart(event, ${apt.id})"
@@ -1993,6 +2021,7 @@ function showAppointmentModal(appointmentData) {
     const appointmentDate = appointmentData.date;
     const isNoShow = appointmentData.isNoShow || noShowStatus[appointmentId] || false;
     const bookingType = appointmentData.bookingType || 'Booked';
+    const eventColor = appointmentData.color || null;
     const typeBadgeClass = bookingType === 'Walk-In' ? 'bg-blue-100 text-blue-700 border-blue-200' : 'bg-purple-100 text-purple-700 border-purple-200';
     const statusLower = (status || '').toLowerCase();
     const statusBadgeClass = statusLower === 'confirmed' ? 'bg-green-100 text-green-700 border-green-200'
@@ -2022,6 +2051,11 @@ function showAppointmentModal(appointmentData) {
                     <span class="px-3 py-1.5 rounded-lg text-xs font-semibold border ${statusBadgeClass}">
                         ${statusLabel}
                     </span>
+                    <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 transition">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
                 </div>
             </div>
             
@@ -2092,6 +2126,43 @@ function showAppointmentModal(appointmentData) {
                     </div>
                     ` : ''}
                 </div>
+                ${!isTechnician ? `
+                <div class="p-4 bg-gray-50 rounded-xl" style="min-width:340px">
+                    <div class="flex items-center gap-4">
+                        <div class="flex-shrink-0" style="width:48px;height:48px;position:relative">
+                            ${eventColor
+                                ? '<div style="width:48px;height:48px;border-radius:9999px;border:2px solid #fff;box-shadow:0 4px 6px -1px rgba(0,0,0,.1);background:' + eventColor + '"></div><button onclick="setEventColor(\'' + appointmentId + '\', null)" style="position:absolute;top:-4px;left:-4px;width:18px;height:18px;border-radius:9999px;background:#fff;border:1px solid #d1d5db;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.1)" title="Remove color"><svg style="width:10px;height:10px" fill="none" stroke="#9ca3af" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg></button>'
+                                : '<div style="width:48px;height:48px;border-radius:9999px;border:2px dashed #d1d5db;display:flex;align-items:center;justify-content:center;background:#fff"><svg class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path></svg></div>'
+                            }
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-xs font-medium text-gray-500 mb-2">Event Color</p>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                ${[
+                                    {hex:'#FF0000',name:'Red'},{hex:'#800000',name:'Maroon'},{hex:'#FF4500',name:'Orange Red'},
+                                    {hex:'#FF8C00',name:'Dark Orange'},{hex:'#FFA500',name:'Orange'},{hex:'#FF7F50',name:'Coral'},
+                                    {hex:'#FFD700',name:'Gold'},{hex:'#FFFF00',name:'Yellow'},{hex:'#32CD32',name:'Lime Green'},
+                                    {hex:'#008000',name:'Green'},{hex:'#006400',name:'Dark Green'},{hex:'#2E8B57',name:'Sea Green'},
+                                    {hex:'#008080',name:'Teal'},{hex:'#00CED1',name:'Turquoise'},{hex:'#00BFFF',name:'Sky Blue'},
+                                    {hex:'#4169E1',name:'Royal Blue'},{hex:'#0000FF',name:'Blue'},{hex:'#000080',name:'Navy'},
+                                    {hex:'#4B0082',name:'Indigo'},{hex:'#8A2BE2',name:'Violet'},{hex:'#800080',name:'Purple'},
+                                    {hex:'#FF00FF',name:'Magenta'},{hex:'#FF69B4',name:'Hot Pink'},{hex:'#FF1493',name:'Deep Pink'},
+                                    {hex:'#8B4513',name:'Brown'},{hex:'#D2691E',name:'Chocolate'},
+                                    {hex:'#000000',name:'Black'}
+                                ].map(function(c) {
+                                    const isSelected = eventColor && eventColor.toUpperCase() === c.hex;
+                                    return '<button onclick="setEventColor(\'' + appointmentId + '\', \'' + c.hex + '\')" class="rounded-full border-2 transition-all hover:scale-110 ' + (isSelected ? 'border-gray-900 ring-2 ring-offset-1 ring-gray-900' : 'border-white shadow-sm') + '" style="width:28px;height:28px;background:' + c.hex + '" title="' + c.name + '"></button>';
+                                }).join('')}
+                                <div class="relative">
+                                    <button onclick="document.getElementById('customColorPicker_${appointmentId}').click()" class="rounded-full border-2 transition-all hover:scale-110 flex items-center justify-center ${eventColor && !['#FF0000','#800000','#FF4500','#FF8C00','#FFA500','#FF7F50','#FFD700','#FFFF00','#32CD32','#008000','#006400','#2E8B57','#008080','#00CED1','#00BFFF','#4169E1','#0000FF','#000080','#4B0082','#8A2BE2','#800080','#FF00FF','#FF69B4','#FF1493','#8B4513','#D2691E','#000000'].some(function(p){ return eventColor.toUpperCase() === p; }) ? 'border-gray-900 ring-2 ring-offset-1 ring-gray-900' : 'border-gray-300'}" style="width:28px;height:28px;background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red)" title="Custom color">
+                                    </button>
+                                    <input type="color" id="customColorPicker_${appointmentId}" value="${eventColor || '#003047'}" class="absolute opacity-0 w-0 h-0" onchange="setEventColor('${appointmentId}', this.value)">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                ` : ''}
                 <div class="p-4 bg-gray-50 rounded-xl">
                     <div class="space-y-4">
                         <div>
@@ -2125,12 +2196,6 @@ function showAppointmentModal(appointmentData) {
             
             <div class="flex items-center justify-end pt-4 border-t border-gray-200">
                 <div class="flex gap-3">
-                    <button onclick="closeModal()" class="px-4 py-2.5 border-2 border-gray-300 text-gray-700 bg-transparent rounded-lg hover:bg-gray-50 transition-all font-medium flex items-center justify-center gap-2 active:scale-95">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                    Close
-                </button>
                 ${!isTechnician ? `
                     <button onclick="assignAndUpdateStatus('${appointmentId}', '${customerName}')" class="px-4 py-2.5 border-2 border-[#003047] text-[#003047] bg-transparent rounded-lg hover:bg-[#e6f0f3] transition-all font-medium flex items-center justify-center gap-2 active:scale-95">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2197,7 +2262,8 @@ function viewAppointment(bookingId) {
         date: aptDate,
         isNoShow: noShowStatus[appointment.id] || false,
         assigned_technician: appointment.assigned_technician,
-        bookingType: bookingTypeDisplay
+        bookingType: bookingTypeDisplay,
+        color: appointment.color || null
     };
     
     // Use shared modal function
@@ -2212,6 +2278,92 @@ function openNewBookingModal() {
 function editBooking(eventId) {
     // Redirect to edit booking page with event ID
     window.location.href = '{{ $editBookingUrl }}?id=' + eventId;
+}
+
+function setEventColor(appointmentId, color) {
+    const apiUrl = window.salonCalendarAppointmentsApiUrl;
+    salonApi.put(apiUrl + '/' + appointmentId, { color: color }).then(function() {
+        // Update bookingsData
+        const apt = bookingsData.find(a => a.id.toString() === appointmentId.toString());
+        if (apt) apt.color = color;
+
+        // Update the FullCalendar event visually
+        if (calendarInstance) {
+            const event = calendarInstance.getEventById(appointmentId.toString());
+            if (event) {
+                // Find the DOM element for this event
+                const eventEls = document.querySelectorAll('[data-custom-color]');
+
+                if (color) {
+                    event.setProp('backgroundColor', color);
+                    event.setProp('borderColor', color);
+                    event.setProp('textColor', '#ffffff');
+                    // Add custom color class
+                    const currentClasses = event.classNames || [];
+                    if (currentClasses.indexOf('event-custom-color') === -1) {
+                        event.setProp('classNames', currentClasses.concat(['event-custom-color']));
+                    }
+                } else {
+                    // Revert to default colors based on technician assignment
+                    const hasTech = event.extendedProps.hasTechnician;
+                    const isNoShow = event.extendedProps.isNoShow;
+                    if (isNoShow) {
+                        event.setProp('backgroundColor', '#9ca3af');
+                        event.setProp('borderColor', '#6b7280');
+                        event.setProp('textColor', '#003047');
+                    } else {
+                        event.setProp('backgroundColor', hasTech ? '#003047' : 'transparent');
+                        event.setProp('borderColor', '#003047');
+                        event.setProp('textColor', hasTech ? '#ffffff' : '#003047');
+                    }
+                    // Remove custom color class
+                    const currentClasses = event.classNames || [];
+                    event.setProp('classNames', currentClasses.filter(function(c) { return c !== 'event-custom-color'; }));
+                }
+                event.setExtendedProp('color', color);
+
+                // Force !important styles on the DOM element after FullCalendar re-renders
+                setTimeout(function() {
+                    const fcEvents = document.querySelectorAll('.fc-event');
+                    fcEvents.forEach(function(el) {
+                        const fcEvent = calendarInstance.getEventById(appointmentId.toString());
+                        if (!fcEvent) return;
+                        // Match by checking if element contains this event's data
+                        if (el.classList.contains('event-custom-color') || el.getAttribute('data-custom-color')) {
+                            if (color) {
+                                el.style.setProperty('background-color', color, 'important');
+                                el.style.setProperty('background', color, 'important');
+                                el.style.setProperty('border-color', color, 'important');
+                                el.style.setProperty('color', '#ffffff', 'important');
+                                el.setAttribute('data-custom-color', color);
+                            } else {
+                                el.removeAttribute('data-custom-color');
+                                el.style.removeProperty('background-color');
+                                el.style.removeProperty('background');
+                                el.style.removeProperty('border-color');
+                                el.style.removeProperty('color');
+                            }
+                        }
+                    });
+                }, 50);
+            }
+        }
+
+        // Re-render list view if visible
+        const listViewContainer = document.getElementById('listViewContainer');
+        if (listViewContainer && !listViewContainer.classList.contains('hidden')) {
+            renderTechnicianListView();
+        }
+
+        // Re-render modal to update selected state
+        if (typeof closeModal === 'function') closeModal();
+        const updatedAppointment = bookingsData.find(a => a.id.toString() === appointmentId.toString());
+        if (updatedAppointment) {
+            viewAppointment(appointmentId);
+        }
+    }).catch(function(err) {
+        console.error('Failed to save event color:', err);
+    });
 }
 
 function assignAppointment(appointmentId) {
@@ -3026,31 +3178,34 @@ function renderAvailableTechnicians() {
             ? "flex items-center gap-3 p-2 rounded-lg transition-colors opacity-50 grayscale cursor-pointer group hover:bg-gray-100"
             : "flex items-center gap-3 cursor-pointer group hover:bg-gray-50 p-2 rounded-lg transition-colors";
         
+        const availPhoto = technician.profilePhotoUrl || technician.photo || null;
         const avatarClasses = isAssigned
             ? "w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center"
             : "w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center";
-        
+
         const initialClasses = isAssigned
             ? "text-sm font-bold text-gray-500"
             : "text-sm font-bold text-gray-600";
-        
+
         const nameClasses = isAssigned
             ? "text-base font-medium text-gray-400"
             : "text-base font-medium text-gray-900";
-        
+
         const isOnline = !!(technician.clock_in && !technician.clock_out);
         const badgeClasses = isAssigned
             ? "absolute w-5 h-5 rounded-full border-2 border-white bg-gray-400"
             : (isOnline ? "absolute w-5 h-5 rounded-full border-2 border-white bg-green-500" : "absolute w-5 h-5 rounded-full border-2 border-white bg-gray-400");
         const servicesNum = typeof technician.services === 'number' ? technician.services : 0;
         const badgeTitle = isOnline ? 'Online' : 'Offline';
-        
+
+        const availAvatarHtml = availPhoto
+            ? `<img src="${availPhoto}" alt="${fullName}" class="w-12 h-12 rounded-full object-cover ${isAssigned ? 'opacity-50 grayscale' : ''}">`
+            : `<div class="${avatarClasses}"><span class="${initialClasses}">${initials}</span></div>`;
+
         html += `
             <div onclick="${isAssigned ? 'removeAssignedTechnician(' + technician.id + ')' : 'assignTechnician(' + technician.id + ')'}" class="${containerClasses}">
                 <div class="relative flex-shrink-0">
-                    <div class="${avatarClasses}">
-                        <span class="${initialClasses}">${initials}</span>
-                    </div>
+                    ${availAvatarHtml}
                     <div class="${badgeClasses}" style="${badgeStyle}" title="${badgeTitle}"></div>
                 </div>
                 <div class="flex-1 min-w-0">
@@ -3115,17 +3270,20 @@ function renderAssignedTechnicians() {
         
         const initials = technician.initials || (technician.firstName?.[0] || '') + (technician.lastName?.[0] || '');
         const fullName = `${technician.firstName} ${technician.lastName}`;
+        const assignedPhoto = technician.profilePhotoUrl || technician.photo || null;
         const isOnline = !!(technician.clock_in && !technician.clock_out);
         const badgeClasses = isOnline ? "absolute w-5 h-5 rounded-full border-2 border-white bg-green-500" : "absolute w-5 h-5 rounded-full border-2 border-white bg-gray-400";
         const servicesNum = typeof technician.services === 'number' ? technician.services : 0;
         const badgeTitle = isOnline ? 'Online' : 'Offline';
-        
+
+        const assignedAvatarHtml = assignedPhoto
+            ? `<img src="${assignedPhoto}" alt="${fullName}" class="w-12 h-12 rounded-full object-cover">`
+            : `<div class="w-12 h-12 bg-[#003047] rounded-full flex items-center justify-center"><span class="text-sm font-bold text-white">${initials}</span></div>`;
+
         html += `
             <div onclick="removeAssignedTechnician(${technician.id})" class="flex items-center gap-3 cursor-pointer group hover:bg-gray-50 p-2 rounded-lg transition-colors">
                 <div class="relative flex-shrink-0">
-                    <div class="w-12 h-12 bg-[#003047] rounded-full flex items-center justify-center">
-                        <span class="text-sm font-bold text-white">${initials}</span>
-                    </div>
+                    ${assignedAvatarHtml}
                     <div class="${badgeClasses}" style="${badgeStyle}" title="${badgeTitle}"></div>
                 </div>
                 <div class="flex-1 min-w-0">
@@ -3796,7 +3954,7 @@ body.fc-drag-not-allowed * {
     display: none;
 }
 
-.fc-event:hover {
+.fc-event:not(.event-custom-color):hover {
     background: #003047 !important;
     color: white !important;
     border-color: #003047 !important;
@@ -3804,6 +3962,14 @@ body.fc-drag-not-allowed * {
     box-shadow: 0 2px 8px rgba(0, 48, 71, 0.3) !important;
     z-index: 10 !important;
     cursor: pointer !important;
+}
+
+.fc-event.event-custom-color:hover {
+    transform: translateY(-2px) scale(1.02) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+    z-index: 10 !important;
+    cursor: pointer !important;
+    filter: brightness(0.85) !important;
 }
 
 /* Dragging state */
@@ -3816,11 +3982,11 @@ body.fc-drag-not-allowed * {
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3) !important;
 }
 
-.fc-event:hover .fc-event-title {
+.fc-event:not(.event-custom-color):hover .fc-event-title {
     color: white !important;
 }
 
-.fc-event:hover .fc-event-time {
+.fc-event:not(.event-custom-color):hover .fc-event-time {
     color: white !important;
 }
 
@@ -3911,6 +4077,24 @@ body.fc-drag-not-allowed * {
     background: #003047 !important;
     color: white !important;
     border-color: #003047 !important;
+}
+
+/* Custom color events - override all status styling */
+.fc-event.event-custom-color,
+.fc-event.event-custom-color.event-has-technician,
+.fc-event.event-custom-color.event-no-show,
+.fc-event.event-custom-color.event-in-booking,
+.fc-event.event-custom-color.event-in-progress,
+.fc-event.event-custom-color.event-booked,
+.fc-event.event-custom-color.event-completed {
+    opacity: 1 !important;
+    filter: none !important;
+}
+
+.fc-event.event-custom-color:hover {
+    filter: brightness(0.85) !important;
+    opacity: 1 !important;
+    color: #ffffff !important;
 }
 
 /* Clock icon rotation animation */

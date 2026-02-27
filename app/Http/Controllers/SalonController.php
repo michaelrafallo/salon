@@ -447,6 +447,7 @@ class SalonController extends Controller
                         'role',
                         'status',
                         'initials',
+                        'profile_photo',
                     ]);
 
                 $techIds = $technicianRows->pluck('id')->all();
@@ -466,6 +467,7 @@ class SalonController extends Controller
                             'role' => $u->role,
                             'status' => $u->status ?? 'active',
                             'initials' => $u->initials,
+                            'profilePhotoUrl' => $u->profile_photo ? asset('storage/'.$u->profile_photo) : null,
                             'clock_in' => $tracker?->clock_in?->format('M j, Y g:i A'),
                             'clock_out' => $tracker?->clock_out?->format('M j, Y g:i A'),
                             'services' => $tracker ? (int) $tracker->services : 0,
@@ -612,7 +614,7 @@ class SalonController extends Controller
         $technicianRows = User::query()
             ->technicians()
             ->orderBy('id')
-            ->get(['id', 'first_name', 'last_name', 'role', 'status', 'initials']);
+            ->get(['id', 'first_name', 'last_name', 'role', 'status', 'initials', 'profile_photo']);
 
         $techIds = $technicianRows->pluck('id')->all();
         $turnTrackers = TurnTracker::query()
@@ -631,6 +633,7 @@ class SalonController extends Controller
                     'role' => $u->role,
                     'status' => $u->status ?? 'active',
                     'initials' => $u->initials,
+                    'profilePhotoUrl' => $u->profile_photo ? asset('storage/'.$u->profile_photo) : null,
                     'clock_in' => $tracker?->clock_in?->format('M j, Y g:i A'),
                     'clock_out' => $tracker?->clock_out?->format('M j, Y g:i A'),
                     'services' => $tracker ? (int) $tracker->services : 0,
@@ -748,7 +751,7 @@ class SalonController extends Controller
         $technicianRows = User::query()
             ->technicians()
             ->orderBy('id')
-            ->get(['id', 'first_name', 'last_name', 'role', 'status', 'initials']);
+            ->get(['id', 'first_name', 'last_name', 'role', 'status', 'initials', 'profile_photo']);
 
         $techIds = $technicianRows->pluck('id')->all();
         $turnTrackers = TurnTracker::query()
@@ -767,6 +770,7 @@ class SalonController extends Controller
                     'role' => $u->role,
                     'status' => $u->status ?? 'active',
                     'initials' => $u->initials,
+                    'profilePhotoUrl' => $u->profile_photo ? asset('storage/'.$u->profile_photo) : null,
                     'clock_in' => $tracker?->clock_in?->format('M j, Y g:i A'),
                     'clock_out' => $tracker?->clock_out?->format('M j, Y g:i A'),
                     'services' => $tracker ? (int) $tracker->services : 0,
@@ -953,6 +957,7 @@ class SalonController extends Controller
                 'role',
                 'status',
                 'initials',
+                'profile_photo',
                 'created_at',
             ]);
 
@@ -991,6 +996,8 @@ class SalonController extends Controller
                     'role' => $u->role,
                     'status' => $u->status ?? 'active',
                     'initials' => $u->initials,
+                    'profilePhoto' => $u->profile_photo,
+                    'profilePhotoUrl' => $u->profile_photo ? asset('storage/'.$u->profile_photo) : null,
                     'createdAt' => $u->created_at?->format('Y-m-d'),
                     'clock_in' => $tracker?->clock_in?->format('M j, Y g:i A'),
                     'clock_out' => $tracker?->clock_out?->format('M j, Y g:i A'),
@@ -1087,6 +1094,8 @@ class SalonController extends Controller
                     'commission' => round($totalCommission, 2),
                     'clock_in' => $clockIn,
                     'clock_out' => $clockOut,
+                    'profilePhoto' => $user->profile_photo,
+                    'profilePhotoUrl' => $user->profile_photo ? asset('storage/'.$user->profile_photo) : null,
                 ];
 
                 $from = $request->query('from');
@@ -1183,6 +1192,7 @@ class SalonController extends Controller
                 'last_name',
                 'email',
                 'phone',
+                'profile_photo',
                 'role',
                 'status',
                 'initials',
@@ -1222,6 +1232,8 @@ class SalonController extends Controller
                 'status' => $u->status ?? 'active',
                 'active' => strtolower($u->status ?? 'active') === 'active',
                 'initials' => $u->initials,
+                'profilePhoto' => $u->profile_photo,
+                'profilePhotoUrl' => $u->profile_photo ? asset('storage/'.$u->profile_photo) : null,
                 'createdAt' => $u->created_at?->format('Y-m-d'),
                 'last_login_at' => $u->last_login_at?->toIso8601String(),
                 'lastLogin' => $u->last_login_at?->format('M j, Y g:i A'),
@@ -1431,7 +1443,7 @@ class SalonController extends Controller
             ->all();
 
         $entries = TurnTracker::query()
-            ->with('user:id,first_name,last_name,initials')
+            ->with('user:id,first_name,last_name,initials,profile_photo')
             ->whereIn('user_id', $technicianIds)
             ->whereNull('clock_out')
             ->orderBy('id')
@@ -1450,7 +1462,7 @@ class SalonController extends Controller
                 'lastName' => $u?->last_name,
                 'fullName' => trim(($u?->first_name ?? '').' '.($u?->last_name ?? '')),
                 'initials' => $u?->initials ?? strtoupper(substr($u?->first_name ?? '', 0, 1).substr($u?->last_name ?? '', 0, 1)),
-                'photo' => null,
+                'photo' => $u?->profile_photo ? asset('storage/'.$u->profile_photo) : null,
             ];
         })->values()->all();
 

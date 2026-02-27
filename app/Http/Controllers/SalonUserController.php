@@ -30,7 +30,12 @@ class SalonUserController extends Controller
 
     public function update(UpdateUserRequest $request, User $user): JsonResponse
     {
-        $user = $this->userService->update($user, $request->validated());
+        $data = $request->validated();
+        if ($request->hasFile('profile_photo')) {
+            $data['profile_photo'] = $request->file('profile_photo');
+        }
+
+        $user = $this->userService->update($user, $data);
 
         return response()->json([
             'success' => true,
@@ -128,9 +133,14 @@ class SalonUserController extends Controller
             return response()->json(['message' => 'Profile not found.'], 404);
         }
 
-        $user = $this->userService->update($user, $request->validated());
+        $data = $request->validated();
+        if ($request->hasFile('profile_photo')) {
+            $data['profile_photo'] = $request->file('profile_photo');
+        }
 
-        if (array_key_exists('email', $request->validated())) {
+        $user = $this->userService->update($user, $data);
+
+        if (array_key_exists('email', $data)) {
             $request->session()->put('salon_user_email', $user->email);
         }
 
@@ -168,6 +178,8 @@ class SalonUserController extends Controller
             'role' => $user->role,
             'status' => $user->status ?? 'active',
             'initials' => $user->initials,
+            'profilePhoto' => $user->profile_photo,
+            'profilePhotoUrl' => $user->profile_photo ? asset('storage/'.$user->profile_photo) : null,
             'createdAt' => $user->created_at?->format('Y-m-d'),
             'last_login_at' => $user->last_login_at?->toIso8601String(),
             'lastLogin' => $user->last_login_at?->format('M j, Y g:i A'),

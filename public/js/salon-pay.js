@@ -842,6 +842,7 @@ function salonPayRenderAvailableTechnicians() {
     container.innerHTML = filtered.map(function(tech) {
         var idStr = tech.id.toString(), isAssigned = assignedTechnicianIds.indexOf(idStr) >= 0;
         var inits = tech.initials || (tech.firstName || '')[0] + (tech.lastName || '')[0];
+        var techPhoto = tech.profilePhotoUrl || tech.photo || null;
         var name = tech.firstName + ' ' + tech.lastName;
         var containerCls = isAssigned ? 'flex items-center gap-3 p-2 rounded-lg transition-colors opacity-50 grayscale cursor-pointer group hover:bg-gray-100' : 'flex items-center gap-3 cursor-pointer group hover:bg-gray-50 p-2 rounded-lg transition-colors';
         var avatarCls = isAssigned ? 'w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center' : 'w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center';
@@ -851,7 +852,8 @@ function salonPayRenderAvailableTechnicians() {
         var badgeCls = isAssigned ? 'absolute w-5 h-5 rounded-full border-2 border-white bg-gray-400' : (isOnline ? 'absolute w-5 h-5 rounded-full border-2 border-white bg-green-500' : 'absolute w-5 h-5 rounded-full border-2 border-white bg-gray-400');
         var badgeStyle = 'bottom: -5px; right: -5px;';
         var servicesNum = typeof tech.services === 'number' ? tech.services : 0;
-        return '<div onclick="' + (isAssigned ? 'salonPayRemoveAssignedTechnician(' + tech.id + ')' : 'salonPayAssignTechnician(' + tech.id + ')') + '" class="' + containerCls + '"><div class="relative flex-shrink-0"><div class="' + avatarCls + '"><span class="' + initialCls + '">' + inits + '</span></div><div class="' + badgeCls + '" style="' + badgeStyle + '" title="' + (isOnline ? 'Online' : 'Offline') + '"></div></div><div class="flex-1 min-w-0"><p class="' + nameCls + '">' + name + '</p></div><div class="flex-shrink-0 text-right"><div class="text-xs font-medium text-gray-500 uppercase">Services</div><div class="text-lg font-semibold text-gray-900">' + servicesNum + '</div></div></div>';
+        var avatarHtml = techPhoto ? '<img src="' + techPhoto + '" alt="" class="w-12 h-12 rounded-full object-cover">' : '<div class="' + avatarCls + '"><span class="' + initialCls + '">' + inits + '</span></div>';
+        return '<div onclick="' + (isAssigned ? 'salonPayRemoveAssignedTechnician(' + tech.id + ')' : 'salonPayAssignTechnician(' + tech.id + ')') + '" class="' + containerCls + '"><div class="relative flex-shrink-0">' + avatarHtml + '<div class="' + badgeCls + '" style="' + badgeStyle + '" title="' + (isOnline ? 'Online' : 'Offline') + '"></div></div><div class="flex-1 min-w-0"><p class="' + nameCls + '">' + name + '</p></div><div class="flex-shrink-0 text-right"><div class="text-xs font-medium text-gray-500 uppercase">Services</div><div class="text-lg font-semibold text-gray-900">' + servicesNum + '</div></div></div>';
     }).join('');
 }
 
@@ -866,12 +868,14 @@ function salonPayRenderAssignedTechnicians() {
         var tech = payAvailableTechnicians.find(function(t) { return t.id.toString() === idStr; });
         if (!tech) return '';
         var inits = tech.initials || (tech.firstName || '')[0] + (tech.lastName || '')[0];
+        var techPhoto = tech.profilePhotoUrl || tech.photo || null;
         var name = tech.firstName + ' ' + tech.lastName;
         var isOnline = !!(tech.clock_in && !tech.clock_out);
         var badgeCls = isOnline ? 'absolute w-5 h-5 rounded-full border-2 border-white bg-green-500' : 'absolute w-5 h-5 rounded-full border-2 border-white bg-gray-400';
         var badgeStyle = 'bottom: -5px; right: -5px;';
         var servicesNum = typeof tech.services === 'number' ? tech.services : 0;
-        return '<div onclick="salonPayRemoveAssignedTechnician(' + tech.id + ')" class="flex items-center gap-3 cursor-pointer group hover:bg-gray-50 p-2 rounded-lg transition-colors"><div class="relative flex-shrink-0"><div class="w-12 h-12 bg-[#003047] rounded-full flex items-center justify-center"><span class="text-sm font-bold text-white">' + inits + '</span></div><div class="' + badgeCls + '" style="' + badgeStyle + '" title="' + (isOnline ? 'Online' : 'Offline') + '"></div></div><div class="flex-1 min-w-0"><p class="text-base font-medium text-gray-900">' + name + '</p></div><div class="flex-shrink-0 text-right"><div class="text-xs font-medium text-gray-500 uppercase">Services</div><div class="text-lg font-semibold text-gray-900">' + servicesNum + '</div></div></div>';
+        var assignedAvatarHtml = techPhoto ? '<img src="' + techPhoto + '" alt="" class="w-12 h-12 rounded-full object-cover">' : '<div class="w-12 h-12 bg-[#003047] rounded-full flex items-center justify-center"><span class="text-sm font-bold text-white">' + inits + '</span></div>';
+        return '<div onclick="salonPayRemoveAssignedTechnician(' + tech.id + ')" class="flex items-center gap-3 cursor-pointer group hover:bg-gray-50 p-2 rounded-lg transition-colors"><div class="relative flex-shrink-0">' + assignedAvatarHtml + '<div class="' + badgeCls + '" style="' + badgeStyle + '" title="' + (isOnline ? 'Online' : 'Offline') + '"></div></div><div class="flex-1 min-w-0"><p class="text-base font-medium text-gray-900">' + name + '</p></div><div class="flex-shrink-0 text-right"><div class="text-xs font-medium text-gray-500 uppercase">Services</div><div class="text-lg font-semibold text-gray-900">' + servicesNum + '</div></div></div>';
     }).join('');
 }
 
@@ -1059,7 +1063,7 @@ function salonPayRenderTechniciansList() {
         var isActive = selectedTechnicianId === idStr;
         var initials = technician.initials || (technician.firstName || '')[0] + (technician.lastName || '')[0];
         var fullName = technician.firstName + ' ' + technician.lastName;
-        var photo = technician.photo || technician.profilePhoto || null;
+        var photo = technician.profilePhotoUrl || technician.photo || null;
         var techServices = cart.filter(function(item) { return item.technician_id === idStr; });
         html += '<div onclick="salonPaySelectTechnician(\'' + idStr + '\')" class="flex flex-col gap-2 p-3 rounded-lg border-2 cursor-pointer transition ' + (isActive ? 'border-[#003047] bg-white' : 'border-gray-200 bg-white hover:bg-gray-50') + '"><div class="flex items-center gap-3"><div class="relative flex-shrink-0">' + (photo ? '<img src="' + photo + '" alt="' + fullName + '" class="w-12 h-12 rounded-full object-cover border-2 border-white">' : '<div class="w-12 h-12 bg-[#e6f0f3] rounded-full flex items-center justify-center border-2 border-white"><span class="text-sm font-bold text-[#003047]">' + initials + '</span></div>') + '<div class="absolute -bottom-1 -right-1 w-5 h-5 bg-[#003047] text-white rounded-full flex items-center justify-center text-xs font-bold border-2 border-white">✓</div></div><div class="flex-1 min-w-0"><p class="text-sm font-medium text-gray-900 truncate">' + fullName + '</p><p class="text-xs text-gray-500">Technician</p></div></div>';
         html += '<div class="mt-2 pt-2 border-t border-gray-200"><p class="text-xs font-semibold text-gray-600 mb-2">Assigned services</p>';
@@ -1329,7 +1333,7 @@ function salonPayRenderTechniciansTipSplit() {
         var idStr = technician.id.toString();
         var initials = technician.initials || (technician.firstName || '')[0] + (technician.lastName || '')[0];
         var fullName = technician.firstName + ' ' + technician.lastName;
-        var photo = technician.photo || technician.profilePhoto || null;
+        var photo = technician.profilePhotoUrl || technician.photo || null;
         var techTotal = technicianTotals[idStr] || 0;
         var hasServices = techTotal > 0;
         var tipData, currentPercentage, calculatedAmount;

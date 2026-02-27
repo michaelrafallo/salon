@@ -3,8 +3,10 @@
 namespace App\Services\Salon;
 
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 
 class UserService
 {
@@ -60,6 +62,17 @@ class UserService
             }
             if (array_key_exists('status', $data)) {
                 $attrs['status'] = $data['status'] ?? 'active';
+            }
+            if (isset($data['remove_photo']) && $data['remove_photo'] === '1') {
+                if ($user->profile_photo) {
+                    Storage::disk('public')->delete($user->profile_photo);
+                }
+                $attrs['profile_photo'] = null;
+            } elseif (isset($data['profile_photo']) && $data['profile_photo'] instanceof UploadedFile) {
+                if ($user->profile_photo) {
+                    Storage::disk('public')->delete($user->profile_photo);
+                }
+                $attrs['profile_photo'] = $data['profile_photo']->store('profile-photos', 'public');
             }
             $attrs['name'] = trim(($attrs['first_name'] ?? $user->first_name).' '.($attrs['last_name'] ?? $user->last_name)) ?: ($attrs['username'] ?? $user->username);
             $user->update($attrs);

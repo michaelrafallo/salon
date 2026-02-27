@@ -27,6 +27,8 @@ class UpdateProfileRequest extends FormRequest
             'last_name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'max:255', 'unique:users,email,'.$userId],
             'phone' => ['nullable', 'string', 'max:50'],
+            'profile_photo' => ['nullable', 'image', 'max:2048'],
+            'remove_photo' => ['nullable', 'in:0,1'],
         ];
     }
 }

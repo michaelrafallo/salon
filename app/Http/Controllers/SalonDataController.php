@@ -47,6 +47,7 @@ class SalonDataController extends Controller
                 'customer_id' => $apt->customer_id,
                 'appointment' => $apt->type,
                 'status' => $apt->status,
+                'color' => $apt->color,
                 'created_at' => $apt->created_at?->toIso8601String(),
                 'appointment_datetime' => $apt->appointment_datetime?->toIso8601String(),
                 'assigned_technician' => $apt->technicians->pluck('id')->values()->all(),
@@ -123,6 +124,8 @@ class SalonDataController extends Controller
                 'role' => $u->role,
                 'status' => $u->status ?? 'active',
                 'initials' => $u->initials,
+                'profilePhoto' => $u->profile_photo,
+                'profilePhotoUrl' => $u->profile_photo ? asset('storage/'.$u->profile_photo) : null,
                 'createdAt' => $u->created_at?->format('Y-m-d'),
                 'last_login_at' => $u->last_login_at?->toIso8601String(),
                 'lastLogin' => $u->last_login_at?->format('M j, Y g:i A'),
@@ -431,6 +434,8 @@ class SalonDataController extends Controller
             'commission' => round($totalCommission, 2),
             'clock_in' => $clockIn ?? '--',
             'clock_out' => $clockOut ?? '--',
+            'profilePhoto' => $user->profile_photo,
+            'profilePhotoUrl' => $user->profile_photo ? asset('storage/'.$user->profile_photo) : null,
         ];
 
         return response()->json([

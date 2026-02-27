@@ -28,6 +28,8 @@ class UpdateUserRequest extends FormRequest
             'phone' => ['nullable', 'string', 'max:50'],
             'role' => ['sometimes', 'string', 'in:admin,receptionist,technician'],
             'status' => ['nullable', 'string', 'in:active,inactive'],
+            'profile_photo' => ['nullable', 'image', 'max:2048'],
+            'remove_photo' => ['nullable', 'in:0,1'],
         ];
     }
 }

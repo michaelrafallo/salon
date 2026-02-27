@@ -126,7 +126,7 @@ function renderTechniciansList(ids) {
     var html = techs.map(function(tech, i) {
         var inits = getTechnicianInitials(tech), name = tech.firstName + ' ' + tech.lastName;
         var c = colorClasses[i % colorClasses.length];
-        var photo = tech.profilePhoto || tech.avatar || tech.image || null;
+        var photo = tech.profilePhotoUrl || tech.profilePhoto || tech.avatar || tech.image || null;
         return '<div class="flex items-center gap-2 mb-1 last:mb-0">' +
             (photo ? '<img src="' + photo + '" alt="' + name + '" class="w-8 h-8 rounded-full object-cover flex-shrink-0 border-2 border-white shadow-sm" onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'flex\';"><div class="w-8 h-8 ' + c.bg + ' rounded-full flex items-center justify-center flex-shrink-0 hidden"><span class="text-xs font-bold ' + c.text + '">' + inits + '</span></div>' :
             '<div class="w-8 h-8 ' + c.bg + ' rounded-full flex items-center justify-center flex-shrink-0 border-2 border-white shadow-sm"><span class="text-xs font-bold ' + c.text + '">' + inits + '</span></div>') +
@@ -886,6 +886,7 @@ window.salonTicketsRenderAvailableTechnicians = function() {
         var isAssigned = assignedTechnicianIds.indexOf(techIdStr) >= 0;
         var initials = technician.initials || (technician.firstName || '')[0] + (technician.lastName || '')[0];
         var fullName = technician.firstName + ' ' + technician.lastName;
+        var techPhoto = technician.profilePhotoUrl || technician.photo || null;
         var containerClasses = isAssigned ? 'flex items-center gap-3 p-2 rounded-lg transition-colors opacity-50 grayscale cursor-pointer group hover:bg-gray-100' : 'flex items-center gap-3 cursor-pointer group hover:bg-gray-50 p-2 rounded-lg transition-colors';
         var avatarClasses = isAssigned ? 'w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center' : 'w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center';
         var initialClasses = isAssigned ? 'text-sm font-bold text-gray-500' : 'text-sm font-bold text-gray-600';
@@ -893,7 +894,10 @@ window.salonTicketsRenderAvailableTechnicians = function() {
         var isOnline = !!(technician.clock_in && !technician.clock_out);
         var badgeClasses = isAssigned ? 'absolute w-5 h-5 rounded-full border-2 border-white bg-gray-400' : (isOnline ? 'absolute w-5 h-5 rounded-full border-2 border-white bg-green-500' : 'absolute w-5 h-5 rounded-full border-2 border-white bg-gray-400');
         var servicesNum = typeof technician.services === 'number' ? technician.services : 0;
-        html += '<div onclick="' + (isAssigned ? 'salonTicketsRemoveAssignedTechnician(' + technician.id + ')' : 'salonTicketsAssignTechnician(' + technician.id + ')') + '" class="' + containerClasses + '"><div class="relative flex-shrink-0"><div class="' + avatarClasses + '"><span class="' + initialClasses + '">' + initials + '</span></div><div class="' + badgeClasses + '" style="' + badgeStyle + '" title="' + (isOnline ? 'Online' : 'Offline') + '"></div></div><div class="flex-1 min-w-0"><p class="' + nameClasses + '">' + fullName + '</p></div><div class="flex-shrink-0 text-right"><div class="text-xs font-medium text-gray-500 uppercase">Services</div><div class="text-lg font-semibold text-gray-900">' + servicesNum + '</div></div></div>';
+        var avatarHtml = techPhoto
+            ? '<img src="' + techPhoto.replace(/"/g, '&quot;') + '" alt="" class="w-12 h-12 rounded-full object-cover' + (isAssigned ? ' opacity-50 grayscale' : '') + '">'
+            : '<div class="' + avatarClasses + '"><span class="' + initialClasses + '">' + initials + '</span></div>';
+        html += '<div onclick="' + (isAssigned ? 'salonTicketsRemoveAssignedTechnician(' + technician.id + ')' : 'salonTicketsAssignTechnician(' + technician.id + ')') + '" class="' + containerClasses + '"><div class="relative flex-shrink-0">' + avatarHtml + '<div class="' + badgeClasses + '" style="' + badgeStyle + '" title="' + (isOnline ? 'Online' : 'Offline') + '"></div></div><div class="flex-1 min-w-0"><p class="' + nameClasses + '">' + fullName + '</p></div><div class="flex-shrink-0 text-right"><div class="text-xs font-medium text-gray-500 uppercase">Services</div><div class="text-lg font-semibold text-gray-900">' + servicesNum + '</div></div></div>';
     });
     container.innerHTML = html;
 };
@@ -929,10 +933,14 @@ window.salonTicketsRenderAssignedTechnicians = function() {
     assignedTechs.forEach(function(technician) {
         var initials = technician.initials || (technician.firstName || '')[0] + (technician.lastName || '')[0];
         var fullName = technician.firstName + ' ' + technician.lastName;
+        var techPhoto = technician.profilePhotoUrl || technician.photo || null;
         var isOnline = !!(technician.clock_in && !technician.clock_out);
         var badgeClasses = isOnline ? 'absolute w-5 h-5 rounded-full border-2 border-white bg-green-500' : 'absolute w-5 h-5 rounded-full border-2 border-white bg-gray-400';
         var servicesNum = typeof technician.services === 'number' ? technician.services : 0;
-        html += '<div onclick="salonTicketsRemoveAssignedTechnician(' + technician.id + ')" class="flex items-center gap-3 cursor-pointer group hover:bg-gray-50 p-2 rounded-lg transition-colors"><div class="relative flex-shrink-0"><div class="w-12 h-12 bg-[#003047] rounded-full flex items-center justify-center"><span class="text-sm font-bold text-white">' + initials + '</span></div><div class="' + badgeClasses + '" style="' + badgeStyle + '" title="' + (isOnline ? 'Online' : 'Offline') + '"></div></div><div class="flex-1 min-w-0"><p class="text-base font-medium text-gray-900">' + fullName + '</p></div><div class="flex-shrink-0 text-right"><div class="text-xs font-medium text-gray-500 uppercase">Services</div><div class="text-lg font-semibold text-gray-900">' + servicesNum + '</div></div></div>';
+        var assignedAvatarHtml = techPhoto
+            ? '<img src="' + techPhoto.replace(/"/g, '&quot;') + '" alt="" class="w-12 h-12 rounded-full object-cover">'
+            : '<div class="w-12 h-12 bg-[#003047] rounded-full flex items-center justify-center"><span class="text-sm font-bold text-white">' + initials + '</span></div>';
+        html += '<div onclick="salonTicketsRemoveAssignedTechnician(' + technician.id + ')" class="flex items-center gap-3 cursor-pointer group hover:bg-gray-50 p-2 rounded-lg transition-colors"><div class="relative flex-shrink-0">' + assignedAvatarHtml + '<div class="' + badgeClasses + '" style="' + badgeStyle + '" title="' + (isOnline ? 'Online' : 'Offline') + '"></div></div><div class="flex-1 min-w-0"><p class="text-base font-medium text-gray-900">' + fullName + '</p></div><div class="flex-shrink-0 text-right"><div class="text-xs font-medium text-gray-500 uppercase">Services</div><div class="text-lg font-semibold text-gray-900">' + servicesNum + '</div></div></div>';
     });
     container.innerHTML = html;
 };

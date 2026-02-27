@@ -32,8 +32,34 @@
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
                 <div class="flex items-start justify-between mb-4">
                     <div class="flex items-start gap-6 flex-1">
-                        <div id="techAvatar" class="w-24 h-24 rounded-full flex items-center justify-center flex-shrink-0">
-                            <span id="techInitials" class="text-4xl font-bold"></span>
+                        <div class="flex-shrink-0 flex flex-col items-center gap-2 w-full max-w-[300px]">
+                            <div class="relative group cursor-pointer w-full" onclick="document.getElementById('techPhotoInput').click()">
+                                <div id="techAvatar" class="w-full aspect-square bg-[#e6f0f3] flex items-center justify-center overflow-hidden rounded-lg">
+                                    <span id="techInitials" class="text-4xl font-bold text-[#003047]"></span>
+                                </div>
+                                <div class="absolute inset-0 bg-black bg-opacity-40 rounded-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    </svg>
+                                </div>
+                                <input type="file" id="techPhotoInput" accept="image/*" class="hidden" onchange="techViewUploadPhoto(this)">
+                            </div>
+                            <div class="flex items-center gap-2 mt-1">
+                                <button type="button" onclick="document.getElementById('techPhotoInput').click()" class="px-3 py-1.5 text-xs font-medium bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition active:scale-95 flex items-center gap-1.5">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    </svg>
+                                    Upload
+                                </button>
+                                <button type="button" id="techRemovePhotoBtn" onclick="techViewRemovePhoto()" class="px-3 py-1.5 text-xs font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition active:scale-95 flex items-center gap-1.5 hidden">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                                    </svg>
+                                    Remove
+                                </button>
+                            </div>
                         </div>
                         <div class="flex-1">
                             <h1 id="techName" class="text-3xl font-bold text-gray-900 mb-2"></h1>
@@ -51,11 +77,9 @@
                             </div>
                         </div>
                     </div>
-                    <div class="flex items-center gap-3">
-                        <button type="button" onclick="openEditTechnicianModal()" class="px-4 py-2 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95 text-sm">
-                            Edit Technician
-                        </button>
-                    </div>
+                    <button type="button" onclick="openEditTechnicianModal()" class="px-4 py-2 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95 text-sm">
+                        Edit Technician
+                    </button>
                 </div>
             </div>
 
@@ -236,9 +260,17 @@
     }
     function renderTechnician(t) {
         var avatar = getAvatarClasses(t.avatar_color);
-        document.getElementById('techAvatar').className = 'w-24 h-24 ' + avatar[0] + ' rounded-full flex items-center justify-center flex-shrink-0';
-        document.getElementById('techInitials').className = 'text-4xl font-bold ' + avatar[1];
-        document.getElementById('techInitials').textContent = t.initials || '';
+        var avatarEl = document.getElementById('techAvatar');
+        var initialsEl = document.getElementById('techInitials');
+        if (t.profilePhotoUrl) {
+            avatarEl.className = 'w-full aspect-square flex items-center justify-center overflow-hidden rounded-lg';
+            avatarEl.innerHTML = '<img src="' + t.profilePhotoUrl.replace(/"/g, '&quot;') + '" alt="" class="w-full h-full object-cover">';
+            var removeBtn = document.getElementById('techRemovePhotoBtn');
+            if (removeBtn) removeBtn.classList.remove('hidden');
+        } else {
+            avatarEl.className = 'w-full aspect-square ' + avatar[0] + ' flex items-center justify-center overflow-hidden rounded-lg';
+            avatarEl.innerHTML = '<span class="text-4xl font-bold ' + avatar[1] + '">' + (t.initials || '') + '</span>';
+        }
         document.getElementById('techName').textContent = (t.first_name || '') + ' ' + (t.last_name || '');
         document.getElementById('techTitle').textContent = t.title || 'Technician';
         var statusEl = document.getElementById('techStatus');
@@ -253,6 +285,86 @@
         document.getElementById('clockIn').textContent = t.clock_in || '--';
         document.getElementById('clockOut').textContent = t.clock_out || '--';
     }
+    window.techViewUploadPhoto = function(input) {
+        if (!input.files || !input.files[0] || !technicianId) return;
+        var file = input.files[0];
+        if (file.size > 2 * 1024 * 1024) {
+            if (typeof showErrorMessage === 'function') showErrorMessage('Image must be less than 2 MB.');
+            input.value = '';
+            return;
+        }
+        var fd = new FormData();
+        fd.append('profile_photo', file);
+        fd.append('first_name', technicianData.first_name || '');
+        fd.append('last_name', technicianData.last_name || '');
+        fd.append('email', technicianData.email || '');
+        fd.append('phone', technicianData.phone || '');
+        fd.append('_method', 'PUT');
+        var csrfToken = document.querySelector('meta[name="csrf-token"]');
+        fetch(apiSalonUrl + '/users/' + technicianId, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrfToken ? csrfToken.getAttribute('content') : ''
+            },
+            credentials: 'same-origin',
+            body: fd
+        }).then(function(r) { return r.json(); }).then(function(res) {
+            if (res.success && res.data && res.data.profilePhotoUrl) {
+                technicianData.profilePhotoUrl = res.data.profilePhotoUrl;
+                var avatarEl = document.getElementById('techAvatar');
+                if (avatarEl) {
+                    avatarEl.className = 'w-full aspect-square flex items-center justify-center overflow-hidden rounded-lg';
+                    avatarEl.innerHTML = '<img src="' + res.data.profilePhotoUrl + '" alt="" class="w-full h-full object-cover">';
+                }
+                var removeBtn = document.getElementById('techRemovePhotoBtn');
+                if (removeBtn) removeBtn.classList.remove('hidden');
+                if (typeof showSuccessMessage === 'function') showSuccessMessage('Photo updated!');
+            } else if (res.message) {
+                if (typeof showErrorMessage === 'function') showErrorMessage(res.message);
+            }
+        }).catch(function() {
+            if (typeof showErrorMessage === 'function') showErrorMessage('Failed to upload photo.');
+        });
+        input.value = '';
+    };
+    window.techViewRemovePhoto = function() {
+        if (!confirm('Remove this profile photo?') || !technicianId) return;
+        var fd = new FormData();
+        fd.append('remove_photo', '1');
+        fd.append('first_name', technicianData.first_name || '');
+        fd.append('last_name', technicianData.last_name || '');
+        fd.append('email', technicianData.email || '');
+        fd.append('phone', technicianData.phone || '');
+        fd.append('_method', 'PUT');
+        var csrfToken = document.querySelector('meta[name="csrf-token"]');
+        fetch(apiSalonUrl + '/users/' + technicianId, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrfToken ? csrfToken.getAttribute('content') : ''
+            },
+            credentials: 'same-origin',
+            body: fd
+        }).then(function(r) { return r.json(); }).then(function(res) {
+            if (res.success) {
+                technicianData.profilePhotoUrl = null;
+                var avatar = getAvatarClasses(technicianData.avatar_color);
+                var avatarEl = document.getElementById('techAvatar');
+                if (avatarEl) {
+                    avatarEl.className = 'w-full aspect-square ' + avatar[0] + ' flex items-center justify-center overflow-hidden rounded-lg';
+                    avatarEl.innerHTML = '<span class="text-4xl font-bold ' + avatar[1] + '">' + (technicianData.initials || '') + '</span>';
+                }
+                var removeBtn = document.getElementById('techRemovePhotoBtn');
+                if (removeBtn) removeBtn.classList.add('hidden');
+                if (typeof showSuccessMessage === 'function') showSuccessMessage('Photo removed.');
+            } else if (res.message) {
+                if (typeof showErrorMessage === 'function') showErrorMessage(res.message);
+            }
+        }).catch(function() {
+            if (typeof showErrorMessage === 'function') showErrorMessage('Failed to remove photo.');
+        });
+    };
     function updateURLWithDateRange(from, to, dateType) {
         var url = new URL(window.location);
         url.searchParams.set('from', from);

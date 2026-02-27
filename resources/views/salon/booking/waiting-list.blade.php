@@ -105,7 +105,7 @@ function renderTechniciansList(technicianIds) {
     var html = techs.map(function(tech, i) {
         var inits = getTechnicianInitials(tech), name = tech.firstName + ' ' + tech.lastName;
         var c = colorClasses[i % colorClasses.length];
-        var photo = tech.profilePhoto || tech.avatar || tech.image || null;
+        var photo = tech.profilePhotoUrl || tech.profilePhoto || tech.avatar || tech.image || null;
         return '<div class="flex items-center gap-2 mb-1 last:mb-0">' +
             (photo ? '<img src="' + photo + '" alt="' + name + '" class="w-8 h-8 rounded-full object-cover flex-shrink-0 border-2 border-white shadow-sm" onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'flex\';"><div class="w-8 h-8 ' + c.bg + ' rounded-full flex items-center justify-center flex-shrink-0 hidden"><span class="text-xs font-bold ' + c.text + '">' + inits + '</span></div>' :
             '<div class="w-8 h-8 ' + c.bg + ' rounded-full flex items-center justify-center flex-shrink-0 border-2 border-white shadow-sm"><span class="text-xs font-bold ' + c.text + '">' + inits + '</span></div>') +
@@ -435,7 +435,7 @@ window.removeFromWaitingList = function(appointmentId, customerName) {
     }
     openConfirmModal({
         title: 'Remove from waiting list',
-        message: 'You are about to permanently remove ' + (customerName || 'this customer') + ' from the waiting list. Do you want to continue?',
+        message: 'You are about to permanently remove ' + (customerName ? boldName(customerName) : 'this customer') + ' from the waiting list. Do you want to continue?',
         confirmLabel: 'Remove',
         onConfirm: function() { doRemoveFromWaitingList(appointmentId); }
     });
@@ -732,6 +732,7 @@ function renderAvailableTechnicians() {
         var idStr = tech.id.toString(), isAssigned = assignedTechnicianIds.indexOf(idStr) >= 0;
         var inits = tech.initials || (tech.firstName || '')[0] + (tech.lastName || '')[0];
         var name = tech.firstName + ' ' + tech.lastName;
+        var techPhoto = tech.profilePhotoUrl || tech.photo || null;
         var containerCls = isAssigned ? 'flex items-center gap-3 p-2 rounded-lg transition-colors opacity-50 grayscale cursor-pointer group hover:bg-gray-100' : 'flex items-center gap-3 cursor-pointer group hover:bg-gray-50 p-2 rounded-lg transition-colors';
         var avatarCls = isAssigned ? 'w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center' : 'w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center';
         var initialCls = isAssigned ? 'text-sm font-bold text-gray-500' : 'text-sm font-bold text-gray-600';
@@ -740,7 +741,10 @@ function renderAvailableTechnicians() {
         var badgeCls = isAssigned ? 'absolute w-5 h-5 rounded-full border-2 border-white bg-gray-400' : (isOnline ? 'absolute w-5 h-5 rounded-full border-2 border-white bg-green-500' : 'absolute w-5 h-5 rounded-full border-2 border-white bg-gray-400');
         var badgeStyle = 'bottom: -5px; right: -5px;';
         var servicesNum = typeof tech.services === 'number' ? tech.services : 0;
-        return '<div onclick="' + (isAssigned ? 'removeAssignedTechnician(' + tech.id + ')' : 'assignTechnician(' + tech.id + ')') + '" class="' + containerCls + '"><div class="relative flex-shrink-0"><div class="' + avatarCls + '"><span class="' + initialCls + '">' + inits + '</span></div><div class="' + badgeCls + '" style="' + badgeStyle + '" title="' + (isOnline ? 'Online' : 'Offline') + '"></div></div><div class="flex-1 min-w-0"><p class="' + nameCls + '">' + name + '</p></div><div class="flex-shrink-0 text-right"><div class="text-xs font-medium text-gray-500 uppercase">Services</div><div class="text-lg font-semibold text-gray-900">' + servicesNum + '</div></div></div>';
+        var avatarHtml = techPhoto
+            ? '<img src="' + techPhoto.replace(/"/g, '&quot;') + '" alt="" class="w-12 h-12 rounded-full object-cover' + (isAssigned ? ' opacity-50 grayscale' : '') + '">'
+            : '<div class="' + avatarCls + '"><span class="' + initialCls + '">' + inits + '</span></div>';
+        return '<div onclick="' + (isAssigned ? 'removeAssignedTechnician(' + tech.id + ')' : 'assignTechnician(' + tech.id + ')') + '" class="' + containerCls + '"><div class="relative flex-shrink-0">' + avatarHtml + '<div class="' + badgeCls + '" style="' + badgeStyle + '" title="' + (isOnline ? 'Online' : 'Offline') + '"></div></div><div class="flex-1 min-w-0"><p class="' + nameCls + '">' + name + '</p></div><div class="flex-shrink-0 text-right"><div class="text-xs font-medium text-gray-500 uppercase">Services</div><div class="text-lg font-semibold text-gray-900">' + servicesNum + '</div></div></div>';
     }).join('');
 }
 function renderAssignedTechnicians() {
@@ -774,11 +778,15 @@ function renderAssignedTechnicians() {
     container.innerHTML = assignedTechs.map(function(tech) {
         var inits = tech.initials || (tech.firstName || '')[0] + (tech.lastName || '')[0];
         var name = tech.firstName + ' ' + tech.lastName;
+        var techPhoto = tech.profilePhotoUrl || tech.photo || null;
         var isOnline = !!(tech.clock_in && !tech.clock_out);
         var badgeCls = isOnline ? 'absolute w-5 h-5 rounded-full border-2 border-white bg-green-500' : 'absolute w-5 h-5 rounded-full border-2 border-white bg-gray-400';
         var badgeStyle = 'bottom: -5px; right: -5px;';
         var servicesNum = typeof tech.services === 'number' ? tech.services : 0;
-        return '<div onclick="removeAssignedTechnician(' + tech.id + ')" class="flex items-center gap-3 cursor-pointer group hover:bg-gray-50 p-2 rounded-lg transition-colors"><div class="relative flex-shrink-0"><div class="w-12 h-12 bg-[#003047] rounded-full flex items-center justify-center"><span class="text-sm font-bold text-white">' + inits + '</span></div><div class="' + badgeCls + '" style="' + badgeStyle + '" title="' + (isOnline ? 'Online' : 'Offline') + '"></div></div><div class="flex-1 min-w-0"><p class="text-base font-medium text-gray-900">' + name + '</p></div><div class="flex-shrink-0 text-right"><div class="text-xs font-medium text-gray-500 uppercase">Services</div><div class="text-lg font-semibold text-gray-900">' + servicesNum + '</div></div></div>';
+        var assignedAvatarHtml = techPhoto
+            ? '<img src="' + techPhoto.replace(/"/g, '&quot;') + '" alt="" class="w-12 h-12 rounded-full object-cover">'
+            : '<div class="w-12 h-12 bg-[#003047] rounded-full flex items-center justify-center"><span class="text-sm font-bold text-white">' + inits + '</span></div>';
+        return '<div onclick="removeAssignedTechnician(' + tech.id + ')" class="flex items-center gap-3 cursor-pointer group hover:bg-gray-50 p-2 rounded-lg transition-colors"><div class="relative flex-shrink-0">' + assignedAvatarHtml + '<div class="' + badgeCls + '" style="' + badgeStyle + '" title="' + (isOnline ? 'Online' : 'Offline') + '"></div></div><div class="flex-1 min-w-0"><p class="text-base font-medium text-gray-900">' + name + '</p></div><div class="flex-shrink-0 text-right"><div class="text-xs font-medium text-gray-500 uppercase">Services</div><div class="text-lg font-semibold text-gray-900">' + servicesNum + '</div></div></div>';
     }).join('');
 }
 window.assignTechnician = function(techId) {

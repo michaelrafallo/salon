@@ -10,8 +10,23 @@
     $memberFor = '';
     if ($customerSince) {
         $since = \Carbon\Carbon::parse($customerSince);
-        $months = now()->diffInMonths($since);
-        $memberFor = $months === 0 ? 'New member' : ($months === 1 ? 'Member for 1 month' : "Member for {$months} months");
+        $diff = $since->diff(now());
+        $years = $diff->y;
+        $months = $diff->m;
+        $days = $diff->d;
+        if ($diff->invert) {
+            $memberFor = 'New member';
+        } elseif ($years >= 1 && $months > 0) {
+            $memberFor = "Member for {$years} " . ($years === 1 ? 'year' : 'years') . " and {$months} " . ($months === 1 ? 'month' : 'months');
+        } elseif ($years >= 1) {
+            $memberFor = "Member for {$years} " . ($years === 1 ? 'year' : 'years');
+        } elseif ($months >= 1) {
+            $memberFor = "Member for {$months} " . ($months === 1 ? 'month' : 'months');
+        } elseif ($days >= 1) {
+            $memberFor = "Member for {$days} " . ($days === 1 ? 'day' : 'days');
+        } else {
+            $memberFor = 'New member';
+        }
     }
 @endphp
 
@@ -156,56 +171,58 @@
                                     return $qty * $unitPrice;
                                 });
                         @endphp
-                        <div class="p-5 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
-                            <div class="flex justify-between items-start mb-3">
-                                <div class="flex-1">
-                                    <div class="flex items-center gap-3 mb-2">
-                                        <p class="font-semibold text-gray-900 text-lg">Ticket #{{ $booking->id }}</p>
-                                        <span class="px-2 py-1 {{ $statusColor }} text-xs font-medium rounded">{{ $statusDisplay }}</span>
-                                    </div>
-                                    <p class="text-sm text-gray-600 mb-3">{{ $serviceSummary }}</p>
+                        <div class="p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition">
+                            <div class="flex justify-between items-center">
+                                <div class="flex items-center gap-3 flex-1 min-w-0">
+                                    <p class="font-semibold text-gray-900 text-sm">Ticket #{{ $booking->id }}</p>
+                                    <span class="px-2 py-0.5 {{ $statusColor }} text-xs font-medium rounded">{{ $statusDisplay }}</span>
+                                    <span class="text-xs text-gray-500 hidden sm:inline">{{ $dateDisplay }}</span>
+                                    <span class="text-xs text-gray-500 hidden md:inline truncate">{{ $serviceSummary }}</span>
                                 </div>
-                                <div class="flex items-center gap-3">
-                                    <span class="text-2xl font-bold text-gray-900">{{ $currencySymbol ?? '$' }}{{ number_format($totalAmount, 2) }}</span>
+                                <div class="flex items-center gap-2 flex-shrink-0">
+                                    <span class="text-lg font-bold text-gray-900">{{ $currencySymbol ?? '$' }}{{ number_format($totalAmount, 2) }}</span>
                                     @if($statusKey === 'unpaid')
-                                        <a href="{{ route('salon.booking.pay', ['id' => $booking->id]) }}" class="px-3 py-1.5 bg-[#003047] text-white text-xs font-medium rounded hover:bg-[#002535] transition active:scale-95 flex items-center gap-1">
-                                            Pay
-                                        </a>
+                                        <a href="{{ route('salon.booking.pay', ['id' => $booking->id]) }}" class="px-3 py-1.5 bg-[#003047] text-white text-xs font-medium rounded hover:bg-[#002535] transition active:scale-95">Pay</a>
                                     @endif
-                                    <button type="button" onclick="printTicket({{ $booking->id }})" class="px-3 py-1.5 bg-[#003047] text-white text-xs font-medium rounded hover:bg-[#002535] transition active:scale-95 flex items-center gap-1">
+                                    <button type="button" onclick="printTicket({{ $booking->id }})" class="inline-flex items-center justify-center w-8 h-8 bg-[#003047] text-white rounded hover:bg-[#002535] transition active:scale-95" title="Print">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
-                                        Print
+                                    </button>
+                                    <button type="button" onclick="toggleTicketDetails(this)" class="inline-flex items-center gap-1 text-xs text-[#003047] font-medium hover:underline">
+                                        <span>See more</span>
+                                        <svg class="w-3.5 h-3.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
                                     </button>
                                 </div>
                             </div>
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-3 border-t border-gray-200">
-                                <div>
-                                    <p class="text-xs text-gray-500 mb-1">Date</p>
-                                    <p class="text-sm font-medium text-gray-900">{{ $dateDisplay }}</p>
-                                </div>
-                                <div>
-                                    <p class="text-xs text-gray-500 mb-1">Technicians</p>
-                                    <p class="text-sm font-medium text-gray-900">{{ $techNames ?: 'Not Assigned' }}</p>
-                                </div>
-                                <div class="md:col-span-2">
-                                    <p class="text-xs text-gray-500 mb-2">Services</p>
-                                    <div class="space-y-1">
-                                        @forelse($booking->appointmentServices as $svc)
-                                            @php
-                                                $qty = (int)($svc->quantity ?? 1);
-                                                $unitPrice = $svc->unit_price !== null
-                                                    ? (float) $svc->unit_price
-                                                    : (float) ($svc->service?->price ?? 0);
-                                                $lineTotal = $qty * $unitPrice;
-                                                $serviceName = $svc->service?->name ?? $svc->serviceCategory?->name ?? $svc->serviceCategory?->slug ?? 'Service';
-                                            @endphp
-                                            <div class="flex justify-between items-center">
-                                                <span class="text-sm text-gray-900">{{ $serviceName }}{{ $qty > 1 ? ' × ' . $qty : '' }}</span>
-                                                <span class="text-sm font-medium text-gray-900">{{ $currencySymbol ?? '$' }}{{ number_format($lineTotal, 2) }}</span>
-                                            </div>
-                                        @empty
-                                            <p class="text-sm text-gray-500">No services listed</p>
-                                        @endforelse
+                            <div class="ticket-details hidden mt-3 pt-3 border-t border-gray-200">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <p class="text-xs text-gray-500 mb-1">Date</p>
+                                        <p class="text-sm font-medium text-gray-900">{{ $dateDisplay }}</p>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-gray-500 mb-1">Technicians</p>
+                                        <p class="text-sm font-medium text-gray-900">{{ $techNames ?: 'Not Assigned' }}</p>
+                                    </div>
+                                    <div class="md:col-span-2">
+                                        <p class="text-xs text-gray-500 mb-2">Services</p>
+                                        <div class="space-y-1">
+                                            @forelse($booking->appointmentServices as $svc)
+                                                @php
+                                                    $qty = (int)($svc->quantity ?? 1);
+                                                    $unitPrice = $svc->unit_price !== null
+                                                        ? (float) $svc->unit_price
+                                                        : (float) ($svc->service?->price ?? 0);
+                                                    $lineTotal = $qty * $unitPrice;
+                                                    $serviceName = $svc->service?->name ?? $svc->serviceCategory?->name ?? $svc->serviceCategory?->slug ?? 'Service';
+                                                @endphp
+                                                <div class="flex justify-between items-center">
+                                                    <span class="text-sm text-gray-900">{{ $serviceName }}{{ $qty > 1 ? ' × ' . $qty : '' }}</span>
+                                                    <span class="text-sm font-medium text-gray-900">{{ $currencySymbol ?? '$' }}{{ number_format($lineTotal, 2) }}</span>
+                                                </div>
+                                            @empty
+                                                <p class="text-sm text-gray-500">No services listed</p>
+                                            @endforelse
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -335,6 +352,24 @@
         'creditBalance' => (float) ($customer->credit_balance ?? 0),
         'status' => 'active',
     ];
+    $bookingsForJs = $bookings->map(function ($b) {
+        $services = ($b->appointmentServices ?? collect())->map(function ($svc) {
+            $qty = (int) ($svc->quantity ?? 1);
+            $unitPrice = $svc->unit_price !== null ? (float) $svc->unit_price : (float) ($svc->service?->price ?? 0);
+            return ['name' => $svc->service?->name ?? $svc->serviceCategory?->name ?? 'Service', 'quantity' => $qty, 'line_total' => $qty * $unitPrice];
+        });
+        $totalAmount = $b->payment?->amount !== null ? (float) $b->payment->amount : (float) $services->sum('line_total');
+        $techNames = $b->technicians->map(fn ($u) => trim(($u->first_name ?? '').' '.($u->last_name ?? '')))->filter()->implode(', ');
+        $dt = $b->appointment_datetime ?? $b->created_at;
+        return [
+            'id' => $b->id, 'date' => $dt ? \Carbon\Carbon::parse($dt)->format('M j, Y') : '—',
+            'status' => ucfirst($b->status ?? 'unpaid'), 'technicians' => $techNames ?: 'Not Assigned',
+            'services' => $services->values()->toArray(), 'subTotal' => (float) $services->sum('line_total'),
+            'discount' => (float) ($b->payment->discount ?? 0), 'credits' => (float) ($b->payment->credits ?? 0),
+            'giftCard' => (float) ($b->payment->gift_card ?? 0), 'tax' => (float) ($b->payment->tax ?? 0),
+            'tip' => (float) ($b->payment->tip ?? 0), 'amount' => $totalAmount, 'method' => $b->payment->method ?? '—',
+        ];
+    })->values()->toArray();
 @endphp
 <script>
 (function() {
@@ -343,6 +378,8 @@ var customersIndexUrl = '{{ $customersIndexUrl }}';
 
 // Customer data from server (for edit/delete modals)
 var customerData = @json($customerDataForJs);
+var allBookings = @json($bookingsForJs);
+var currencySymbol = '{{ $currencySymbol ?? "$" }}';
 
 function renderCustomerInfo() {
     if (!customerData) return;
@@ -500,7 +537,7 @@ function deleteCustomerFromView() {
     if (typeof openConfirmModal === 'function') {
         openConfirmModal({
             title: 'Delete customer',
-            message: 'You are about to permanently delete this customer: ' + name + '. This cannot be undone. Do you want to continue?',
+            message: 'You are about to permanently delete ' + boldName(name) + '. This cannot be undone. Do you want to continue?',
             confirmLabel: 'Delete',
             onConfirm: doDelete
         });
@@ -522,11 +559,68 @@ function doDeleteCustomer() {
     });
 }
 
+function fmtMoney(val) { return currencySymbol + parseFloat(val || 0).toFixed(2); }
 function printTicket(bookingId) {
-    window.print();
+    var b = allBookings.find(function(x) { return String(x.id) === String(bookingId); });
+    if (!b) { if (typeof showErrorMessage === 'function') showErrorMessage('Ticket not found'); return; }
+    var cName = (customerData.firstName || '') + ' ' + (customerData.lastName || '');
+    var svcHtml = b.services.length
+        ? b.services.map(function(s) { return '<div class="flex justify-between text-sm text-gray-700"><span>' + (s.name || 'Service') + (s.quantity > 1 ? ' &times; ' + s.quantity : '') + '</span><span>' + fmtMoney(s.line_total) + '</span></div>'; }).join('')
+        : '<div class="text-sm text-gray-500">No services listed</div>';
+    var html = ''
+        + '<div class="max-h-[90vh] flex flex-col">'
+        + '<div class="p-6 border-b border-gray-200 flex items-center justify-between">'
+        + '<h3 class="text-xl font-bold text-gray-900">Receipt</h3>'
+        + '<button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>'
+        + '</div>'
+        + '<div class="space-y-4 p-6 overflow-y-auto">'
+        + '<div class="text-center border-b border-gray-200 pb-4"><h4 class="font-bold text-lg text-gray-900">Nail Salon POS</h4></div>'
+        + '<div class="space-y-2">'
+        + '<div class="flex justify-between"><span class="text-sm text-gray-600">Ticket #:</span><span class="text-sm font-medium text-gray-900">' + b.id + '</span></div>'
+        + '<div class="flex justify-between"><span class="text-sm text-gray-600">Date:</span><span class="text-sm font-medium text-gray-900">' + b.date + '</span></div>'
+        + '<div class="flex justify-between"><span class="text-sm text-gray-600">Customer:</span><span class="text-sm font-medium text-gray-900">' + cName + '</span></div>'
+        + '<div class="flex justify-between"><span class="text-sm text-gray-600">Technicians:</span><span class="text-sm font-medium text-gray-900">' + b.technicians + '</span></div>'
+        + '<div class="flex justify-between"><span class="text-sm text-gray-600">Method:</span><span class="text-sm font-medium text-gray-900">' + b.method + '</span></div>'
+        + '<div class="flex justify-between"><span class="text-sm text-gray-600">Status:</span><span class="text-sm font-medium text-gray-900">' + b.status + '</span></div>'
+        + '</div>'
+        + '<div class="border-t border-gray-200 pt-4"><h4 class="text-sm font-semibold text-gray-700 mb-2">Services</h4><div class="space-y-2">' + svcHtml + '</div></div>'
+        + '<div class="border-t border-gray-200 pt-4 space-y-2">'
+        + '<div class="flex justify-between text-sm text-gray-700"><span>Sub Total</span><span>' + fmtMoney(b.subTotal) + '</span></div>'
+        + '<div class="flex justify-between text-sm text-gray-700"><span>Discount</span><span>-' + fmtMoney(b.discount) + '</span></div>'
+        + '<div class="flex justify-between text-sm text-gray-700"><span>Credits</span><span>-' + fmtMoney(b.credits) + '</span></div>'
+        + '<div class="flex justify-between text-sm text-gray-700"><span>Gift Card</span><span>-' + fmtMoney(b.giftCard) + '</span></div>'
+        + '<div class="flex justify-between text-sm text-gray-700"><span>Tax</span><span>' + fmtMoney(b.tax) + '</span></div>'
+        + '<div class="flex justify-between text-sm text-gray-700"><span>Tip</span><span>' + fmtMoney(b.tip) + '</span></div>'
+        + '<div class="flex justify-between items-center pt-2 border-t border-gray-200"><span class="text-lg font-semibold text-gray-900">Total</span><span class="text-2xl font-bold text-gray-900">' + fmtMoney(b.amount) + '</span></div>'
+        + '</div>'
+        + '</div>'
+        + '<div class="flex justify-end gap-3 p-6 border-t border-gray-200">'
+        + '<button onclick="window.print()" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">Print Receipt</button>'
+        + '<button onclick="closeModal()" class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium active:scale-95">Close</button>'
+        + '</div>'
+        + '</div>';
+    if (typeof openModal === 'function') openModal(html);
+}
+
+function toggleTicketDetails(btn) {
+    var card = btn.closest('.border');
+    var details = card.querySelector('.ticket-details');
+    var label = btn.querySelector('span');
+    var icon = btn.querySelector('svg');
+    if (details.classList.contains('hidden')) {
+        details.classList.remove('hidden');
+        label.textContent = 'See less';
+        icon.style.transform = 'rotate(180deg)';
+    } else {
+        details.classList.add('hidden');
+        label.textContent = 'See more';
+        icon.style.transform = '';
+    }
 }
 
 // Expose to global so onclick/onsubmit in page and modal can call them (must be after all function definitions)
+window.toggleTicketDetails = toggleTicketDetails;
+window.printTicket = printTicket;
 window.openEditCustomerModal = openEditCustomerModal;
 window.updateCustomer = updateCustomer;
 window.openAdjustCreditsModal = openAdjustCreditsModal;
