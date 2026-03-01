@@ -22,4 +22,9 @@ class OnlineCheckin extends Model
     {
         return $this->belongsTo(Customer::class);
     }
+
+    public function appointment(): BelongsTo
+    {
+        return $this->belongsTo(Appointment::class);
+    }
 }

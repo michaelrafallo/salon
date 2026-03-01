@@ -19,6 +19,7 @@ class UpdatePaymentRequest extends FormRequest
         return [
             'status' => ['sometimes', 'string', 'in:Voided,Completed,Pending,Refunded'],
             'refund_notes' => ['nullable', 'string', 'max:2000'],
+            'refunded_at' => ['nullable', 'date'],
         ];
     }
 }

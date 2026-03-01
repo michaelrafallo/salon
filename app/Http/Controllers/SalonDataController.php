@@ -195,6 +195,7 @@ class SalonDataController extends Controller
                 'methodTextColor' => 'text-[#003047]',
                 'status' => $status = ($p->status ?? 'Completed'),
                 'refund_notes' => $p->refund_notes,
+                'refunded_at' => $p->refunded_at?->format('Y-m-d\TH:i'),
                 'statusColor' => in_array($status, ['Refunded', 'Voided'], true) ? 'bg-gray-100' : ($status === 'Pending' ? 'bg-amber-100' : 'bg-green-100'),
                 'statusTextColor' => in_array($status, ['Refunded', 'Voided'], true) ? 'text-gray-700' : ($status === 'Pending' ? 'text-amber-700' : 'text-green-700'),
                 'date' => $p->paid_at?->format('Y-m-d'),

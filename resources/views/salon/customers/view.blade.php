@@ -111,6 +111,9 @@
                     <button id="customerTabCredits" type="button" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" aria-controls="customerTabPanelCredits">
                         Credit History
                     </button>
+                    <button id="customerTabCheckins" type="button" class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm" aria-controls="customerTabPanelCheckins">
+                        Check-ins
+                    </button>
                 </nav>
             </div>
 
@@ -295,6 +298,56 @@
                     </table>
                 </div>
             </div>
+
+            <div id="customerTabPanelCheckins" class="p-6 hidden">
+                <h2 class="sr-only">Check-in History</h2>
+                <div class="w-full overflow-x-auto">
+                    <table class="w-full min-w-full">
+                        <thead class="bg-gray-50 border-b border-gray-200">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Appointment</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            @forelse($onlineCheckins as $checkin)
+                                <tr>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                        {{ $checkin->created_at ? \Carbon\Carbon::parse($checkin->created_at)->format('M j, Y g:i A') : '—' }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                                        {{ trim(($checkin->firstname ?? '') . ' ' . ($checkin->lastname ?? '')) ?: '—' }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                        {{ $checkin->phone ?? '—' }}
+                                    </td>
+                                    <td class="px-6 py-4 text-sm text-gray-700 max-w-xs truncate">
+                                        {{ $checkin->notes ?? '—' }}
+                                    </td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm">
+                                        @if($checkin->appointment)
+                                            <button type="button" onclick="viewCheckinAppointment({{ $checkin->appointment_id }})" class="px-3 py-1.5 bg-[#003047] text-white text-xs font-medium rounded hover:bg-[#002535] transition active:scale-95">
+                                                View
+                                            </button>
+                                        @else
+                                            <span class="text-gray-400">—</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="5" class="px-6 py-6 text-center text-sm text-gray-500">
+                                        No check-ins yet.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 </main>
@@ -302,38 +355,59 @@
 @push('styles')
 <style>
 @media print {
-    /* Remove shadows and unnecessary elements for print */
-    #modalOverlay, .shadow, .shadow-sm, .shadow-md, .shadow-lg {
-        box-shadow: none !important;
+    /* Hide everything by default */
+    body * {
+        visibility: hidden !important;
     }
 
-    /* Hide modal overlay background */
+    /* Show only the modal and its contents */
+    #modalOverlay,
+    #modalOverlay * {
+        visibility: visible !important;
+    }
+
+    /* Position modal to fill the page */
     #modalOverlay {
-        background: transparent !important;
+        position: absolute !important;
+        inset: 0 !important;
+        background: white !important;
+        backdrop-filter: none !important;
+        display: block !important;
+        padding: 0 !important;
+        z-index: 0 !important;
     }
 
-    /* Remove rounded corners and adjust spacing */
-    .rounded-lg, .rounded {
-        border-radius: 0 !important;
-    }
-
-    /* Hide buttons in print view */
-    #modalOverlay button,
-    .no-print {
-        display: none !important;
-    }
-
-    /* Ensure content fits on page */
     #modalContainer {
+        position: relative !important;
         max-width: 100% !important;
+        width: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
         box-shadow: none !important;
+        border-radius: 0 !important;
+        transform: none !important;
     }
 
-    /* Clean up the ticket display */
-    body {
+    /* Hide buttons inside the modal */
+    #modalOverlay button {
+        display: none !important;
+        visibility: hidden !important;
+    }
+
+    /* Remove scroll constraints so all content prints */
+    #modalOverlay *,
+    #modalContent,
+    #modalContent * {
+        overflow: visible !important;
+        max-height: none !important;
+        height: auto !important;
+    }
+
+    /* Clean page */
+    body, html {
         background: white !important;
+        margin: 0 !important;
+        padding: 0 !important;
     }
 }
 </style>
@@ -370,6 +444,25 @@
             'tip' => (float) ($b->payment->tip ?? 0), 'amount' => $totalAmount, 'method' => $b->payment->method ?? '—',
         ];
     })->values()->toArray();
+    $checkinAppointmentsForJs = $onlineCheckins->filter(fn ($c) => $c->appointment)->mapWithKeys(function ($c) {
+        $b = $c->appointment;
+        $services = ($b->appointmentServices ?? collect())->map(function ($svc) {
+            $qty = (int) ($svc->quantity ?? 1);
+            $unitPrice = $svc->unit_price !== null ? (float) $svc->unit_price : (float) ($svc->service?->price ?? 0);
+            return ['name' => $svc->service?->name ?? $svc->serviceCategory?->name ?? 'Service', 'quantity' => $qty, 'line_total' => $qty * $unitPrice];
+        });
+        $totalAmount = $b->payment?->amount !== null ? (float) $b->payment->amount : (float) $services->sum('line_total');
+        $techNames = $b->technicians->map(fn ($u) => trim(($u->first_name ?? '').' '.($u->last_name ?? '')))->filter()->implode(', ');
+        $dt = $b->appointment_datetime ?? $b->created_at;
+        return [$b->id => [
+            'id' => $b->id, 'date' => $dt ? \Carbon\Carbon::parse($dt)->format('M j, Y g:i A') : '—',
+            'status' => ucfirst($b->status ?? 'unpaid'), 'technicians' => $techNames ?: 'Not Assigned',
+            'services' => $services->values()->toArray(), 'subTotal' => (float) $services->sum('line_total'),
+            'discount' => (float) ($b->payment->discount ?? 0), 'credits' => (float) ($b->payment->credits ?? 0),
+            'giftCard' => (float) ($b->payment->gift_card ?? 0), 'tax' => (float) ($b->payment->tax ?? 0),
+            'tip' => (float) ($b->payment->tip ?? 0), 'amount' => $totalAmount, 'method' => $b->payment->method ?? '—',
+        ]];
+    })->toArray();
 @endphp
 <script>
 (function() {
@@ -379,6 +472,7 @@ var customersIndexUrl = '{{ $customersIndexUrl }}';
 // Customer data from server (for edit/delete modals)
 var customerData = @json($customerDataForJs);
 var allBookings = @json($bookingsForJs);
+var checkinAppointments = @json($checkinAppointmentsForJs);
 var currencySymbol = '{{ $currencySymbol ?? "$" }}';
 
 function renderCustomerInfo() {
@@ -407,41 +501,47 @@ function renderCustomerCredits() {
 }
 
 function setCustomerViewTab(tab) {
-    var btnTickets = document.getElementById('customerTabTickets');
-    var btnCredits = document.getElementById('customerTabCredits');
-    var panelTickets = document.getElementById('customerTabPanelTickets');
-    var panelCredits = document.getElementById('customerTabPanelCredits');
-    if (!btnTickets || !btnCredits || !panelTickets || !panelCredits) return;
+    var tabs = {
+        tickets: { btn: document.getElementById('customerTabTickets'), panel: document.getElementById('customerTabPanelTickets') },
+        credits: { btn: document.getElementById('customerTabCredits'), panel: document.getElementById('customerTabPanelCredits') },
+        checkins: { btn: document.getElementById('customerTabCheckins'), panel: document.getElementById('customerTabPanelCheckins') }
+    };
 
     var activeClasses = 'border-[#003047] text-[#003047]';
     var inactiveClasses = 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300';
 
-    var showTickets = tab !== 'credits';
-    panelTickets.classList.toggle('hidden', !showTickets);
-    panelCredits.classList.toggle('hidden', showTickets);
+    var validTabs = ['tickets', 'credits', 'checkins'];
+    if (validTabs.indexOf(tab) === -1) tab = 'tickets';
 
-    btnTickets.setAttribute('aria-selected', showTickets ? 'true' : 'false');
-    btnCredits.setAttribute('aria-selected', showTickets ? 'false' : 'true');
+    for (var key in tabs) {
+        var t = tabs[key];
+        if (!t.btn || !t.panel) continue;
+        var isActive = key === tab;
+        t.panel.classList.toggle('hidden', !isActive);
+        t.btn.setAttribute('aria-selected', isActive ? 'true' : 'false');
+        t.btn.className = t.btn.className.replace(activeClasses, '').replace(inactiveClasses, '').trim() + ' ' + (isActive ? activeClasses : inactiveClasses);
+    }
 
-    btnTickets.className = btnTickets.className.replace(activeClasses, '').replace(inactiveClasses, '').trim() + ' ' + (showTickets ? activeClasses : inactiveClasses);
-    btnCredits.className = btnCredits.className.replace(activeClasses, '').replace(inactiveClasses, '').trim() + ' ' + (showTickets ? inactiveClasses : activeClasses);
-
-    try { localStorage.setItem('customerViewTab', showTickets ? 'tickets' : 'credits'); } catch (e) {}
+    try { localStorage.setItem('customerViewTab', tab); } catch (e) {}
 }
 
 function initCustomerViewTabs() {
     var btnTickets = document.getElementById('customerTabTickets');
     var btnCredits = document.getElementById('customerTabCredits');
+    var btnCheckins = document.getElementById('customerTabCheckins');
     if (!btnTickets || !btnCredits) return;
 
     btnTickets.addEventListener('click', function() { setCustomerViewTab('tickets'); });
     btnCredits.addEventListener('click', function() { setCustomerViewTab('credits'); });
+    if (btnCheckins) btnCheckins.addEventListener('click', function() { setCustomerViewTab('checkins'); });
 
+    var validTabs = ['tickets', 'credits', 'checkins'];
     var initial = 'tickets';
-    if (window.location && window.location.hash === '#credits') initial = 'credits';
+    var hash = (window.location && window.location.hash) ? window.location.hash.substring(1) : '';
+    if (validTabs.indexOf(hash) !== -1) initial = hash;
     try {
         var saved = localStorage.getItem('customerViewTab');
-        if (saved === 'credits' || saved === 'tickets') initial = saved;
+        if (validTabs.indexOf(saved) !== -1) initial = saved;
     } catch (e) {}
     setCustomerViewTab(initial);
 }
@@ -618,9 +718,50 @@ function toggleTicketDetails(btn) {
     }
 }
 
+function viewCheckinAppointment(appointmentId) {
+    var b = checkinAppointments[String(appointmentId)];
+    if (!b) { if (typeof showErrorMessage === 'function') showErrorMessage('Appointment not found'); return; }
+    var cName = (customerData.firstName || '') + ' ' + (customerData.lastName || '');
+    var svcHtml = b.services.length
+        ? b.services.map(function(s) { return '<div class="flex justify-between text-sm text-gray-700"><span>' + (s.name || 'Service') + (s.quantity > 1 ? ' &times; ' + s.quantity : '') + '</span><span>' + fmtMoney(s.line_total) + '</span></div>'; }).join('')
+        : '<div class="text-sm text-gray-500">No services listed</div>';
+    var html = ''
+        + '<div class="max-h-[90vh] flex flex-col">'
+        + '<div class="p-6 border-b border-gray-200 flex items-center justify-between">'
+        + '<h3 class="text-xl font-bold text-gray-900">Appointment Details</h3>'
+        + '<button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>'
+        + '</div>'
+        + '<div class="space-y-4 p-6 overflow-y-auto">'
+        + '<div class="space-y-2">'
+        + '<div class="flex justify-between"><span class="text-sm text-gray-600">Ticket #:</span><span class="text-sm font-medium text-gray-900">' + b.id + '</span></div>'
+        + '<div class="flex justify-between"><span class="text-sm text-gray-600">Date:</span><span class="text-sm font-medium text-gray-900">' + b.date + '</span></div>'
+        + '<div class="flex justify-between"><span class="text-sm text-gray-600">Customer:</span><span class="text-sm font-medium text-gray-900">' + cName + '</span></div>'
+        + '<div class="flex justify-between"><span class="text-sm text-gray-600">Technicians:</span><span class="text-sm font-medium text-gray-900">' + b.technicians + '</span></div>'
+        + '<div class="flex justify-between"><span class="text-sm text-gray-600">Payment Method:</span><span class="text-sm font-medium text-gray-900">' + b.method + '</span></div>'
+        + '<div class="flex justify-between"><span class="text-sm text-gray-600">Status:</span><span class="text-sm font-medium text-gray-900">' + b.status + '</span></div>'
+        + '</div>'
+        + '<div class="border-t border-gray-200 pt-4"><h4 class="text-sm font-semibold text-gray-700 mb-2">Services</h4><div class="space-y-2">' + svcHtml + '</div></div>'
+        + '<div class="border-t border-gray-200 pt-4 space-y-2">'
+        + '<div class="flex justify-between text-sm text-gray-700"><span>Sub Total</span><span>' + fmtMoney(b.subTotal) + '</span></div>'
+        + '<div class="flex justify-between text-sm text-gray-700"><span>Discount</span><span>-' + fmtMoney(b.discount) + '</span></div>'
+        + '<div class="flex justify-between text-sm text-gray-700"><span>Credits</span><span>-' + fmtMoney(b.credits) + '</span></div>'
+        + '<div class="flex justify-between text-sm text-gray-700"><span>Gift Card</span><span>-' + fmtMoney(b.giftCard) + '</span></div>'
+        + '<div class="flex justify-between text-sm text-gray-700"><span>Tax</span><span>' + fmtMoney(b.tax) + '</span></div>'
+        + '<div class="flex justify-between text-sm text-gray-700"><span>Tip</span><span>' + fmtMoney(b.tip) + '</span></div>'
+        + '<div class="flex justify-between items-center pt-2 border-t border-gray-200"><span class="text-lg font-semibold text-gray-900">Total</span><span class="text-2xl font-bold text-gray-900">' + fmtMoney(b.amount) + '</span></div>'
+        + '</div>'
+        + '</div>'
+        + '<div class="flex justify-end gap-3 p-6 border-t border-gray-200">'
+        + '<button onclick="closeModal()" class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium active:scale-95">Close</button>'
+        + '</div>'
+        + '</div>';
+    if (typeof openModal === 'function') openModal(html);
+}
+
 // Expose to global so onclick/onsubmit in page and modal can call them (must be after all function definitions)
 window.toggleTicketDetails = toggleTicketDetails;
 window.printTicket = printTicket;
+window.viewCheckinAppointment = viewCheckinAppointment;
 window.openEditCustomerModal = openEditCustomerModal;
 window.updateCustomer = updateCustomer;
 window.openAdjustCreditsModal = openAdjustCreditsModal;

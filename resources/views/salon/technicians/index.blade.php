@@ -79,38 +79,59 @@
 @push('styles')
 <style>
 @media print {
-    /* Remove shadows and unnecessary elements for print */
-    #modalOverlay, .shadow, .shadow-sm, .shadow-md, .shadow-lg {
-        box-shadow: none !important;
+    /* Hide everything by default */
+    body * {
+        visibility: hidden !important;
     }
 
-    /* Hide modal overlay background */
+    /* Show only the modal and its contents */
+    #modalOverlay,
+    #modalOverlay * {
+        visibility: visible !important;
+    }
+
+    /* Position modal to fill the page */
     #modalOverlay {
-        background: transparent !important;
+        position: absolute !important;
+        inset: 0 !important;
+        background: white !important;
+        backdrop-filter: none !important;
+        display: block !important;
+        padding: 0 !important;
+        z-index: 0 !important;
     }
 
-    /* Remove rounded corners and adjust spacing */
-    .rounded-lg, .rounded {
-        border-radius: 0 !important;
-    }
-
-    /* Hide buttons in print view */
-    #modalOverlay button,
-    .no-print {
-        display: none !important;
-    }
-
-    /* Ensure content fits on page */
     #modalContainer {
+        position: relative !important;
         max-width: 100% !important;
+        width: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
         box-shadow: none !important;
+        border-radius: 0 !important;
+        transform: none !important;
     }
 
-    /* Clean up the ticket display */
-    body {
+    /* Hide buttons inside the modal */
+    #modalOverlay button {
+        display: none !important;
+        visibility: hidden !important;
+    }
+
+    /* Remove scroll constraints so all content prints */
+    #modalOverlay *,
+    #modalContent,
+    #modalContent * {
+        overflow: visible !important;
+        max-height: none !important;
+        height: auto !important;
+    }
+
+    /* Clean page */
+    body, html {
         background: white !important;
+        margin: 0 !important;
+        padding: 0 !important;
     }
 }
 </style>

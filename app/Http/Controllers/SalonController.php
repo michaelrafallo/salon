@@ -6,6 +6,7 @@ use App\Models\Appointment;
 use App\Models\Coupon;
 use App\Models\Customer;
 use App\Models\GiftCard;
+use App\Models\OnlineCheckin;
 use App\Models\Payment;
 use App\Models\Service;
 use App\Models\ServiceCategory;
@@ -686,6 +687,7 @@ class SalonController extends Controller
                 'methodTextColor' => 'text-[#003047]',
                 'status' => $status,
                 'refund_notes' => $p->refund_notes,
+                'refunded_at' => $p->refunded_at?->format('Y-m-d\TH:i'),
                 'statusColor' => in_array($status, ['Refunded', 'Voided'], true) ? 'bg-gray-100' : ($status === 'Pending' ? 'bg-amber-100' : 'bg-green-100'),
                 'statusTextColor' => in_array($status, ['Refunded', 'Voided'], true) ? 'text-gray-700' : ($status === 'Pending' ? 'text-amber-700' : 'text-green-700'),
                 'date' => $p->paid_at?->format('Y-m-d'),
@@ -870,6 +872,13 @@ class SalonController extends Controller
             ->limit(100)
             ->get();
 
+        $onlineCheckins = OnlineCheckin::query()
+            ->where('customer_id', $customer->id)
+            ->with(['appointment.technicians', 'appointment.appointmentServices.service', 'appointment.appointmentServices.serviceCategory', 'appointment.payment'])
+            ->latest('created_at')
+            ->limit(100)
+            ->get();
+
         $bookings = Appointment::query()
             ->where('customer_id', $customer->id)
             ->with([
@@ -906,6 +915,7 @@ class SalonController extends Controller
             'lastVisitDate' => $lastVisitDate,
             'customerSince' => $customerSince,
             'profilePhotoUrl' => $profilePhotoUrl,
+            'onlineCheckins' => $onlineCheckins,
         ]);
     }
 
@@ -1314,6 +1324,7 @@ class SalonController extends Controller
                 'methodTextColor' => 'text-[#003047]',
                 'status' => $status,
                 'refund_notes' => $p->refund_notes,
+                'refunded_at' => $p->refunded_at?->format('Y-m-d\TH:i'),
                 'statusColor' => in_array($status, ['Refunded', 'Voided'], true) ? 'bg-gray-100' : ($status === 'Pending' ? 'bg-amber-100' : 'bg-green-100'),
                 'statusTextColor' => in_array($status, ['Refunded', 'Voided'], true) ? 'text-gray-700' : ($status === 'Pending' ? 'text-amber-700' : 'text-green-700'),
                 'date' => $p->paid_at?->format('Y-m-d'),

@@ -25,6 +25,7 @@ class Payment extends Model
         'method',
         'status',
         'refund_notes',
+        'refunded_at',
         'paid_at',
     ];
 
@@ -39,6 +40,7 @@ class Payment extends Model
             'tax' => 'decimal:2',
             'tip' => 'decimal:2',
             'paid_at' => 'date',
+            'refunded_at' => 'datetime',
         ];
     }
 

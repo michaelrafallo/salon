@@ -197,6 +197,7 @@ class SalonPaymentController extends Controller
             if (array_key_exists('refund_notes', $validated)) {
                 $payment->refund_notes = $validated['refund_notes'];
             }
+            $payment->refunded_at = $validated['refunded_at'] ?? now();
         }
 
         if ($payment->isDirty()) {

@@ -52,38 +52,59 @@
 @push('styles')
 <style>
 @media print {
-    /* Remove shadows and unnecessary elements for print */
-    #modalOverlay, .shadow, .shadow-sm, .shadow-md, .shadow-lg {
-        box-shadow: none !important;
+    /* Hide everything by default */
+    body * {
+        visibility: hidden !important;
     }
 
-    /* Hide modal overlay background */
+    /* Show only the modal and its contents */
+    #modalOverlay,
+    #modalOverlay * {
+        visibility: visible !important;
+    }
+
+    /* Position modal to fill the page */
     #modalOverlay {
-        background: transparent !important;
+        position: absolute !important;
+        inset: 0 !important;
+        background: white !important;
+        backdrop-filter: none !important;
+        display: block !important;
+        padding: 0 !important;
+        z-index: 0 !important;
     }
 
-    /* Remove rounded corners and adjust spacing */
-    .rounded-lg, .rounded {
-        border-radius: 0 !important;
-    }
-
-    /* Hide buttons in print view */
-    #modalOverlay button,
-    .no-print {
-        display: none !important;
-    }
-
-    /* Ensure content fits on page */
     #modalContainer {
+        position: relative !important;
         max-width: 100% !important;
+        width: 100% !important;
         margin: 0 !important;
         padding: 0 !important;
         box-shadow: none !important;
+        border-radius: 0 !important;
+        transform: none !important;
     }
 
-    /* Clean up the ticket display */
-    body {
+    /* Hide buttons inside the modal */
+    #modalOverlay button {
+        display: none !important;
+        visibility: hidden !important;
+    }
+
+    /* Remove scroll constraints so all content prints */
+    #modalOverlay *,
+    #modalContent,
+    #modalContent * {
+        overflow: visible !important;
+        max-height: none !important;
+        height: auto !important;
+    }
+
+    /* Clean page */
+    body, html {
         background: white !important;
+        margin: 0 !important;
+        padding: 0 !important;
     }
 }
 </style>
@@ -264,12 +285,26 @@ window.salonPaymentsOpenReceiptModal = function(transactionId) {
     var statusLower = String(payment.status || '').toLowerCase();
     var isRefundedOrVoided = statusLower === 'refunded' || statusLower === 'voided';
     var refundNotes = payment.refund_notes || payment.refundNotes || '';
-    var refundNotesHtml = (isRefundedOrVoided && refundNotes)
-        ? '<div class="mt-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">'
-            + '<p class="text-xs font-semibold text-amber-900 mb-1">Refund notes</p>'
-            + '<p class="text-sm text-amber-900 whitespace-pre-wrap">' + escapeHtml(refundNotes) + '</p>'
-            + '</div>'
-        : '';
+    var refundedAt = payment.refunded_at || '';
+    var refundInfoHtml = '';
+    if (isRefundedOrVoided && (refundNotes || refundedAt)) {
+        refundInfoHtml = '<div class="mt-3 p-4 bg-amber-50 border border-amber-200 rounded-lg">';
+        if (refundedAt) {
+            var refundDateDisplay = refundedAt;
+            try {
+                var rd = new Date(refundedAt);
+                if (!isNaN(rd.getTime())) {
+                    refundDateDisplay = rd.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) + ' ' + rd.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                }
+            } catch(e) {}
+            refundInfoHtml += '<div class="flex justify-between mb-1"><span class="text-xs font-semibold text-amber-900">Refund Date</span><span class="text-sm text-amber-900">' + refundDateDisplay + '</span></div>';
+        }
+        if (refundNotes) {
+            refundInfoHtml += '<p class="text-xs font-semibold text-amber-900 mb-1">Refund Notes</p>'
+                + '<p class="text-sm text-amber-900 whitespace-pre-wrap">' + escapeHtml(refundNotes) + '</p>';
+        }
+        refundInfoHtml += '</div>';
+    }
     var refundBtnHtml = isRefundedOrVoided
         ? '<button type="button" disabled class="px-6 py-3 bg-gray-100 text-gray-400 rounded-lg font-medium cursor-not-allowed opacity-80 flex items-center gap-2" title="Already refunded">'
             + '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>'
@@ -292,7 +327,7 @@ window.salonPaymentsOpenReceiptModal = function(transactionId) {
         + '<div class="flex justify-between"><span class="text-sm text-gray-600">Customer:</span><span class="text-sm font-medium text-gray-900">' + customerName + '</span></div>'
         + '<div class="flex justify-between"><span class="text-sm text-gray-600">Method:</span><span class="text-sm font-medium text-gray-900">' + (payment.method || '—') + '</span></div>'
         + '<div class="flex justify-between"><span class="text-sm text-gray-600">Status:</span><span class="text-sm font-medium text-gray-900">' + (payment.status || '—') + '</span></div>'
-        + refundNotesHtml
+        + refundInfoHtml
         + '</div>'
         + '<div class="border-t border-gray-200 pt-4"><h4 class="text-sm font-semibold text-gray-700 mb-2">Services</h4><div class="space-y-2">' + servicesHtml + '</div></div>'
         + '<div class="border-t border-gray-200 pt-4 space-y-2">'
@@ -351,10 +386,15 @@ window.salonPaymentsOpenRefundConfirmationModal = function(transactionId, custom
         + '<div class="flex justify-between"><span class="text-sm text-gray-600">Customer:</span><span class="text-sm font-medium text-gray-900">' + customerName + '</span></div>'
         + '<div class="flex justify-between"><span class="text-sm text-gray-600">Amount:</span><span class="text-sm font-medium text-gray-900">' + amount + '</span></div>'
         + '</div>'
-        + '<div class="border-t border-gray-200 pt-4">'
+        + '<div class="border-t border-gray-200 pt-4 space-y-4">'
+        + '<div>'
+        + '<label class="block text-sm font-medium text-gray-700 mb-2">Refund Date & Time</label>'
+        + '<input type="datetime-local" id="refundDateInput" value="' + new Date().toISOString().slice(0, 16) + '" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent text-sm" />'
+        + '</div>'
+        + '<div>'
         + '<label class="block text-sm font-medium text-gray-700 mb-2">Notes (optional)</label>'
         + '<textarea id="refundNotesInput" rows="3" maxlength="2000" placeholder="Add refund notes..." class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent text-sm"></textarea>'
-        + '<p class="mt-2 text-xs text-gray-500">Notes will be saved with this payment.</p>'
+        + '</div>'
         + '</div>'
         + '</div>'
         + '<div class="flex justify-end gap-3 pt-6">'
@@ -403,6 +443,8 @@ window.salonPaymentsCloseRefundModal = function() {
 window.salonPaymentsRefundPayment = function(transactionId) {
     var notesEl = document.getElementById('refundNotesInput');
     var notes = notesEl ? String(notesEl.value || '').trim() : '';
+    var dateEl = document.getElementById('refundDateInput');
+    var refundDate = dateEl ? String(dateEl.value || '').trim() : '';
     salonPaymentsCloseRefundModal();
 
     var paymentIndex = allPayments.findIndex(function(p) { return String(p.id) === String(transactionId); });
@@ -410,9 +452,12 @@ window.salonPaymentsRefundPayment = function(transactionId) {
         if (typeof showErrorMessage === 'function') showErrorMessage('Transaction not found');
         return;
     }
-    salonApi.put(apiPaymentsUrl + '/' + encodeURIComponent(transactionId), { status: 'Refunded', refund_notes: (notes || null) }).then(function() {
+    var payload = { status: 'Refunded', refund_notes: (notes || null) };
+    if (refundDate) payload.refunded_at = refundDate;
+    salonApi.put(apiPaymentsUrl + '/' + encodeURIComponent(transactionId), payload).then(function() {
         allPayments[paymentIndex].status = 'Refunded';
         allPayments[paymentIndex].refund_notes = notes || '';
+        allPayments[paymentIndex].refunded_at = refundDate || '';
         allPayments[paymentIndex].statusColor = 'bg-amber-100';
         allPayments[paymentIndex].statusTextColor = 'text-amber-700';
         paymentsData = allPayments;
