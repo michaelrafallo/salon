@@ -225,6 +225,7 @@ class SalonDataController extends Controller
             'active' => $s->active,
             'image' => $s->image,
             'image_url' => $s->image ? asset('storage/'.$s->image) : null,
+            'color' => $s->color,
             'categories' => $s->categories->pluck('slug')->values()->all(),
         ]);
 

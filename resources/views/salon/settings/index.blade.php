@@ -49,7 +49,7 @@
                 </form>
             </div>
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
-                <h2 class="text-lg font-semibold text-gray-900 mb-4">GoHighLevel Webhooks</h2>
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Clickaio Webhooks</h2>
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-gray-700 mb-2">Online Check-in</label>
                     <div class="relative">

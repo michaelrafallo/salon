@@ -13,6 +13,7 @@ class Service extends Model
         'price',
         'active',
         'image',
+        'color',
     ];
 
     protected function casts(): array

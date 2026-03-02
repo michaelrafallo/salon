@@ -321,6 +321,7 @@ class SalonController extends Controller
                     'role',
                     'status',
                     'initials',
+                    'profile_photo',
                 ]);
 
             $techIds = $technicianRows->pluck('id')->all();
@@ -340,6 +341,8 @@ class SalonController extends Controller
                         'role' => $u->role,
                         'status' => $u->status ?? 'active',
                         'initials' => $u->initials,
+                        'profilePhoto' => $u->profile_photo,
+                        'profilePhotoUrl' => $u->profile_photo ? asset('storage/'.$u->profile_photo) : null,
                         'clock_in' => $tracker?->clock_in?->format('M j, Y g:i A'),
                         'clock_out' => $tracker?->clock_out?->format('M j, Y g:i A'),
                         'services' => $tracker ? (int) $tracker->services : 0,
@@ -433,6 +436,7 @@ class SalonController extends Controller
                         'active' => (bool) $s->active,
                         'image' => $s->image,
                         'image_url' => $s->image ? asset('storage/'.$s->image) : null,
+                        'color' => $s->color,
                         'categories' => $s->categories->pluck('slug')->values()->all(),
                     ])
                     ->values()
@@ -938,6 +942,7 @@ class SalonController extends Controller
                 'active' => (bool) $s->active,
                 'image' => $s->image,
                 'image_url' => $s->image ? asset('storage/'.$s->image) : null,
+                'color' => $s->color,
                 'categories' => $s->categories->pluck('slug')->values()->all(),
             ])
             ->values()

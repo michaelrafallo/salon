@@ -19,6 +19,17 @@ var cart = [], techniciansData = [], assignedTechnicianIds = [], selectedTechnic
 var paymentSubtotal = 0, paymentTax = 0, paymentTip = 0, paymentDiscount = 0, paymentCredits = 0, paymentGiftCard = 0, paymentAmountStr = '';
 var currentStep = 1, technicianTips = {}, tipSplitMode = 'percentage';
 var lastSavedCartSignature = null;
+function salonPayServiceColorDot(serviceIdOrName) {
+    var svc = null;
+    if (typeof serviceIdOrName === 'number' || (typeof serviceIdOrName === 'string' && /^\d+$/.test(serviceIdOrName))) {
+        svc = servicesData.find(function(s) { return s.id == serviceIdOrName; });
+    }
+    if (!svc && typeof serviceIdOrName === 'string') {
+        svc = servicesData.find(function(s) { return s.name === serviceIdOrName; });
+    }
+    if (svc && svc.color) return '<span class="inline-block w-3 h-3 rounded-full flex-shrink-0" style="background:' + svc.color + '"></span>';
+    return '<span class="inline-block w-3 h-3 rounded-full flex-shrink-0 border-2 border-gray-300"></span>';
+}
 var discountsEnabled = true;
 var couponsData = [];
 var couponsLoading = null;
@@ -432,7 +443,7 @@ function salonPayInitializeServicesList() {
                 thumbnailHtml +
                 '<div class="p-4 flex flex-col flex-1">' +
                 '<div class="flex-1">' +
-                '<h3 class="text-lg font-semibold text-gray-900 mb-1">' + service.name + '</h3>' +
+                '<h3 class="text-lg font-semibold text-gray-900 mb-1 flex items-center gap-2">' + salonPayServiceColorDot(service.id) + service.name + '</h3>' +
                 '<p class="text-lg font-normal text-gray-600 mb-3">' + window.salonFormatMoney(service.price) + '</p>' +
                 '</div>' +
                 '<button type="button" onclick="salonPayAddServiceToCart(\'' + service.name.replace(/'/g, "\\'") + '\', ' + service.price + ', \'' + categorySlug + '\', ' + sid + ')" class="w-full px-6 py-3 ' + (!selectedTechnicianId ? 'bg-gray-400 cursor-not-allowed' : isInCart ? 'bg-green-600 hover:bg-green-700' : 'bg-[#003047] hover:bg-[#002535]') + ' text-white rounded-lg transition font-medium text-sm active:scale-95 flex items-center justify-center gap-2 mt-auto" ' + (!selectedTechnicianId ? 'disabled title="Please select a technician first"' : '') + '>' +
@@ -1070,7 +1081,7 @@ function salonPayRenderTechniciansList() {
         if (techServices.length > 0) {
             html += '<div class="space-y-2">';
             techServices.forEach(function(service) {
-                html += '<div class="bg-gray-50 rounded-lg p-3 border border-gray-200"><div class="flex items-center justify-between gap-3"><div class="flex-1 min-w-0"><p class="text-sm font-semibold text-gray-900">' + service.name + '</p><p class="text-xs text-gray-500">' + window.salonFormatMoney(service.price) + ' each</p></div><div class="flex items-center gap-2"><button onclick="event.stopPropagation(); salonPayUpdateServiceQuantity(\'' + service.name.replace(/'/g, "\\'") + '\', ' + service.price + ', \'' + idStr + '\', ' + (service.quantity - 1) + ')" class="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-200 rounded border border-gray-300 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg></button><span class="text-sm font-medium text-gray-900 min-w-[2rem] text-center">' + service.quantity + '</span><button onclick="event.stopPropagation(); salonPayUpdateServiceQuantity(\'' + service.name.replace(/'/g, "\\'") + '\', ' + service.price + ', \'' + idStr + '\', ' + (service.quantity + 1) + ')" class="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-200 rounded border border-gray-300 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg></button></div><div class="text-sm font-semibold text-gray-900 min-w-[4rem] text-right">' + window.salonFormatMoney(service.price * service.quantity) + '</div><button onclick="event.stopPropagation(); salonPayRemoveServiceFromCart(\'' + service.name.replace(/'/g, "\\'") + '\', \'' + idStr + '\')" class="w-8 h-8 flex items-center justify-center text-red-500 hover:bg-red-50 rounded transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div></div>';
+                html += '<div class="bg-gray-50 rounded-lg p-3 border border-gray-200"><div class="flex items-center justify-between gap-3"><div class="flex-1 min-w-0"><p class="text-sm font-semibold text-gray-900 flex items-center gap-2">' + salonPayServiceColorDot(service.service_id || service.name) + service.name + '</p><p class="text-xs text-gray-500">' + window.salonFormatMoney(service.price) + ' each</p></div><div class="flex items-center gap-2"><button onclick="event.stopPropagation(); salonPayUpdateServiceQuantity(\'' + service.name.replace(/'/g, "\\'") + '\', ' + service.price + ', \'' + idStr + '\', ' + (service.quantity - 1) + ')" class="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-200 rounded border border-gray-300 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg></button><span class="text-sm font-medium text-gray-900 min-w-[2rem] text-center">' + service.quantity + '</span><button onclick="event.stopPropagation(); salonPayUpdateServiceQuantity(\'' + service.name.replace(/'/g, "\\'") + '\', ' + service.price + ', \'' + idStr + '\', ' + (service.quantity + 1) + ')" class="w-8 h-8 flex items-center justify-center text-gray-600 hover:bg-gray-200 rounded border border-gray-300 transition"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg></button></div><div class="text-sm font-semibold text-gray-900 min-w-[4rem] text-right">' + window.salonFormatMoney(service.price * service.quantity) + '</div><button onclick="event.stopPropagation(); salonPayRemoveServiceFromCart(\'' + service.name.replace(/'/g, "\\'") + '\', \'' + idStr + '\')" class="w-8 h-8 flex items-center justify-center text-red-500 hover:bg-red-50 rounded transition"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div></div>';
             });
             html += '</div></div>';
         } else {
@@ -1183,7 +1194,7 @@ function salonPayRenderCheckoutStep() {
     var itemsList = document.getElementById('checkoutItemsList');
     if (itemsList) {
         itemsList.innerHTML = cart.map(function(item) {
-            return '<div class="grid grid-cols-12 gap-4"><div class="col-span-6"><span class="text-sm text-gray-900">' + item.name + '</span></div><div class="col-span-3 text-center"><span class="text-sm text-gray-900">' + item.quantity + '</span></div><div class="col-span-3 text-right"><span class="text-sm font-semibold text-gray-900">' + window.salonFormatMoney(item.price * item.quantity) + '</span></div></div>';
+            return '<div class="grid grid-cols-12 gap-4"><div class="col-span-6"><span class="text-sm text-gray-900 flex items-center gap-2">' + salonPayServiceColorDot(item.service_id || item.name) + item.name + '</span></div><div class="col-span-3 text-center"><span class="text-sm text-gray-900">' + item.quantity + '</span></div><div class="col-span-3 text-right"><span class="text-sm font-semibold text-gray-900">' + window.salonFormatMoney(item.price * item.quantity) + '</span></div></div>';
         }).join('');
     }
     document.getElementById('checkoutSubtotalDisplay').textContent = window.salonFormatMoney(paymentSubtotal);

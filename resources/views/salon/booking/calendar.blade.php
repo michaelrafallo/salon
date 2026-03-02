@@ -470,6 +470,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             info.el.style.cursor = 'pointer';
         },
         eventDidMount: function(info) {
+            info.el.setAttribute('data-event-id', info.event.id);
             var customColor = info.event.extendedProps.color;
             if (customColor) {
                 info.el.style.setProperty('background-color', customColor, 'important');
@@ -486,46 +487,6 @@ document.addEventListener('DOMContentLoaded', async function() {
             info.el.classList.add('fc-event-dragging');
         },
         eventDrag: function(info) {
-            // Get the date/time being hovered over during drag
-            const draggedEvent = info.event;
-            const newStart = draggedEvent.start;
-            
-            // Get current date and time
-            const now = new Date();
-            
-            // Get today's date (start of day, no time) for month view
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            
-            // Get the new event date (start of day, no time)
-            const newDate = new Date(newStart);
-            newDate.setHours(0, 0, 0, 0);
-            
-            // Get current view type
-            const currentView = info.view.type;
-            
-            // For week and day views, check both date and time
-            let isPast = false;
-            if (currentView === 'timeGridWeek' || currentView === 'timeGridDay') {
-                // Check if the new start time is in the past
-                if (newStart < now) {
-                    isPast = true;
-                }
-            } else {
-                // For month/list views, only check the date
-                if (newDate < today) {
-                    isPast = true;
-                }
-            }
-            
-            // Show not-allowed cursor if past
-            if (isPast) {
-                document.body.classList.add('fc-drag-not-allowed');
-                info.el.classList.add('fc-drag-not-allowed');
-            } else {
-                document.body.classList.remove('fc-drag-not-allowed');
-                info.el.classList.remove('fc-drag-not-allowed');
-            }
         },
         eventDragStop: function(info) {
             // Remove class from body and reset cursor
@@ -540,46 +501,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             const event = info.event;
             const newStart = event.start;
             const newEnd = event.end;
-            
-            // Get current date and time
-            const now = new Date();
-            
-            // Get today's date (start of day, no time) for month view
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            
-            // Get the new event date (start of day, no time)
-            const newDate = new Date(newStart);
-            newDate.setHours(0, 0, 0, 0);
-            
-            // Get current view type
-            const currentView = info.view.type;
-            
-            // Check if the drop is valid based on view type
-            let isValid = true;
-            let errorMessage = '';
-            
-            if (currentView === 'timeGridWeek' || currentView === 'timeGridDay') {
-                // For week and day views, check if the new start time is in the past
-                if (newStart < now) {
-                    isValid = false;
-                    errorMessage = 'Cannot move events to past times';
-                }
-            } else {
-                // For month/list views, only check if the date is in the past
-                if (newDate < today) {
-                    isValid = false;
-                    errorMessage = 'Cannot move events to past dates';
-                }
-            }
-            
-            // If invalid, revert the drop
-            if (!isValid) {
-                info.revert();
-                showErrorMessage(errorMessage);
-                return;
-            }
-            
+
             // Update the appointment data in bookingsData
             const appointmentId = parseInt(event.id);
             const appointment = bookingsData.find(apt => apt.id === appointmentId);
@@ -782,8 +704,6 @@ document.addEventListener('DOMContentLoaded', async function() {
                 updateViewButtons('grid');
             }
             
-            // Gray out past days
-            grayOutPastDays();
         },
         datesSet: function(dateInfo) {
             // Update URL with month when arrows are clicked (not on initial load)
@@ -822,36 +742,8 @@ document.addEventListener('DOMContentLoaded', async function() {
             }
             
             // Gray out past days when dates change
-            setTimeout(function() {
-                grayOutPastDays();
-            }, 100);
         },
         dayCellClassNames: function(info) {
-            // Automatically add class to past days and past time slots
-            const now = new Date();
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            
-            const dayDate = new Date(info.date);
-            const dayDateOnly = new Date(dayDate);
-            dayDateOnly.setHours(0, 0, 0, 0);
-            
-            // Get current view type
-            const currentView = info.view.type;
-            
-            // For week/day views, check if the day/time is in the past
-            if (currentView === 'timeGridWeek' || currentView === 'timeGridDay') {
-                // For time grid views, check if the entire day or time is past
-                if (dayDateOnly < today || dayDate < now) {
-                    return ['fc-day-past'];
-                }
-            } else {
-                // For month/list views, only check the date
-                if (dayDateOnly < today) {
-                    return ['fc-day-past'];
-                }
-            }
-            
             return [];
         }
     });
@@ -2197,6 +2089,12 @@ function showAppointmentModal(appointmentData) {
             <div class="flex items-center justify-end pt-4 border-t border-gray-200">
                 <div class="flex gap-3">
                 ${!isTechnician ? `
+                    <button onclick="deleteAppointment('${appointmentId}', '${customerName.replace(/'/g, "\\'")}')" class="px-4 py-2.5 border-2 border-red-500 text-red-500 bg-transparent rounded-lg hover:bg-red-50 transition-all font-medium flex items-center justify-center gap-2 active:scale-95">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
+                    Delete
+                </button>
                     <button onclick="assignAndUpdateStatus('${appointmentId}', '${customerName}')" class="px-4 py-2.5 border-2 border-[#003047] text-[#003047] bg-transparent rounded-lg hover:bg-[#e6f0f3] transition-all font-medium flex items-center justify-center gap-2 active:scale-95">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
@@ -2324,25 +2222,20 @@ function setEventColor(appointmentId, color) {
 
                 // Force !important styles on the DOM element after FullCalendar re-renders
                 setTimeout(function() {
-                    const fcEvents = document.querySelectorAll('.fc-event');
-                    fcEvents.forEach(function(el) {
-                        const fcEvent = calendarInstance.getEventById(appointmentId.toString());
-                        if (!fcEvent) return;
-                        // Match by checking if element contains this event's data
-                        if (el.classList.contains('event-custom-color') || el.getAttribute('data-custom-color')) {
-                            if (color) {
-                                el.style.setProperty('background-color', color, 'important');
-                                el.style.setProperty('background', color, 'important');
-                                el.style.setProperty('border-color', color, 'important');
-                                el.style.setProperty('color', '#ffffff', 'important');
-                                el.setAttribute('data-custom-color', color);
-                            } else {
-                                el.removeAttribute('data-custom-color');
-                                el.style.removeProperty('background-color');
-                                el.style.removeProperty('background');
-                                el.style.removeProperty('border-color');
-                                el.style.removeProperty('color');
-                            }
+                    const targetEls = document.querySelectorAll('[data-event-id="' + appointmentId + '"]');
+                    targetEls.forEach(function(el) {
+                        if (color) {
+                            el.style.setProperty('background-color', color, 'important');
+                            el.style.setProperty('background', color, 'important');
+                            el.style.setProperty('border-color', color, 'important');
+                            el.style.setProperty('color', '#ffffff', 'important');
+                            el.setAttribute('data-custom-color', color);
+                        } else {
+                            el.removeAttribute('data-custom-color');
+                            el.style.removeProperty('background-color');
+                            el.style.removeProperty('background');
+                            el.style.removeProperty('border-color');
+                            el.style.removeProperty('color');
                         }
                     });
                 }, 50);
@@ -2363,6 +2256,86 @@ function setEventColor(appointmentId, color) {
         }
     }).catch(function(err) {
         console.error('Failed to save event color:', err);
+    });
+}
+
+function deleteAppointment(appointmentId, customerName) {
+    openConfirmModal({
+        title: 'Delete appointment',
+        message: 'You are about to permanently remove the appointment for ' + boldName(customerName) + '. Do you want to continue?',
+        confirmLabel: 'Delete',
+        nested: true,
+        onConfirm: function() {
+            // Gather appointment and customer data before deletion
+            const appointment = bookingsData.find(a => a.id.toString() === appointmentId.toString());
+            const customer = appointment ? customersData.find(c => c.id.toString() === appointment.customer_id.toString()) : null;
+
+            var webhookPayload = null;
+            if (appointment && customer) {
+                var aptDt = appointment.appointment_datetime || appointment.created_at || '';
+                if (typeof aptDt === 'string') {
+                    aptDt = aptDt.replace(/Z$/, '').replace(/[+-]\d{2}:\d{2}$/, '').replace(/\.\d+/, '');
+                }
+                var dtObj = aptDt ? new Date(aptDt.replace(/-/g, '/').replace('T', ' ')) : null;
+                var formattedDt = '';
+                if (dtObj && !isNaN(dtObj.getTime())) {
+                    var yy = dtObj.getFullYear();
+                    var mm = String(dtObj.getMonth() + 1).padStart(2, '0');
+                    var dd = String(dtObj.getDate()).padStart(2, '0');
+                    var hh = dtObj.getHours();
+                    var mi = String(dtObj.getMinutes()).padStart(2, '0');
+                    var ampm = hh >= 12 ? 'PM' : 'AM';
+                    var hh12 = hh % 12 || 12;
+                    formattedDt = yy + '-' + mm + '-' + dd + ' ' + String(hh12).padStart(2, '0') + ':' + mi + ' ' + ampm;
+                }
+                webhookPayload = {
+                    customer_id: String(appointment.customer_id),
+                    status: 'cancelled',
+                    firstname: customer.firstName || '',
+                    lastname: customer.lastName || '',
+                    phone: customer.phone || '',
+                    email: customer.email || '',
+                    datetime: formattedDt
+                };
+            }
+
+            const apiUrl = window.salonCalendarAppointmentsApiUrl;
+            salonApi.delete(apiUrl + '/' + appointmentId).then(function() {
+                // Close modal
+                if (typeof closeModal === 'function') closeModal();
+
+                // Remove from bookingsData
+                const index = bookingsData.findIndex(a => a.id.toString() === appointmentId.toString());
+                if (index !== -1) bookingsData.splice(index, 1);
+
+                // Remove from calendar
+                if (calendarInstance) {
+                    const event = calendarInstance.getEventById(appointmentId.toString());
+                    if (event) event.remove();
+                }
+
+                // Re-render list view if visible
+                const listViewContainer = document.getElementById('listViewContainer');
+                if (listViewContainer && !listViewContainer.classList.contains('hidden')) {
+                    renderTechnicianListView();
+                }
+
+                showSuccessMessage('Appointment deleted successfully');
+
+                // Send update appointment webhook
+                if (webhookPayload) {
+                    salonApi.post(window.salonWebhookApiUrl, {
+                        webhook_key: 'ghl_webhook_update_appointment',
+                        payload: webhookPayload,
+                    }).catch(function(err) {
+                        console.error('Failed to send update appointment webhook:', err);
+                    });
+                }
+            }).catch(function(err) {
+                console.error('Failed to delete appointment:', err);
+                showErrorMessage('Failed to delete appointment');
+            });
+        }
     });
 }
 
@@ -2727,108 +2700,6 @@ function showErrorMessage(message) {
     }, 3000);
 }
 
-function grayOutPastDays() {
-    // Get today's date (start of day)
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    // Find all day cells in month view
-    const dayCells = document.querySelectorAll('.fc-daygrid-day');
-    
-    dayCells.forEach(function(dayCell) {
-        // Try multiple ways to get the date from FullCalendar
-        let dayDate = null;
-        
-        // Method 1: Check for data-date attribute
-        const dateStr = dayCell.getAttribute('data-date');
-        if (dateStr) {
-            dayDate = new Date(dateStr);
-        } else {
-            // Method 2: Get from the day number element's parent date info
-            const dayNumber = dayCell.querySelector('.fc-daygrid-day-number');
-            if (dayNumber) {
-                // FullCalendar stores date in the element's data
-                const parent = dayCell.closest('[data-date]');
-                if (parent) {
-                    dayDate = new Date(parent.getAttribute('data-date'));
-                } else {
-                    // Try to reconstruct date from view context
-                    const viewEl = document.querySelector('.fc-view-harness');
-                    if (viewEl) {
-                        // Get calendar instance from global if available
-                        // Or check the day number text
-                        const ariaLabel = dayCell.getAttribute('aria-label');
-                        if (ariaLabel) {
-                            // Try to parse date from aria-label like "Tuesday, December 3, 2024"
-                            const dateMatch = ariaLabel.match(/(\w+),?\s+(\w+)\s+(\d+),?\s+(\d+)/);
-                            if (dateMatch) {
-                                dayDate = new Date(dateMatch[2] + ' ' + dateMatch[3] + ', ' + dateMatch[4]);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        
-        // If we found a date, compare with today
-        if (dayDate) {
-            dayDate.setHours(0, 0, 0, 0);
-            if (dayDate < today) {
-                dayCell.classList.add('fc-day-past');
-            } else {
-                dayCell.classList.remove('fc-day-past');
-            }
-        }
-    });
-    
-    // Also handle time grid columns for week/day view
-    const timeGridCols = document.querySelectorAll('.fc-timegrid-col');
-    const now = new Date();
-    
-    timeGridCols.forEach(function(col) {
-        const dateStr = col.getAttribute('data-date');
-        if (dateStr) {
-            const dayDate = new Date(dateStr);
-            dayDate.setHours(0, 0, 0, 0);
-            
-            // For week/day views, check if the entire day column is in the past
-            if (dayDate < today) {
-                col.classList.add('fc-day-past');
-            } else {
-                col.classList.remove('fc-day-past');
-            }
-        }
-    });
-    
-    // Mark past time slots within today's columns
-    const timeSlots = document.querySelectorAll('.fc-timegrid-slot');
-    timeSlots.forEach(function(slot) {
-        // Check if slot time is in the past
-        // FullCalendar stores time information in the slot elements
-        const slotEl = slot;
-        const slotData = slotEl.getAttribute('data-time');
-        
-        // Find the column this slot belongs to
-        const col = slotEl.closest('.fc-timegrid-col');
-        if (col) {
-            const colDateStr = col.getAttribute('data-date');
-            if (colDateStr) {
-                const colDate = new Date(colDateStr);
-                // Check if this is today and the time slot is in the past
-                const colDateOnly = new Date(colDate);
-                colDateOnly.setHours(0, 0, 0, 0);
-                const todayOnly = new Date(today);
-                
-                if (colDateOnly.getTime() === todayOnly.getTime()) {
-                    // This is today, check if slot time has passed
-                    // FullCalendar stores slot info differently, so we'll mark it via CSS
-                    const slotTime = slotEl.getAttribute('data-time') || '';
-                    // We'll let the dayCellClassNames handle this more reliably
-                }
-            }
-        }
-    });
-}
 
 // Assign and update status to unpaid
 async function assignAndUpdateStatus(appointmentId, customerName) {
@@ -3858,28 +3729,6 @@ body.fc-drag-not-allowed * {
     border-radius: 0 !important;
 }
 
-/* Gray out past days */
-.fc-day-past {
-    background-color: #f9fafb !important;
-    opacity: 0.5 !important;
-    pointer-events: auto !important;
-}
-
-.fc-day-past .fc-daygrid-day-number {
-    color: #9ca3af !important;
-}
-
-.fc-day-past .fc-event {
-    opacity: 0.6 !important;
-    pointer-events: none !important;
-}
-
-/* Prevent interaction with past day events */
-.fc-day-past .fc-event:hover {
-    opacity: 0.6 !important;
-    transform: none !important;
-    cursor: not-allowed !important;
-}
 
 .fc-day-today .fc-daygrid-day-number {
     color: #003047;

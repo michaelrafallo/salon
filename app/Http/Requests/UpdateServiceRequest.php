@@ -23,6 +23,7 @@ class UpdateServiceRequest extends FormRequest
             'active' => ['nullable', 'boolean'],
             'image' => ['nullable', 'image', 'max:2048'],
             'remove_image' => ['nullable', 'in:0,1'],
+            'color' => ['nullable', 'string', 'max:7'],
             'categories' => ['nullable', 'array'],
             'categories.*' => ['string', 'max:100'],
         ];

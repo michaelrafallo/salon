@@ -49,7 +49,7 @@ class SalonSettingsController extends Controller
     public function sendWebhook(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'webhook_key' => ['required', 'string', 'in:ghl_webhook_no_show_sms,ghl_webhook_book_appointment'],
+            'webhook_key' => ['required', 'string', 'in:ghl_webhook_no_show_sms,ghl_webhook_book_appointment,ghl_webhook_update_appointment'],
             'payload' => ['required', 'array'],
         ]);
 

@@ -953,10 +953,11 @@ function renderAvailableTechnicians() {
             ? "flex items-center gap-3 p-2 rounded-lg transition-colors opacity-50 grayscale cursor-pointer group hover:bg-gray-100"
             : "flex items-center gap-3 cursor-pointer group hover:bg-gray-50 p-2 rounded-lg transition-colors";
         
+        const hasPhoto = !!technician.profilePhotoUrl;
         const avatarClasses = isAssigned
-            ? "w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center"
-            : "w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center";
-        
+            ? "w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center overflow-hidden"
+            : "w-12 h-12 bg-gray-200 rounded-full flex items-center justify-center overflow-hidden";
+
         const initialClasses = isAssigned
             ? "text-sm font-bold text-gray-500"
             : "text-sm font-bold text-gray-600";
@@ -972,11 +973,15 @@ function renderAvailableTechnicians() {
         const servicesNum = typeof technician.services === 'number' ? technician.services : 0;
         const badgeTitle = isOnline ? 'Online' : 'Offline';
         
+        const avatarContent = hasPhoto
+            ? `<img src="${technician.profilePhotoUrl}" alt="${fullName}" class="w-12 h-12 rounded-full object-cover">`
+            : `<span class="${initialClasses}">${initials}</span>`;
+
         html += `
             <div onclick="${isAssigned ? 'removeAssignedTechnician(' + technician.id + ')' : 'assignTechnician(' + technician.id + ')'}" class="${containerClasses}">
                 <div class="relative flex-shrink-0">
                     <div class="${avatarClasses}">
-                        <span class="${initialClasses}">${initials}</span>
+                        ${avatarContent}
                     </div>
                     <div class="${badgeClasses}" style="${badgeStyle}" title="${badgeTitle}"></div>
                 </div>
@@ -990,7 +995,7 @@ function renderAvailableTechnicians() {
             </div>
         `;
     });
-    
+
     container.innerHTML = html;
 }
 
@@ -1015,16 +1020,21 @@ function renderAssignedTechnicians() {
         
         const initials = technician.initials || (technician.firstName?.[0] || '') + (technician.lastName?.[0] || '');
         const fullName = `${technician.firstName} ${technician.lastName}`;
+        const hasPhoto = !!technician.profilePhotoUrl;
         const isOnline = !!(technician.clock_in && !technician.clock_out);
         const badgeClasses = isOnline ? "absolute w-5 h-5 rounded-full border-2 border-white bg-green-500" : "absolute w-5 h-5 rounded-full border-2 border-white bg-gray-400";
         const servicesNum = typeof technician.services === 'number' ? technician.services : 0;
         const badgeTitle = isOnline ? 'Online' : 'Offline';
-        
+
+        const avatarContent = hasPhoto
+            ? `<img src="${technician.profilePhotoUrl}" alt="${fullName}" class="w-12 h-12 rounded-full object-cover">`
+            : `<span class="text-sm font-bold text-white">${initials}</span>`;
+
         html += `
             <div onclick="removeAssignedTechnician(${technician.id})" class="flex items-center gap-3 cursor-pointer group hover:bg-gray-50 p-2 rounded-lg transition-colors">
                 <div class="relative flex-shrink-0">
-                    <div class="w-12 h-12 bg-[#003047] rounded-full flex items-center justify-center">
-                        <span class="text-sm font-bold text-white">${initials}</span>
+                    <div class="w-12 h-12 bg-[#003047] rounded-full flex items-center justify-center overflow-hidden">
+                        ${avatarContent}
                     </div>
                     <div class="${badgeClasses}" style="${badgeStyle}" title="${badgeTitle}"></div>
                 </div>
@@ -1038,7 +1048,7 @@ function renderAssignedTechnicians() {
             </div>
         `;
     });
-    
+
     container.innerHTML = html;
 }
 

@@ -19,7 +19,12 @@ class SalonUserController extends Controller
 
     public function store(StoreUserRequest $request): JsonResponse
     {
-        $user = $this->userService->create($request->validated());
+        $data = $request->validated();
+        if ($request->hasFile('profile_photo')) {
+            $data['profile_photo'] = $request->file('profile_photo');
+        }
+
+        $user = $this->userService->create($data);
 
         return response()->json([
             'success' => true,

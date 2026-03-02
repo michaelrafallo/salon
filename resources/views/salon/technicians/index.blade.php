@@ -156,10 +156,18 @@ function getInitials(t) { return t.initials || ((t.firstName||'')[0] + (t.lastNa
 function getTechAvatar(t, size, textSize, color) {
     var inits = getInitials(t);
     if (t.profilePhotoUrl) {
-        return '<div class="' + size + ' rounded-full overflow-hidden flex-shrink-0"><img src="' + t.profilePhotoUrl.replace(/"/g, '&quot;') + '" alt="" class="w-full h-full object-cover" onerror="this.style.display=\'none\';this.parentNode.innerHTML=\'<div class=&quot;' + size + ' ' + color.bg + ' rounded-full flex items-center justify-center flex-shrink-0&quot;><span class=&quot;' + textSize + ' font-bold ' + color.text + '&quot;>' + inits + '</span></div>\'"></div>';
+        var safeUrl = t.profilePhotoUrl.replace(/"/g, '&quot;').replace(/'/g, "\\'");
+        return '<div class="' + size + ' rounded-full overflow-hidden flex-shrink-0 cursor-pointer" onclick="event.stopPropagation();previewTechPhoto(\'' + safeUrl + '\')"><img src="' + t.profilePhotoUrl.replace(/"/g, '&quot;') + '" alt="" class="w-full h-full object-cover" onerror="this.style.display=\'none\';this.parentNode.innerHTML=\'<div class=&quot;' + size + ' ' + color.bg + ' rounded-full flex items-center justify-center flex-shrink-0&quot;><span class=&quot;' + textSize + ' font-bold ' + color.text + '&quot;>' + inits + '</span></div>\';this.parentNode.onclick=null;this.parentNode.style.cursor=\'default\'"></div>';
     }
     return '<div class="' + size + ' ' + color.bg + ' rounded-full flex items-center justify-center flex-shrink-0"><span class="' + textSize + ' font-bold ' + color.text + '">' + inits + '</span></div>';
 }
+window.previewTechPhoto = function(url) {
+    var overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;cursor:pointer;';
+    overlay.onclick = function() { overlay.remove(); };
+    overlay.innerHTML = '<button onclick="event.stopPropagation();this.parentElement.remove();" style="position:absolute;top:1rem;right:1rem;background:rgba(255,255,255,0.15);border:none;color:#fff;border-radius:9999px;width:2.5rem;height:2.5rem;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background 0.2s;" onmouseenter="this.style.background=\'rgba(255,255,255,0.3)\'" onmouseleave="this.style.background=\'rgba(255,255,255,0.15)\'"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button><img src="' + url + '" alt="Profile Photo" style="max-height:90vh;max-width:90vw;object-fit:contain;border-radius:0.5rem;" onclick="event.stopPropagation();">';
+    document.body.appendChild(overlay);
+};
 function getClockFromTech(t) {
     var clockIn = t.clock_in || '';
     var clockOut = t.clock_out || '';

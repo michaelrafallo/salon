@@ -18,7 +18,7 @@ class UserService
         return DB::transaction(function () use ($data) {
             $name = trim(($data['first_name'] ?? '').' '.($data['last_name'] ?? '')) ?: $data['username'];
 
-            return User::query()->create([
+            $attrs = [
                 'name' => $name,
                 'username' => $data['username'],
                 'email' => $data['email'],
@@ -28,7 +28,13 @@ class UserService
                 'phone' => $data['phone'] ?? null,
                 'role' => $data['role'],
                 'status' => $data['status'] ?? 'active',
-            ]);
+            ];
+
+            if (isset($data['profile_photo']) && $data['profile_photo'] instanceof UploadedFile) {
+                $attrs['profile_photo'] = $data['profile_photo']->store('profile-photos', 'public');
+            }
+
+            return User::query()->create($attrs);
         });
     }
 

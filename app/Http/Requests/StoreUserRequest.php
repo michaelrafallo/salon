@@ -26,6 +26,7 @@ class StoreUserRequest extends FormRequest
             'phone' => ['nullable', 'string', 'max:50'],
             'role' => ['required', 'string', 'in:admin,receptionist,technician'],
             'status' => ['nullable', 'string', 'in:active,inactive'],
+            'profile_photo' => ['nullable', 'image', 'max:2048'],
         ];
     }
 }

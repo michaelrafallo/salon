@@ -160,13 +160,22 @@ function salonTurnTrackerRenderTechnicians() {
     var html = '';
     techniciansData.forEach(function(tech, index) {
         var clockInLabel = salonTurnTrackerFormatClockIn(tech.clockIn, tech.clockInDisplay);
+        var safePhotoUrl = tech.photo ? (tech.photo || '').replace(/"/g, '&quot;').replace(/'/g, "\\'") : '';
         var photoHtml = tech.photo
-            ? '<img src="' + (tech.photo || '').replace(/"/g, '&quot;') + '" alt="" class="w-10 h-10 rounded-full object-cover border border-gray-200">'
+            ? '<img src="' + safePhotoUrl + '" alt="" class="w-10 h-10 rounded-full object-cover border border-gray-200 cursor-pointer hover:opacity-80 transition" onclick="event.stopPropagation();previewTurnTrackerPhoto(\'' + safePhotoUrl + '\')">'
             : '<div class="w-10 h-10 bg-[#e6f0f3] rounded-full flex items-center justify-center border border-gray-200"><span class="text-xs font-bold text-[#003047]">' + (tech.initials || '—') + '</span></div>';
         html += '<div class="technician-item flex items-center gap-3 p-3 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-all" data-index="' + index + '" data-technician-id="' + tech.id + '"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-[#003047] text-white flex items-center justify-center font-bold text-sm">' + (index + 1) + '</div><div class="flex-shrink-0">' + photoHtml + '</div><div class="flex-1 min-w-0"><p class="font-semibold text-gray-900 text-sm truncate">' + (tech.fullName || '').replace(/</g, '&lt;') + '</p><p class="text-xs text-gray-500 truncate">Clock In: ' + String(clockInLabel).replace(/</g, '&lt;') + '</p></div><div class="flex-shrink-0 flex items-center gap-2"><span class="text-xs text-gray-600">Services:</span><input type="number" value="' + tech.serviceCount + '" min="0" class="w-20 px-2 py-1 text-sm font-semibold text-[#003047] border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" onchange="salonTurnTrackerUpdateServiceCount(' + tech.id + ', this.value)" onblur="salonTurnTrackerSaveServiceCount(' + tech.id + ')" data-technician-id="' + tech.id + '"></div></div>';
     });
     container.innerHTML = html;
 }
+
+window.previewTurnTrackerPhoto = function(url) {
+    var overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;cursor:pointer;';
+    overlay.onclick = function() { overlay.remove(); };
+    overlay.innerHTML = '<button onclick="event.stopPropagation();this.parentElement.remove();" style="position:absolute;top:1rem;right:1rem;background:rgba(255,255,255,0.15);border:none;color:#fff;border-radius:9999px;width:2.5rem;height:2.5rem;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background 0.2s;" onmouseenter="this.style.background=\'rgba(255,255,255,0.3)\'" onmouseleave="this.style.background=\'rgba(255,255,255,0.15)\'"><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button><img src="' + url + '" alt="Profile Photo" style="max-height:90vh;max-width:90vw;object-fit:contain;border-radius:0.5rem;" onclick="event.stopPropagation();">';
+    document.body.appendChild(overlay);
+};
 
 document.addEventListener('DOMContentLoaded', function() {
     if (window.salonTurnTrackerBootstrap && window.salonTurnTrackerBootstrap.entries) {

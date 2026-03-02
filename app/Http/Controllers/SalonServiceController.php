@@ -106,6 +106,7 @@ class SalonServiceController extends Controller
             'active' => $service->active,
             'image' => $service->image,
             'image_url' => $service->image ? asset('storage/'.$service->image) : null,
+            'color' => $service->color,
             'categories' => $service->categories->pluck('slug')->values()->all(),
         ];
     }

@@ -21,6 +21,7 @@ class ServiceService
                 'price' => $data['price'],
                 'active' => filter_var($data['active'] ?? true, FILTER_VALIDATE_BOOLEAN),
                 'image' => $data['image'] ?? null,
+                'color' => $data['color'] ?? null,
             ]);
             $this->syncCategoriesBySlug($service, $data['categories'] ?? []);
 
@@ -52,6 +53,9 @@ class ServiceService
                     Storage::disk('public')->delete($service->image);
                 }
                 $attrs['image'] = $data['image'];
+            }
+            if (array_key_exists('color', $data)) {
+                $attrs['color'] = $data['color'] ?: null;
             }
             if ($attrs !== []) {
                 $service->update($attrs);

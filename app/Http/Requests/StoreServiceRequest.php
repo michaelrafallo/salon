@@ -22,6 +22,7 @@ class StoreServiceRequest extends FormRequest
             'price' => ['required', 'numeric', 'min:0'],
             'active' => ['nullable', 'boolean'],
             'image' => ['nullable', 'image', 'max:2048'],
+            'color' => ['nullable', 'string', 'max:7'],
             'categories' => ['nullable', 'array'],
             'categories.*' => ['string', 'max:100'],
         ];

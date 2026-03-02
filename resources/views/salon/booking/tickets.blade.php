@@ -127,8 +127,9 @@ function renderTechniciansList(ids) {
         var inits = getTechnicianInitials(tech), name = tech.firstName + ' ' + tech.lastName;
         var c = colorClasses[i % colorClasses.length];
         var photo = tech.profilePhotoUrl || tech.profilePhoto || tech.avatar || tech.image || null;
+        var hoverAttr = photo ? ' onmouseenter="showTechPhotoPreview(event, \'' + photo.replace(/'/g, "\\'") + '\', \'' + name.replace(/'/g, "\\'") + '\')" onmouseleave="hideTechPhotoPreview()"' : '';
         return '<div class="flex items-center gap-2 mb-1 last:mb-0">' +
-            (photo ? '<img src="' + photo + '" alt="' + name + '" class="w-8 h-8 rounded-full object-cover flex-shrink-0 border-2 border-white shadow-sm" onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'flex\';"><div class="w-8 h-8 ' + c.bg + ' rounded-full flex items-center justify-center flex-shrink-0 hidden"><span class="text-xs font-bold ' + c.text + '">' + inits + '</span></div>' :
+            (photo ? '<img src="' + photo + '" alt="' + name + '" class="w-8 h-8 rounded-full object-cover flex-shrink-0 border-2 border-white shadow-sm cursor-pointer"' + hoverAttr + ' onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'flex\';"><div class="w-8 h-8 ' + c.bg + ' rounded-full flex items-center justify-center flex-shrink-0 hidden"><span class="text-xs font-bold ' + c.text + '">' + inits + '</span></div>' :
             '<div class="w-8 h-8 ' + c.bg + ' rounded-full flex items-center justify-center flex-shrink-0 border-2 border-white shadow-sm"><span class="text-xs font-bold ' + c.text + '">' + inits + '</span></div>') +
             '<span class="text-sm text-gray-900">' + name + '</span></div>';
     }).join('');
@@ -904,8 +905,9 @@ window.salonTicketsRenderAvailableTechnicians = function() {
         var isOnline = !!(technician.clock_in && !technician.clock_out);
         var badgeClasses = isAssigned ? 'absolute w-5 h-5 rounded-full border-2 border-white bg-gray-400' : (isOnline ? 'absolute w-5 h-5 rounded-full border-2 border-white bg-green-500' : 'absolute w-5 h-5 rounded-full border-2 border-white bg-gray-400');
         var servicesNum = typeof technician.services === 'number' ? technician.services : 0;
+        var modalHoverAttr = techPhoto ? ' onmouseenter="showTechPhotoPreview(event, \'' + techPhoto.replace(/'/g, "\\'").replace(/"/g, '&quot;') + '\', \'' + fullName.replace(/'/g, "\\'") + '\')" onmouseleave="hideTechPhotoPreview()"' : '';
         var avatarHtml = techPhoto
-            ? '<img src="' + techPhoto.replace(/"/g, '&quot;') + '" alt="" class="w-12 h-12 rounded-full object-cover' + (isAssigned ? ' opacity-50 grayscale' : '') + '">'
+            ? '<img src="' + techPhoto.replace(/"/g, '&quot;') + '" alt="" class="w-12 h-12 rounded-full object-cover' + (isAssigned ? ' opacity-50 grayscale' : '') + ' cursor-pointer"' + modalHoverAttr + '>'
             : '<div class="' + avatarClasses + '"><span class="' + initialClasses + '">' + initials + '</span></div>';
         html += '<div onclick="' + (isAssigned ? 'salonTicketsRemoveAssignedTechnician(' + technician.id + ')' : 'salonTicketsAssignTechnician(' + technician.id + ')') + '" class="' + containerClasses + '"><div class="relative flex-shrink-0">' + avatarHtml + '<div class="' + badgeClasses + '" style="' + badgeStyle + '" title="' + (isOnline ? 'Online' : 'Offline') + '"></div></div><div class="flex-1 min-w-0"><p class="' + nameClasses + '">' + fullName + '</p></div><div class="flex-shrink-0 text-right"><div class="text-xs font-medium text-gray-500 uppercase">Services</div><div class="text-lg font-semibold text-gray-900">' + servicesNum + '</div></div></div>';
     });
@@ -947,8 +949,9 @@ window.salonTicketsRenderAssignedTechnicians = function() {
         var isOnline = !!(technician.clock_in && !technician.clock_out);
         var badgeClasses = isOnline ? 'absolute w-5 h-5 rounded-full border-2 border-white bg-green-500' : 'absolute w-5 h-5 rounded-full border-2 border-white bg-gray-400';
         var servicesNum = typeof technician.services === 'number' ? technician.services : 0;
+        var assignedHoverAttr = techPhoto ? ' onmouseenter="showTechPhotoPreview(event, \'' + techPhoto.replace(/'/g, "\\'").replace(/"/g, '&quot;') + '\', \'' + fullName.replace(/'/g, "\\'") + '\')" onmouseleave="hideTechPhotoPreview()"' : '';
         var assignedAvatarHtml = techPhoto
-            ? '<img src="' + techPhoto.replace(/"/g, '&quot;') + '" alt="" class="w-12 h-12 rounded-full object-cover">'
+            ? '<img src="' + techPhoto.replace(/"/g, '&quot;') + '" alt="" class="w-12 h-12 rounded-full object-cover cursor-pointer"' + assignedHoverAttr + '>'
             : '<div class="w-12 h-12 bg-[#003047] rounded-full flex items-center justify-center"><span class="text-sm font-bold text-white">' + initials + '</span></div>';
         html += '<div onclick="salonTicketsRemoveAssignedTechnician(' + technician.id + ')" class="flex items-center gap-3 cursor-pointer group hover:bg-gray-50 p-2 rounded-lg transition-colors"><div class="relative flex-shrink-0">' + assignedAvatarHtml + '<div class="' + badgeClasses + '" style="' + badgeStyle + '" title="' + (isOnline ? 'Online' : 'Offline') + '"></div></div><div class="flex-1 min-w-0"><p class="text-base font-medium text-gray-900">' + fullName + '</p></div><div class="flex-shrink-0 text-right"><div class="text-xs font-medium text-gray-500 uppercase">Services</div><div class="text-lg font-semibold text-gray-900">' + servicesNum + '</div></div></div>';
     });
@@ -1072,6 +1075,42 @@ document.addEventListener('DOMContentLoaded', function() {
 window.addEventListener('beforeunload', function() {
     stopDurationCounters();
 });
+var techPreviewEl = null;
+window.showTechPhotoPreview = function(e, url, name) {
+    hideTechPhotoPreview();
+    var rect = e.target.getBoundingClientRect();
+    techPreviewEl = document.createElement('div');
+    techPreviewEl.style.cssText = 'position:fixed;z-index:9999;pointer-events:none;';
+    var previewSize = 200;
+    var arrowSize = 8;
+    var totalH = previewSize + 8 + arrowSize;
+    var centerX = rect.left + rect.width / 2;
+    var left = centerX - (previewSize + 8) / 2;
+    var showAbove = rect.top - totalH - 4 >= 0;
+    var top;
+    if (showAbove) {
+        top = rect.top - totalH - 4;
+    } else {
+        top = rect.bottom + arrowSize + 4;
+    }
+    if (left < 8) left = 8;
+    if (left + previewSize + 8 > window.innerWidth - 8) left = window.innerWidth - previewSize - 16;
+    var arrowLeft = centerX - left - arrowSize;
+    if (arrowLeft < 12) arrowLeft = 12;
+    if (arrowLeft > previewSize - 4) arrowLeft = previewSize - 4;
+    var arrowHtml = showAbove
+        ? '<div style="position:absolute;bottom:-' + arrowSize + 'px;left:' + arrowLeft + 'px;width:0;height:0;border-left:' + arrowSize + 'px solid transparent;border-right:' + arrowSize + 'px solid transparent;border-top:' + arrowSize + 'px solid #fff;"></div>'
+        : '<div style="position:absolute;top:-' + arrowSize + 'px;left:' + arrowLeft + 'px;width:0;height:0;border-left:' + arrowSize + 'px solid transparent;border-right:' + arrowSize + 'px solid transparent;border-bottom:' + arrowSize + 'px solid #fff;"></div>';
+    techPreviewEl.innerHTML = '<div style="position:relative;background:#fff;border-radius:0.5rem;box-shadow:0 10px 25px rgba(0,0,0,0.25);padding:4px;">' +
+        '<img src="' + url + '" alt="' + name + '" style="width:' + previewSize + 'px;height:' + previewSize + 'px;object-fit:cover;border-radius:0.375rem;display:block;">' +
+        arrowHtml + '</div>';
+    document.body.appendChild(techPreviewEl);
+    techPreviewEl.style.left = left + 'px';
+    techPreviewEl.style.top = top + 'px';
+};
+window.hideTechPhotoPreview = function() {
+    if (techPreviewEl) { techPreviewEl.remove(); techPreviewEl = null; }
+};
 })();
 </script>
 @endpush
