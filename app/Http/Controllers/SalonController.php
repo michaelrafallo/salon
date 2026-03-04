@@ -437,6 +437,7 @@ class SalonController extends Controller
                         'image' => $s->image,
                         'image_url' => $s->image ? asset('storage/'.$s->image) : null,
                         'color' => $s->color,
+                        'service_count' => (float) ($s->service_count ?? 0),
                         'categories' => $s->categories->pluck('slug')->values()->all(),
                     ])
                     ->values()
@@ -553,13 +554,14 @@ class SalonController extends Controller
     public function tickets(): View
     {
         $appointmentsQuery = Appointment::query()
-            ->whereRaw('LOWER(status) IN (?, ?, ?, ?, ?, ?)', [
+            ->whereRaw('LOWER(status) IN (?, ?, ?, ?, ?, ?, ?)', [
                 'unpaid',
                 'paid',
                 'cancelled',
                 'canceled',
                 'refunded',
                 'closed',
+                'waiting',
             ])
             ->with([
                 'technicians:id,first_name,last_name,initials,role,status',
@@ -943,6 +945,7 @@ class SalonController extends Controller
                 'image' => $s->image,
                 'image_url' => $s->image ? asset('storage/'.$s->image) : null,
                 'color' => $s->color,
+                'service_count' => (float) ($s->service_count ?? 0),
                 'categories' => $s->categories->pluck('slug')->values()->all(),
             ])
             ->values()

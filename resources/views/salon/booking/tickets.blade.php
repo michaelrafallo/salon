@@ -35,9 +35,12 @@
                 <button onclick="salonTicketsFilter('cancelled')" id="filterCancelled" class="filter-tab px-1 py-3 text-sm font-medium transition {{ $ticketsTab === 'cancelled' ? 'text-gray-900 border-b-2 border-[#003047]' : 'text-gray-500 border-b-2 border-transparent hover:text-gray-700' }}">Cancelled</button>
                 <button onclick="salonTicketsFilter('refunded')" id="filterRefunded" class="filter-tab px-1 py-3 text-sm font-medium transition {{ $ticketsTab === 'refunded' ? 'text-gray-900 border-b-2 border-[#003047]' : 'text-gray-500 border-b-2 border-transparent hover:text-gray-700' }}">Refunded</button>
             </div>
-            <div class="relative max-w-md">
-                <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                <input type="text" id="ticketSearchInput" placeholder="Search customers" oninput="salonTicketsSearch(this.value)" class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent text-base">
+            <div class="flex items-center gap-3">
+                <input type="date" id="ticketDateFilterInput" onchange="salonTicketsFilterByDate(this.value)" class="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent text-base text-gray-900">
+                <div class="relative max-w-md">
+                    <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    <input type="text" id="ticketSearchInput" placeholder="Search customers" oninput="salonTicketsSearch(this.value)" class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent text-base">
+                </div>
             </div>
         </div>
         <div id="gridView" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6"></div>
@@ -83,6 +86,12 @@ var bookingUrl = '{{ $bookingUrl }}';
 var payUrl = '{{ $payUrl }}';
 var allCustomers = [], allAppointments = [], allTechnicians = [], allPayments = [], allMergedData = [], ticketsData = [];
 var PAGE_SIZE = 15, currentPage = 1, totalPages = 1, currentSearchTerm = '', currentStatusFilter = @json($ticketsTab);
+var currentDateFilter = (function() {
+    var p = new URLSearchParams(window.location.search).get('date');
+    if (p) return p;
+    var n = new Date();
+    return n.getFullYear() + '-' + String(n.getMonth() + 1).padStart(2, '0') + '-' + String(n.getDate()).padStart(2, '0');
+})();
 var currentView = localStorage.getItem('ticketsView') || 'grid';
 var durationInterval = null;
 var availableTechnicians = [];
@@ -387,7 +396,7 @@ function applyFilters() {
     var filtered = allMergedData.filter(function(item) {
         if (!item || !item.status) return false;
         var status = item.status.toLowerCase().trim();
-        if (currentStatusFilter === 'unpaid') return status === 'unpaid';
+        if (currentStatusFilter === 'unpaid') return status === 'unpaid' || status === 'waiting';
         if (currentStatusFilter === 'paid') return status === 'paid';
         if (currentStatusFilter === 'cancelled') return status === 'cancelled' || status === 'canceled';
         if (currentStatusFilter === 'refunded') {
@@ -398,6 +407,15 @@ function applyFilters() {
         }
         return true;
     });
+    if (currentDateFilter) {
+        filtered = filtered.filter(function(item) {
+            var dt = item.appointment_datetime || item.created_at;
+            if (!dt) return false;
+            var itemDate = new Date(dt);
+            var y = itemDate.getFullYear(), m = String(itemDate.getMonth() + 1).padStart(2, '0'), d = String(itemDate.getDate()).padStart(2, '0');
+            return (y + '-' + m + '-' + d) === currentDateFilter;
+        });
+    }
     if (currentSearchTerm) {
         filtered = filtered.filter(function(c) {
             var text = (c.firstName + ' ' + c.lastName + ' ' + (c.email || '') + ' ' + (c.phone || '')).toLowerCase();
@@ -422,6 +440,17 @@ window.salonTicketsFilter = function(status) {
     else if (status === 'refunded') url.searchParams.set('status', 'refunded');
     window.history.pushState({}, '', url);
     updateTabStates(status);
+    applyFilters();
+};
+window.salonTicketsFilterByDate = function(dateStr) {
+    currentDateFilter = dateStr || '';
+    var url = new URL(window.location.href);
+    if (currentDateFilter) {
+        url.searchParams.set('date', currentDateFilter);
+    } else {
+        url.searchParams.delete('date');
+    }
+    window.history.pushState({}, '', url);
     applyFilters();
 };
 function updateTabStates(status) {
@@ -1041,15 +1070,22 @@ async function fetchTickets() {
         }
         mergeAppointmentsWithCustomers();
         currentStatusFilter = getStatusFromURL();
-        if (!new URLSearchParams(window.location.search).get('status')) {
+        var _params = new URLSearchParams(window.location.search);
+        if (!_params.get('status') || !_params.get('date')) {
             var url = new URL(window.location);
             url.searchParams.set('status', currentStatusFilter);
+            url.searchParams.set('date', currentDateFilter);
             window.history.replaceState({}, '', url);
         }
         updateTabStates(currentStatusFilter);
         applyFilters();
         window.addEventListener('popstate', function() {
+            var params = new URLSearchParams(window.location.search);
             currentStatusFilter = getStatusFromURL();
+            var _n = new Date();
+            currentDateFilter = params.get('date') || (_n.getFullYear() + '-' + String(_n.getMonth() + 1).padStart(2, '0') + '-' + String(_n.getDate()).padStart(2, '0'));
+            var dateInput = document.getElementById('ticketDateFilterInput');
+            if (dateInput) dateInput.value = currentDateFilter;
             updateTabStates(currentStatusFilter);
             applyFilters();
         });
@@ -1067,6 +1103,8 @@ document.addEventListener('DOMContentLoaded', function() {
             PAGE_SIZE = saved === 'all' ? Infinity : parseInt(saved, 10);
         }
     }
+    var dateInput = document.getElementById('ticketDateFilterInput');
+    if (dateInput) dateInput.value = currentDateFilter;
     setViewUI(currentView);
     fetchTickets().then(function() {
         salonTicketsToggleView(currentView);

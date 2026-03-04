@@ -140,7 +140,7 @@ class SalonDataController extends Controller
                 $tracker = $turnTrackers->get($u->id);
                 $base['clock_in'] = $tracker?->clock_in?->format('M j, Y g:i A');
                 $base['clock_out'] = $tracker?->clock_out?->format('M j, Y g:i A');
-                $base['services'] = $tracker ? (int) $tracker->services : 0;
+                $base['services'] = $tracker ? (float) $tracker->services : 0;
             }
 
             return $base;
@@ -226,6 +226,7 @@ class SalonDataController extends Controller
             'image' => $s->image,
             'image_url' => $s->image ? asset('storage/'.$s->image) : null,
             'color' => $s->color,
+            'service_count' => (float) ($s->service_count ?? 0),
             'categories' => $s->categories->pluck('slug')->values()->all(),
         ]);
 

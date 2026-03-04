@@ -107,6 +107,7 @@ class SalonServiceController extends Controller
             'image' => $service->image,
             'image_url' => $service->image ? asset('storage/'.$service->image) : null,
             'color' => $service->color,
+            'service_count' => (float) ($service->service_count ?? 0),
             'categories' => $service->categories->pluck('slug')->values()->all(),
         ];
     }

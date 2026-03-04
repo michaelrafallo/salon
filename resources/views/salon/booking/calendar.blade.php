@@ -81,11 +81,17 @@
 </main>
 
 @push('styles')
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick.css"/>
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick-theme.css"/>
 @endpush
 
 @push('scripts')
 <!-- FullCalendar CSS -->
 <link href='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/main.min.css' rel='stylesheet' />
+
+<!-- jQuery + Slick Carousel -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick.min.js"></script>
 
 <!-- FullCalendar JS -->
 <script src='https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/main.min.js'></script>
@@ -880,7 +886,7 @@ function renderTechnicianListView() {
     html += '<table class="w-full border-collapse">';
     html += '<thead>';
     html += '<tr>';
-    html += '<th class="sticky left-0 z-10 bg-white border-r border-b border-gray-300 pl-3 pt-3 pb-3 pr-1 text-left font-semibold text-gray-700 min-w-[155px]">';
+    html += '<th valign="bottom" class="sticky left-0 z-10 bg-white border-r border-b border-gray-300 pl-3 pt-3 pb-3 pr-1 text-left font-semibold text-gray-700 min-w-[155px]">';
     html += '<div class="flex flex-col gap-2">';
     html += '<label class="text-xs text-gray-500 font-medium">Date & Time</label>';
     html += '<div class="relative">';
@@ -891,7 +897,7 @@ function renderTechnicianListView() {
     html += '</th>';
     
     // Add Salon Appointment column header (first column after Date & Time)
-    html += `<th class="border-r border-b border-gray-300 p-3 text-center font-semibold text-gray-700 min-w-[150px] bg-[#e6f0f3]">
+    html += `<th valign="top"  class="border-r border-b border-gray-300 p-3 text-center font-semibold text-gray-700 min-w-[150px] bg-[#e6f0f3]">
         <div class="flex flex-col items-center gap-2">
             <div class="w-10 h-10 bg-[#003047] rounded-full flex items-center justify-center border-2 border-gray-200">
                 <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -911,8 +917,10 @@ function renderTechnicianListView() {
         const onlineBadgeClass = isOnline ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-gray-100 text-gray-700 border border-gray-200';
         const onlineBadgeText = isOnline ? 'Online' : 'Offline';
         
-        html += `<th class="border-r border-b border-gray-300 p-3 text-center font-semibold text-gray-700 min-w-[150px] cursor-pointer hover:bg-gray-50 transition-colors" onclick="showTechnicianMessageModal(${technician.id}, '${fullName.replace(/'/g, "\\'")}')">`;
-        html += `<div class="flex flex-col items-center gap-2">`;
+        const serviceCount = typeof technician.services === 'number' ? technician.services : 0;
+
+        html += `<th class="border-r border-b border-gray-300 p-3 text-center font-semibold text-gray-700 min-w-[150px] cursor-pointer hover:bg-gray-50 transition-colors relative" onclick="showTechnicianMessageModal(${technician.id}, '${fullName.replace(/'/g, "\\'")}')">`;
+        html += `<div class="flex flex-col items-center gap-1">`;
         html += `<div class="relative">`;
         if (profilePhoto) {
             html += `<img src="${profilePhoto}" alt="${fullName}" class="w-10 h-10 rounded-full object-cover border-2 border-gray-200">`;
@@ -927,6 +935,8 @@ function renderTechnicianListView() {
 
         html += `<span class="text-xs font-medium text-gray-900">${fullName}</span>`;
         html += `</div>`;
+        html += `<div class="mt-2 border border-gray-300 rounded px-1.5 py-0.5 bg-white flex flex-col items-center leading-tight"><span class="text-[7px] text-gray-400 uppercase text-xs">Service</span><span class="font-bold text-gray-900">${serviceCount}</span></div>`;
+
         html += `</th>`;
     });
     
@@ -1931,47 +1941,88 @@ function showAppointmentModal(appointmentData) {
     
     // Create modal content
     const modalContent = `
-        <div class="p-6">
-            <div class="flex items-start justify-between mb-6">
-                <div>
-                    <h3 class="text-2xl font-bold text-gray-900 mb-1">${customerName}</h3>
-                </div>
-                <div class="flex items-center gap-2">
-                    <span class="px-3 py-1.5 rounded-lg text-xs font-semibold border ${typeBadgeClass}">
-                        ${bookingType}
-                    </span>
-                    <span class="px-3 py-1.5 rounded-lg text-xs font-semibold border ${statusBadgeClass}">
-                        ${statusLabel}
-                    </span>
-                    <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 transition">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                    </button>
+        <div class="flex flex-col" style="max-height:85vh">
+            <div class="flex-shrink-0 px-6 py-4 border-b border-gray-200 bg-white rounded-t-2xl">
+                <div class="flex items-start justify-between">
+                    <div>
+                        <h3 class="text-2xl font-bold text-gray-900 mb-1">${customerName}</h3>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="px-3 py-1.5 rounded-lg text-xs font-semibold border ${typeBadgeClass}">
+                            ${bookingType}
+                        </span>
+                        <span class="px-3 py-1.5 rounded-lg text-xs font-semibold border ${statusBadgeClass}">
+                            ${statusLabel}
+                        </span>
+                        <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600 transition">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
                 </div>
             </div>
-            
-            <div class="space-y-4 mb-6">
-                <div class="flex items-center gap-3 p-4 bg-gray-50 rounded-xl">
-                    <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                        <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
-                        </svg>
+
+            <div class="flex-1 overflow-y-auto px-6 py-4">
+            <div class="space-y-4">
+                <div class="p-4 bg-gray-50 rounded-xl">
+                    <div class="flex items-center justify-between mb-2">
+                        <p class="text-xs text-gray-500">Technicians</p>
+                        ${!isTechnician ? `
+                        <button onclick="openTechnicianSelectionModalWithEvent('${appointmentId}', '${customerName}')" class="px-3 py-1.5 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition-all font-medium text-xs flex items-center gap-1">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                            Assign
+                        </button>
+                        ` : ''}
                     </div>
-                    <div class="flex-1">
-                        <p class="text-xs text-gray-500 mb-0.5">Technician</p>
-                        <div id="technicianDisplay_${appointmentId}">
-                        <p class="font-semibold text-gray-900">${technicians}</p>
+                    <div id="technicianDisplay_${appointmentId}">
+                    ${(function() {
+                        const appointment = bookingsData.find(a => a.id.toString() === appointmentId.toString());
+                        const assignedIds = appointment && Array.isArray(appointment.assigned_technician) ? appointment.assigned_technician : [];
+                        if (assignedIds.length === 0) return '<p class="text-sm text-gray-400">Not Assigned</p>';
+                        const allSvcs = appointment && Array.isArray(appointment.services) ? appointment.services : [];
+                        return '<div class="space-y-2">' + assignedIds.map(techId => {
+                            const tech = techniciansData.find(t => t.id.toString() === techId.toString());
+                            if (!tech) return '';
+                            const name = tech.firstName + ' ' + tech.lastName;
+                            const initials = tech.initials || (tech.firstName || '')[0] + (tech.lastName || '')[0];
+                            const photo = tech.profilePhotoUrl || tech.photo || null;
+                            const serviceCount = typeof tech.services === 'number' ? tech.services : 0;
+                            const techSvcs = allSvcs.filter(s => s.technician_id && s.technician_id.toString() === techId.toString());
+                            const techIsOnline = !!(tech.clock_in && !tech.clock_out);
+                            const techBadgeColor = techIsOnline ? 'bg-green-500' : 'bg-gray-400';
+                            const techStatusBadge = '<span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white ' + techBadgeColor + '"></span>';
+                            const avatarInner = photo
+                                ? '<div class="w-9 h-9 rounded-full overflow-hidden border border-gray-200" style="min-width:36px;min-height:36px;max-width:36px;max-height:36px"><img src="' + photo + '" alt="' + name + '" style="width:36px;height:36px;object-fit:cover"></div>'
+                                : '<div class="w-9 h-9 bg-[#e6f0f3] rounded-full flex items-center justify-center border border-gray-200" style="min-width:36px;min-height:36px;max-width:36px;max-height:36px"><span class="text-xs font-bold text-[#003047]">' + initials + '</span></div>';
+                            const avatarHtml = '<div class="relative">' + avatarInner + techStatusBadge + '</div>';
+                            let svcListHtml = '';
+                            if (techSvcs.length > 0) {
+                                const svcNames = techSvcs.map(function(s) {
+                                    const sName = s.service_name || s.service || 'Service';
+                                    const qty = s.quantity || 1;
+                                    return sName + (qty > 1 ? ' x' + qty : '');
+                                });
+                                svcListHtml = '<p class="mt-1 text-xs text-gray-500">' + svcNames.join(', ') + '</p>';
+                            }
+                            return '<div class="p-2 bg-white rounded-lg border border-gray-200">'
+                                + '<div class="flex items-center gap-3">'
+                                + '<div class="flex-shrink-0">' + avatarHtml + '</div>'
+                                + '<div class="flex-1 min-w-0">'
+                                + '<p class="text-sm font-medium text-gray-900 truncate">' + name + '</p>'
+                                + '<p class="text-xs text-gray-500">Services: ' + serviceCount + '</p>'
+                                + '</div>'
+                                + '<button onclick="event.stopPropagation(); openSelectServicesModal(' + appointmentId + ', ' + techId + ', \'' + name.replace(/'/g, "\\'") + '\')" class="px-3 py-1.5 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition-all font-medium text-xs flex items-center gap-1 flex-shrink-0">'
+                                + '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>'
+                                + 'Select</button>'
+                                + '</div>'
+                                + svcListHtml
+                                + '</div>';
+                        }).join('') + '</div>';
+                    })()}
                     </div>
-                    </div>
-                    ${!isTechnician ? `
-                    <button onclick="openTechnicianSelectionModalWithEvent('${appointmentId}', '${customerName}')" class="px-4 py-2 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition-all font-medium text-sm flex items-center gap-2">
-                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                        </svg>
-                        Select
-                    </button>
-                    ` : ''}
                 </div>
                 
                 <div class="grid grid-cols-2 gap-4">
@@ -2085,29 +2136,32 @@ function showAppointmentModal(appointmentData) {
                 </div>
                 ` : ''}
             </div>
-            
-            <div class="flex items-center justify-end pt-4 border-t border-gray-200">
-                <div class="flex gap-3">
-                ${!isTechnician ? `
-                    <button onclick="deleteAppointment('${appointmentId}', '${customerName.replace(/'/g, "\\'")}')" class="px-4 py-2.5 border-2 border-red-500 text-red-500 bg-transparent rounded-lg hover:bg-red-50 transition-all font-medium flex items-center justify-center gap-2 active:scale-95">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                    </svg>
-                    Delete
-                </button>
-                    <button onclick="assignAndUpdateStatus('${appointmentId}', '${customerName}')" class="px-4 py-2.5 border-2 border-[#003047] text-[#003047] bg-transparent rounded-lg hover:bg-[#e6f0f3] transition-all font-medium flex items-center justify-center gap-2 active:scale-95">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                    </svg>
-                    Assign
-                </button>
-                    <button onclick="editBooking(${appointmentId})" class="px-4 py-2.5 border-2 border-[#003047] text-[#003047] bg-transparent rounded-lg hover:bg-[#e6f0f3] transition-all font-medium flex items-center justify-center gap-2 active:scale-95">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
-                    </svg>
-                    Edit Booking
-                </button>
-                ` : ''}
+            </div>
+
+            <div class="flex-shrink-0 px-6 py-4 border-t border-gray-200 bg-white rounded-b-2xl">
+                <div class="flex items-center justify-end">
+                    <div class="flex gap-3">
+                    ${!isTechnician ? `
+                        <button onclick="deleteAppointment('${appointmentId}', '${customerName.replace(/'/g, "\\'")}')" class="px-4 py-2.5 border-2 border-red-500 text-red-500 bg-transparent rounded-lg hover:bg-red-50 transition-all font-medium flex items-center justify-center gap-2 active:scale-95">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                        Delete
+                    </button>
+                        <button onclick="assignAndUpdateStatus('${appointmentId}', '${customerName}')" class="px-4 py-2.5 border-2 border-[#003047] text-[#003047] bg-transparent rounded-lg hover:bg-[#e6f0f3] transition-all font-medium flex items-center justify-center gap-2 active:scale-95">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                        </svg>
+                        Assign
+                    </button>
+                        <button onclick="editBooking(${appointmentId})" class="px-4 py-2.5 border-2 border-[#003047] text-[#003047] bg-transparent rounded-lg hover:bg-[#e6f0f3] transition-all font-medium flex items-center justify-center gap-2 active:scale-95">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                        </svg>
+                        Edit Booking
+                    </button>
+                    ` : ''}
+                    </div>
                 </div>
             </div>
         </div>
@@ -3271,19 +3325,64 @@ function confirmTechnicianSelection() {
 // Update technician display in the event modal
 function updateEventModalTechnicianDisplay() {
     if (!currentEventModalElement || !currentAppointmentId) return;
-    
-    // Get updated technician names
-    let techniciansText = 'Not Assigned';
-    if (selectedTechnicianIds.length > 0) {
-        const technicianNames = selectedTechnicianIds.map(techIdStr => {
-            const tech = techniciansData.find(t => t.id.toString() === techIdStr);
-            return tech ? `${tech.firstName} ${tech.lastName}` : `Technician #${techIdStr}`;
-        });
-        techniciansText = technicianNames.join(', ');
+
+    var payBaseUrl = '{{ route("salon.booking.pay") }}';
+    var appointment = bookingsData.find(function(a) { return a.id.toString() === currentAppointmentId.toString(); });
+
+    // Use selectedTechnicianIds if available, otherwise fall back to appointment's assigned technicians
+    var techIds = selectedTechnicianIds.length > 0
+        ? selectedTechnicianIds
+        : (appointment && Array.isArray(appointment.assigned_technician)
+            ? appointment.assigned_technician.map(function(id) { return id.toString(); })
+            : []);
+
+    if (techIds.length === 0) {
+        currentEventModalElement.innerHTML = '<p class="text-sm text-gray-400">Not Assigned</p>';
+        return;
     }
-    
-    // Update the display
-    currentEventModalElement.innerHTML = `<p class="font-semibold text-gray-900">${techniciansText}</p>`;
+
+    var allSvcs = appointment && Array.isArray(appointment.services) ? appointment.services : [];
+    var html = '<div class="space-y-2">';
+    techIds.forEach(function(techIdStr) {
+        var tech = techniciansData.find(function(t) { return t.id.toString() === techIdStr; });
+        if (!tech) return;
+        var name = tech.firstName + ' ' + tech.lastName;
+        var initials = tech.initials || (tech.firstName || '')[0] + (tech.lastName || '')[0];
+        var photo = tech.profilePhotoUrl || tech.photo || null;
+        var serviceCount = typeof tech.services === 'number' ? tech.services : 0;
+        var techSvcs = allSvcs.filter(function(s) { return s.technician_id && s.technician_id.toString() === tech.id.toString(); });
+        var techIsOnline = !!(tech.clock_in && !tech.clock_out);
+        var techBadgeColor = techIsOnline ? 'bg-green-500' : 'bg-gray-400';
+        var techStatusBadge = '<span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white ' + techBadgeColor + '"></span>';
+        var avatarInner = photo
+            ? '<div class="w-9 h-9 rounded-full overflow-hidden border border-gray-200" style="min-width:36px;min-height:36px;max-width:36px;max-height:36px"><img src="' + photo + '" alt="' + name + '" style="width:36px;height:36px;object-fit:cover"></div>'
+            : '<div class="w-9 h-9 bg-[#e6f0f3] rounded-full flex items-center justify-center border border-gray-200" style="min-width:36px;min-height:36px;max-width:36px;max-height:36px"><span class="text-xs font-bold text-[#003047]">' + initials + '</span></div>';
+        var avatarHtml = '<div class="relative">' + avatarInner + techStatusBadge + '</div>';
+        var svcListHtml = '';
+        if (techSvcs.length > 0) {
+            var svcNames = techSvcs.map(function(s) {
+                var sName = s.service_name || s.service || 'Service';
+                var qty = s.quantity || 1;
+                return sName + (qty > 1 ? ' x' + qty : '');
+            });
+            svcListHtml = '<p class="mt-1 text-xs text-gray-500">' + svcNames.join(', ') + '</p>';
+        }
+        html += '<div class="p-2 bg-white rounded-lg border border-gray-200">'
+            + '<div class="flex items-center gap-3">'
+            + '<div class="flex-shrink-0">' + avatarHtml + '</div>'
+            + '<div class="flex-1 min-w-0">'
+            + '<p class="text-sm font-medium text-gray-900 truncate">' + name + '</p>'
+            + '<p class="text-xs text-gray-500">Services: ' + serviceCount + '</p>'
+            + '</div>'
+            + '<button onclick="event.stopPropagation(); openSelectServicesModal(' + currentAppointmentId + ', ' + tech.id + ', \'' + name.replace(/'/g, "\\'") + '\')" class="px-3 py-1.5 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition-all font-medium text-xs flex items-center gap-1 flex-shrink-0">'
+            + '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>'
+            + 'Select</button>'
+            + '</div>'
+            + svcListHtml
+            + '</div>';
+    });
+    html += '</div>';
+    currentEventModalElement.innerHTML = html;
 }
 
 // Update calendar event display
@@ -3405,9 +3504,439 @@ function updateAppointmentTabButtons(activeTab) {
     }
 }
 
+// --- Select Services Modal ---
+var selectServicesData = [];
+var selectServicesCategoriesMap = {};
+var selectServicesCategory = null;
+var selectServicesCart = [];
+var selectServicesAppointmentId = null;
+var selectServicesTechnicianId = null;
+var selectServicesTechnicianName = '';
+var selectServicesLoaded = false;
+var selectServicesOldServiceCount = 0;
+
+function openSelectServicesModal(appointmentId, technicianId, technicianName) {
+    selectServicesAppointmentId = appointmentId;
+    selectServicesTechnicianId = technicianId;
+    selectServicesTechnicianName = technicianName;
+    selectServicesCategory = null;
+    selectServicesCart = [];
+    selectServicesOldServiceCount = 0;
+
+    // Pre-populate cart from existing appointment services for this technician
+    var appointment = bookingsData.find(function(a) { return a.id.toString() === appointmentId.toString(); });
+    var existingSvcs = appointment && Array.isArray(appointment.services) ? appointment.services : [];
+    var techSvcs = existingSvcs.filter(function(s) { return s.technician_id && s.technician_id.toString() === technicianId.toString(); });
+
+    var modalContent = '<div class="flex flex-col h-[80vh] max-h-[80vh] overflow-hidden">'
+        + '<div class="flex-shrink-0 px-6 py-4 border-b border-gray-200 bg-white">'
+        + '<div class="flex items-center justify-between">'
+        + '<div><h3 class="text-xl font-bold text-gray-900">Select Services</h3>'
+        + '<p class="text-sm text-gray-500">' + technicianName + '</p></div>'
+        + '<button onclick="closeNestedModal()" class="p-2 -m-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition">'
+        + '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>'
+        + '</button></div></div>'
+        + '<div class="flex-1 min-h-0 px-6 py-4 bg-gray-50 overflow-y-auto">'
+        + '<div class="mb-4"><div class="relative">'
+        + '<svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>'
+        + '<input type="text" id="selectServicesSearchInput" placeholder="Search services..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] text-sm" oninput="renderSelectServicesGrid()">'
+        + '</div></div>'
+        + '<div class="select-svc-carousel-wrapper mb-4"><div id="selectServicesCategoriesList" class="select-svc-slick-carousel"></div></div>'
+        + '<div id="selectServicesGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div>'
+        + '</div>'
+        + '<div class="flex-shrink-0 px-6 py-4 border-t border-gray-200 bg-white">'
+        + '<div id="selectServicesCartSummary" class="mb-3"></div>'
+        + '<div class="flex items-center justify-end gap-3">'
+        + '<button onclick="closeNestedModal()" class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium">Cancel</button>'
+        + '<button id="selectServicesSaveBtn" onclick="saveSelectServicesCart()" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium flex items-center gap-2">Save Services</button>'
+        + '</div></div></div>';
+
+    openNestedModal(modalContent, 'large-flex', false);
+
+    function populateCartFromExisting() {
+        techSvcs.forEach(function(s) {
+            var svcData = selectServicesData.find(function(d) { return d.id === s.service_id; });
+            var sc = svcData && typeof svcData.service_count === 'number' ? svcData.service_count : 0;
+            selectServicesCart.push({
+                service_id: s.service_id,
+                name: s.service_name || (svcData ? svcData.name : s.service) || 'Service',
+                price: s.unit_price != null ? s.unit_price : (svcData ? svcData.price : 0),
+                quantity: s.quantity || 1,
+                category_slug: (svcData && svcData.categories && svcData.categories[0]) || s.service || '',
+                service_count: sc
+            });
+            selectServicesOldServiceCount += sc * (s.quantity || 1);
+        });
+    }
+
+    if (selectServicesLoaded) {
+        populateCartFromExisting();
+        renderSelectServicesCategories();
+        renderSelectServicesGrid();
+    } else {
+        Promise.all([
+            fetch(base + '/services').then(function(r) { return r.json(); }),
+            fetch(base + '/service-categories').then(function(r) { return r.json(); })
+        ]).then(function(results) {
+            selectServicesData = (results[0].services || []).filter(function(s) { return s.active !== false; });
+            selectServicesCategoriesMap = results[1].categories || results[1] || {};
+            selectServicesLoaded = true;
+            populateCartFromExisting();
+            renderSelectServicesCategories();
+            renderSelectServicesGrid();
+        }).catch(function(err) {
+            console.error('Failed to load services:', err);
+        });
+    }
+}
+
+function renderSelectServicesCategories() {
+    var container = document.getElementById('selectServicesCategoriesList');
+    if (!container) return;
+
+    // Destroy previous Slick instance if any
+    var $c = $(container);
+    if ($c.hasClass('slick-initialized')) {
+        try { $c.slick('unslick'); } catch (e) {}
+    }
+
+    var activeClass = 'bg-[#e6f0f3] border-[#003047] text-[#003047]';
+    var inactiveClass = 'bg-white border-gray-200 text-gray-700 hover:border-[#003047] hover:bg-[#e6f0f3] hover:text-[#003047]';
+    var html = '<div><button type="button" onclick="selectServicesFilterCategory(null)" class="select-svc-cat-card w-full h-[70px] px-4 py-2 rounded-lg text-sm font-medium border transition-all duration-200 flex items-center justify-center text-center break-words active:scale-95 ' + (selectServicesCategory === null ? activeClass : inactiveClass) + '" data-category-key="all">All Categories</button></div>';
+    var sorted = Object.entries(selectServicesCategoriesMap).sort(function(a, b) { return (a[1] || '').localeCompare(b[1] || ''); });
+    sorted.forEach(function(entry) {
+        var key = entry[0], name = entry[1];
+        html += '<div><button type="button" onclick="selectServicesFilterCategory(\'' + key + '\')" class="select-svc-cat-card w-full h-[70px] px-4 py-2 rounded-lg text-sm font-medium border transition-all duration-200 flex items-center justify-center text-center break-words active:scale-95 ' + (selectServicesCategory === key ? activeClass : inactiveClass) + '" data-category-key="' + key + '">' + name + '</button></div>';
+    });
+    container.innerHTML = html;
+
+    // Initialize Slick
+    setTimeout(function() {
+        if (typeof $ !== 'undefined' && typeof $.fn.slick !== 'undefined') {
+            $c.slick({
+                slidesToShow: 6,
+                slidesToScroll: 6,
+                infinite: false,
+                arrows: true,
+                dots: false,
+                adaptiveHeight: false,
+                variableWidth: false,
+                responsive: [
+                    { breakpoint: 1024, settings: { slidesToShow: 4, slidesToScroll: 4 } },
+                    { breakpoint: 640, settings: { slidesToShow: 2, slidesToScroll: 2 } }
+                ]
+            });
+            $c.css({ opacity: '1', visibility: 'visible' });
+        } else {
+            // Fallback if Slick not available
+            container.classList.add('show-fallback');
+            container.style.opacity = '1';
+            container.style.visibility = 'visible';
+        }
+    }, 50);
+}
+
+window.selectServicesFilterCategory = function(key) {
+    selectServicesCategory = key;
+    // Update active styling without re-init
+    document.querySelectorAll('.select-svc-cat-card').forEach(function(card) {
+        var cardKey = card.getAttribute('data-category-key');
+        var isActive = (key === null && cardKey === 'all') || (key === cardKey);
+        if (isActive) {
+            card.classList.remove('bg-white', 'border-gray-200', 'text-gray-700');
+            card.classList.add('bg-[#e6f0f3]', 'border-[#003047]', 'text-[#003047]');
+        } else {
+            card.classList.remove('bg-[#e6f0f3]', 'border-[#003047]', 'text-[#003047]');
+            card.classList.add('bg-white', 'border-gray-200', 'text-gray-700');
+        }
+    });
+    renderSelectServicesGrid();
+};
+
+function renderSelectServicesGrid() {
+    var container = document.getElementById('selectServicesGrid');
+    if (!container) return;
+    var filtered = selectServicesData;
+    if (selectServicesCategory !== null) {
+        filtered = filtered.filter(function(s) { return s.categories && s.categories.indexOf(selectServicesCategory) >= 0; });
+    }
+    var searchInput = document.getElementById('selectServicesSearchInput');
+    if (searchInput && searchInput.value.trim() !== '') {
+        var term = searchInput.value.toLowerCase();
+        filtered = filtered.filter(function(s) { return s.name.toLowerCase().indexOf(term) >= 0; });
+    }
+    if (filtered.length === 0) {
+        container.innerHTML = '<div class="col-span-full text-center py-8"><p class="text-gray-500 text-sm">No services found</p></div>';
+        return;
+    }
+    var html = '';
+    filtered.forEach(function(service) {
+        var cartItem = selectServicesCart.find(function(c) { return c.service_id === service.id; });
+        var imgUrl = service.image_url || null;
+        var thumbHtml = imgUrl
+            ? '<div class="relative w-full bg-gray-100 rounded-t-lg overflow-hidden" style="height:120px"><img src="' + imgUrl + '" alt="" class="w-full h-full object-cover" onerror="this.parentNode.innerHTML=\'<div class=\\\'w-full h-full flex items-center justify-center bg-gray-100\\\'><svg class=\\\'w-8 h-8 text-gray-300\\\' fill=\\\'none\\\' stroke=\\\'currentColor\\\' viewBox=\\\'0 0 24 24\\\'><path stroke-linecap=\\\'round\\\' stroke-linejoin=\\\'round\\\' stroke-width=\\\'1.5\\\' d=\\\'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z\\\'></path></svg></div>\'"></div>'
+            : '<div class="w-full flex items-center justify-center rounded-t-lg" style="height:120px;background:' + (service.color || '#f3f4f6') + '"><svg class="w-8 h-8 ' + (service.color ? 'text-white opacity-50' : 'text-gray-300') + '" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></div>';
+        var colorDot = service.color ? '<span class="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0" style="background:' + service.color + '"></span>' : '';
+        html += '<div class="bg-white border border-gray-200 rounded-lg overflow-hidden hover:border-[#003047] hover:shadow-md transition-all flex flex-col">'
+            + thumbHtml
+            + '<div class="p-3 flex flex-col flex-1">'
+            + '<h4 class="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-1.5">' + colorDot + service.name + '</h4>'
+            + '<p class="text-sm text-gray-600 mb-2">' + window.salonFormatMoney(service.price) + '</p>'
+            + (cartItem
+                ? '<div class="flex items-center justify-between mt-auto bg-gray-100 rounded-lg p-1">'
+                + '<button onclick="selectServicesUpdateQty(' + service.id + ', -1)" class="w-8 h-8 flex items-center justify-center bg-white text-gray-700 hover:bg-red-50 hover:text-red-600 rounded-md border border-gray-200 shadow-sm transition active:scale-95"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg></button>'
+                + '<span class="text-sm font-bold text-gray-900 min-w-[2rem] text-center">' + cartItem.quantity + '</span>'
+                + '<button onclick="selectServicesUpdateQty(' + service.id + ', 1)" class="w-8 h-8 flex items-center justify-center bg-white text-gray-700 hover:bg-green-50 hover:text-green-600 rounded-md border border-gray-200 shadow-sm transition active:scale-95"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg></button>'
+                + '</div>'
+                : '<button onclick="selectServicesAddToCart(' + service.id + ')" class="w-full px-3 py-2 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium text-xs active:scale-95 mt-auto">Add</button>')
+            + '</div></div>';
+    });
+    container.innerHTML = html;
+    renderSelectServicesCartSummary();
+}
+
+window.selectServicesAddToCart = function(serviceId) {
+    var service = selectServicesData.find(function(s) { return s.id === serviceId; });
+    if (!service) return;
+    var existing = selectServicesCart.find(function(c) { return c.service_id === serviceId; });
+    if (existing) {
+        existing.quantity += 1;
+    } else {
+        selectServicesCart.push({
+            service_id: serviceId,
+            name: service.name,
+            price: service.price,
+            quantity: 1,
+            category_slug: (service.categories && service.categories[0]) || '',
+            service_count: typeof service.service_count === 'number' ? service.service_count : 0
+        });
+    }
+    renderSelectServicesGrid();
+};
+
+window.selectServicesUpdateQty = function(serviceId, delta) {
+    var item = selectServicesCart.find(function(c) { return c.service_id === serviceId; });
+    if (!item) return;
+    item.quantity += delta;
+    if (item.quantity <= 0) {
+        selectServicesCart = selectServicesCart.filter(function(c) { return c.service_id !== serviceId; });
+    }
+    renderSelectServicesGrid();
+};
+
+window.selectServicesRemoveFromCart = function(serviceId) {
+    selectServicesCart = selectServicesCart.filter(function(c) { return c.service_id !== serviceId; });
+    renderSelectServicesGrid();
+};
+
+function renderSelectServicesCartSummary() {
+    var container = document.getElementById('selectServicesCartSummary');
+    if (!container) return;
+    if (selectServicesCart.length === 0) {
+        container.innerHTML = '<p class="text-sm text-gray-400">No services selected</p>';
+        return;
+    }
+    var total = 0;
+    var html = '<div class="overflow-y-auto space-y-1" style="max-height:150px">';
+    selectServicesCart.forEach(function(item) {
+        var lineTotal = item.price * item.quantity;
+        total += lineTotal;
+        html += '<div class="flex items-center justify-between text-sm">'
+            + '<div class="flex items-center gap-2">'
+            + '<button onclick="selectServicesRemoveFromCart(' + item.service_id + ')" class="w-5 h-5 flex items-center justify-center rounded-full bg-red-100 text-red-500 hover:bg-red-200 transition flex-shrink-0"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>'
+            + '<span class="text-gray-700">' + item.name + ' × ' + item.quantity + '</span>'
+            + '</div>'
+            + '<span class="font-medium text-gray-900">' + window.salonFormatMoney(lineTotal) + '</span></div>';
+    });
+    html += '</div>';
+    html += '<div class="flex items-center justify-between text-sm font-bold pt-1 border-t border-gray-200 mt-1"><span>Total</span><span>' + window.salonFormatMoney(total) + '</span></div>';
+    container.innerHTML = html;
+}
+
+window.saveSelectServicesCart = function() {
+    if (selectServicesCart.length === 0) {
+        if (typeof showErrorMessage === 'function') showErrorMessage('Please select at least one service.');
+        return;
+    }
+
+    // Show loading state
+    var saveBtn = document.getElementById('selectServicesSaveBtn');
+    if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.classList.add('opacity-50', 'cursor-not-allowed');
+        saveBtn.innerHTML = '<svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Saving...';
+    }
+
+    function resetSaveBtn() {
+        if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            saveBtn.innerHTML = 'Save Services';
+        }
+    }
+
+    // Build payload: current technician's cart + other technicians' existing services
+    var appointment = bookingsData.find(function(a) { return a.id.toString() === selectServicesAppointmentId.toString(); });
+    var existingSvcs = appointment && Array.isArray(appointment.services) ? appointment.services : [];
+
+    // Other technicians' services (keep as-is)
+    var otherTechSvcs = existingSvcs.filter(function(s) {
+        return !s.technician_id || s.technician_id.toString() !== selectServicesTechnicianId.toString();
+    }).map(function(s) {
+        var svcData = selectServicesData.find(function(d) { return d.id === s.service_id; });
+        var slug = (svcData && svcData.categories && svcData.categories[0]) || s.service || '';
+        return {
+            service: slug,
+            service_id: s.service_id,
+            technician_id: s.technician_id,
+            quantity: s.quantity || 1,
+            unit_price: s.unit_price
+        };
+    });
+
+    // Current technician's services from cart
+    var currentTechSvcs = selectServicesCart.map(function(item) {
+        return {
+            service: item.category_slug,
+            service_id: item.service_id,
+            technician_id: selectServicesTechnicianId,
+            quantity: item.quantity,
+            unit_price: item.price
+        };
+    });
+
+    var servicesPayload = otherTechSvcs.concat(currentTechSvcs).filter(function(s) { return s.service && s.technician_id; });
+    var apiUrl = base.replace(/\/data\/?$/, '') + '/appointments/' + selectServicesAppointmentId + '/services';
+    if (typeof salonApi !== 'undefined' && salonApi.put) {
+        salonApi.put(apiUrl, { services: servicesPayload }).then(function(res) {
+            // Update bookingsData with new services from response
+            var appointment = bookingsData.find(function(a) { return a.id.toString() === selectServicesAppointmentId.toString(); });
+            if (appointment && res && res.data && Array.isArray(res.data.services)) {
+                appointment.services = res.data.services;
+            }
+
+            // Update turn tracker: subtract old service count, add new
+            var tech = techniciansData.find(function(t) { return t.id === selectServicesTechnicianId; });
+            var baseServices = tech && typeof tech.services === 'number' ? tech.services : 0;
+            var newCartServiceCount = selectServicesCart.reduce(function(sum, item) {
+                return sum + ((item.service_count || 0) * item.quantity);
+            }, 0);
+            var newTotal = baseServices - selectServicesOldServiceCount + newCartServiceCount;
+            var turnTrackerUrl = base.replace(/\/data\/?$/, '') + '/turn-tracker';
+            salonApi.put(turnTrackerUrl, { entries: [{ user_id: selectServicesTechnicianId, services: newTotal }] }).then(function() {
+                if (tech) tech.services = newTotal;
+                // Refresh technician display with updated services
+                updateEventModalTechnicianDisplay();
+            }).catch(function(err) { console.error('Turn tracker update failed:', err); });
+
+            if (typeof showSuccessMessage === 'function') showSuccessMessage('Services saved for ' + selectServicesTechnicianName + '.');
+            closeNestedModal();
+            // Refresh technician display with updated services list
+            updateEventModalTechnicianDisplay();
+        }).catch(function(err) {
+            resetSaveBtn();
+            if (typeof showErrorMessage === 'function') showErrorMessage(err && err.message ? err.message : 'Failed to save services.');
+        });
+    }
+};
+
 </script>
 
 <style>
+/* Select Services Slick Carousel */
+.select-svc-carousel-wrapper {
+    position: relative;
+    padding: 0 40px;
+}
+.select-svc-slick-carousel {
+    height: 70px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease-in-out;
+}
+.select-svc-slick-carousel.slick-initialized {
+    opacity: 1;
+    visibility: visible;
+}
+.select-svc-slick-carousel.show-fallback {
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    overflow-x: auto !important;
+    height: auto !important;
+}
+.select-svc-slick-carousel.show-fallback > div {
+    flex: 0 0 auto;
+    width: calc(16.666% - 7px);
+}
+.select-svc-slick-carousel .slick-slide {
+    margin: 0 4px;
+    height: 70px !important;
+    display: flex;
+    align-items: stretch;
+}
+.select-svc-slick-carousel .slick-slide > div {
+    height: 70px !important;
+    width: 100%;
+    display: flex;
+}
+.select-svc-slick-carousel .slick-list {
+    margin: 0 -4px;
+    height: 70px;
+}
+.select-svc-slick-carousel .slick-track {
+    display: flex !important;
+    align-items: stretch;
+    height: 70px;
+}
+.select-svc-cat-card {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+    height: 70px !important;
+    min-height: 70px;
+    max-height: 70px;
+}
+.select-svc-slick-carousel .slick-prev,
+.select-svc-slick-carousel .slick-next {
+    width: 32px;
+    height: 32px;
+    background: white;
+    border: 1px solid #d1d5db;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+    z-index: 10;
+}
+.select-svc-slick-carousel .slick-prev { left: -40px; }
+.select-svc-slick-carousel .slick-next { right: -40px; }
+.select-svc-slick-carousel .slick-prev:before,
+.select-svc-slick-carousel .slick-next:before {
+    content: '';
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    opacity: 1;
+}
+.select-svc-slick-carousel .slick-prev:before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%234b5563'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M15 19l-7-7 7-7'/%3E%3C/svg%3E");
+}
+.select-svc-slick-carousel .slick-next:before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%234b5563'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9 5l7 7-7 7'/%3E%3C/svg%3E");
+}
+.select-svc-slick-carousel .slick-prev:hover,
+.select-svc-slick-carousel .slick-next:hover {
+    background: #f9fafb;
+}
+.select-svc-slick-carousel .slick-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 /* Modern FullCalendar Styles */
 .fc {
     font-family: 'Poppins', sans-serif;

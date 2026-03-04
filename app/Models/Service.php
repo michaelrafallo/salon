@@ -14,6 +14,7 @@ class Service extends Model
         'active',
         'image',
         'color',
+        'service_count',
     ];
 
     protected function casts(): array
@@ -21,6 +22,7 @@ class Service extends Model
         return [
             'price' => 'decimal:2',
             'active' => 'boolean',
+            'service_count' => 'decimal:2',
         ];
     }
 

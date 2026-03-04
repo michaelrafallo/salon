@@ -435,11 +435,15 @@ function renderAvailableTechnicians() {
         var idStr = tech.id.toString(), isAssigned = assignedTechnicianIds.indexOf(idStr) >= 0;
         var inits = tech.initials || (tech.firstName || '')[0] + (tech.lastName || '')[0];
         var name = tech.firstName + ' ' + tech.lastName;
+        var photo = tech.profilePhotoUrl || tech.photo || null;
         var cls = isAssigned ? 'opacity-50 grayscale cursor-pointer group hover:bg-gray-100' : 'cursor-pointer group hover:bg-gray-50';
         var isOnline = !!(tech.clock_in && !tech.clock_out);
         var badgeCls = isAssigned ? 'absolute w-5 h-5 rounded-full border-2 border-white bg-gray-400' : (isOnline ? 'absolute w-5 h-5 rounded-full border-2 border-white bg-green-500' : 'absolute w-5 h-5 rounded-full border-2 border-white bg-gray-400');
         var servicesNum = typeof tech.services === 'number' ? tech.services : 0;
-        return '<div onclick="' + (isAssigned ? 'salonBookingRemoveTechnician(' + tech.id + ')' : 'salonBookingAssignTechnician(' + tech.id + ')') + '" class="flex items-center gap-3 p-2 rounded-lg transition-colors ' + cls + '"><div class="relative flex-shrink-0"><div class="w-12 h-12 ' + (isAssigned ? 'bg-gray-300' : 'bg-gray-200') + ' rounded-full flex items-center justify-center"><span class="text-sm font-bold ' + (isAssigned ? 'text-gray-500' : 'text-gray-600') + '">' + inits + '</span></div><div class="' + badgeCls + '" style="' + badgeStyle + '" title="' + (isOnline ? 'Online' : 'Offline') + '"></div></div><div class="flex-1 min-w-0"><p class="text-base font-medium ' + (isAssigned ? 'text-gray-400' : 'text-gray-900') + '">' + name + '</p></div><div class="flex-shrink-0 text-right"><div class="text-xs font-medium text-gray-500 uppercase">Services</div><div class="text-lg font-semibold text-gray-900">' + servicesNum + '</div></div></div>';
+        var avatarHtml = photo
+            ? '<div class="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center"><img src="' + photo + '" alt="' + name + '" class="w-12 h-12 rounded-full object-cover" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';"><span class="text-sm font-bold ' + (isAssigned ? 'text-gray-500' : 'text-gray-600') + '" style="display:none">' + inits + '</span></div>'
+            : '<div class="w-12 h-12 ' + (isAssigned ? 'bg-gray-300' : 'bg-gray-200') + ' rounded-full flex items-center justify-center"><span class="text-sm font-bold ' + (isAssigned ? 'text-gray-500' : 'text-gray-600') + '">' + inits + '</span></div>';
+        return '<div onclick="' + (isAssigned ? 'salonBookingRemoveTechnician(' + tech.id + ')' : 'salonBookingAssignTechnician(' + tech.id + ')') + '" class="flex items-center gap-3 p-2 rounded-lg transition-colors ' + cls + '"><div class="relative flex-shrink-0">' + avatarHtml + '<div class="' + badgeCls + '" style="' + badgeStyle + '" title="' + (isOnline ? 'Online' : 'Offline') + '"></div></div><div class="flex-1 min-w-0"><p class="text-base font-medium ' + (isAssigned ? 'text-gray-400' : 'text-gray-900') + '">' + name + '</p></div><div class="flex-shrink-0 text-right"><div class="text-xs font-medium text-gray-500 uppercase">Services</div><div class="text-lg font-semibold text-gray-900">' + servicesNum + '</div></div></div>';
     }).join('');
 }
 function renderAssignedTechnicians() {
@@ -455,10 +459,14 @@ function renderAssignedTechnicians() {
         if (!tech) return '';
         var inits = tech.initials || (tech.firstName || '')[0] + (tech.lastName || '')[0];
         var name = tech.firstName + ' ' + tech.lastName;
+        var photo = tech.profilePhotoUrl || tech.photo || null;
         var isOnline = !!(tech.clock_in && !tech.clock_out);
         var badgeCls = isOnline ? 'absolute w-5 h-5 rounded-full border-2 border-white bg-green-500' : 'absolute w-5 h-5 rounded-full border-2 border-white bg-gray-400';
         var servicesNum = typeof tech.services === 'number' ? tech.services : 0;
-        return '<div onclick="salonBookingRemoveTechnician(' + tech.id + ')" class="flex items-center gap-3 cursor-pointer group hover:bg-gray-50 p-2 rounded-lg transition-colors"><div class="relative flex-shrink-0"><div class="w-12 h-12 bg-[#003047] rounded-full flex items-center justify-center"><span class="text-sm font-bold text-white">' + inits + '</span></div><div class="' + badgeCls + '" style="' + badgeStyle + '" title="' + (isOnline ? 'Online' : 'Offline') + '"></div></div><div class="flex-1 min-w-0"><p class="text-base font-medium text-gray-900">' + name + '</p></div><div class="flex-shrink-0 text-right"><div class="text-xs font-medium text-gray-500 uppercase">Services</div><div class="text-lg font-semibold text-gray-900">' + servicesNum + '</div></div></div>';
+        var avatarHtml = photo
+            ? '<div class="w-12 h-12 rounded-full overflow-hidden flex items-center justify-center"><img src="' + photo + '" alt="' + name + '" class="w-12 h-12 rounded-full object-cover" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';"><span class="text-sm font-bold text-white" style="display:none">' + inits + '</span></div>'
+            : '<div class="w-12 h-12 bg-[#003047] rounded-full flex items-center justify-center"><span class="text-sm font-bold text-white">' + inits + '</span></div>';
+        return '<div onclick="salonBookingRemoveTechnician(' + tech.id + ')" class="flex items-center gap-3 cursor-pointer group hover:bg-gray-50 p-2 rounded-lg transition-colors"><div class="relative flex-shrink-0">' + avatarHtml + '<div class="' + badgeCls + '" style="' + badgeStyle + '" title="' + (isOnline ? 'Online' : 'Offline') + '"></div></div><div class="flex-1 min-w-0"><p class="text-base font-medium text-gray-900">' + name + '</p></div><div class="flex-shrink-0 text-right"><div class="text-xs font-medium text-gray-500 uppercase">Services</div><div class="text-lg font-semibold text-gray-900">' + servicesNum + '</div></div></div>';
     }).join('');
 }
 window.salonBookingAssignTechnician = function(techId) {

@@ -33,9 +33,12 @@
                 <button onclick="filterByStatus('walk-in')" id="filterWalkIn" class="filter-tab px-1 py-3 text-sm font-medium transition {{ $waitingListTab === 'walk-in' ? 'text-gray-900 border-b-2 border-[#003047]' : 'text-gray-500 border-b-2 border-transparent hover:text-gray-700' }}">Walk-In</button>
                 <button onclick="filterByStatus('booked')" id="filterBooked" class="filter-tab px-1 py-3 text-sm font-medium transition {{ $waitingListTab === 'booked' ? 'text-gray-900 border-b-2 border-[#003047]' : 'text-gray-500 border-b-2 border-transparent hover:text-gray-700' }}">Booked</button>
             </div>
-            <div class="relative max-w-md">
-                <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                <input type="text" id="customerSearchInput" placeholder="Search customers" oninput="searchCustomers(this.value)" class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent text-base">
+            <div class="flex items-center gap-3">
+                <input type="date" id="dateFilterInput" onchange="filterByDate(this.value)" class="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent text-base text-gray-900">
+                <div class="relative max-w-md">
+                    <svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    <input type="text" id="customerSearchInput" placeholder="Search customers" oninput="searchCustomers(this.value)" class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent text-base">
+                </div>
             </div>
         </div>
 
@@ -50,7 +53,7 @@
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned Technicians</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Appointment Date</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Time</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Appointment</th>
                             <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
@@ -83,6 +86,12 @@ var apiCustomersUrl = '{{ url("api/salon/customers") }}';
 var apiAppointmentsUrl = '{{ url("api/salon/appointments") }}';
 var allCustomers = [], allAppointments = [], allTechnicians = [], allMergedData = [], customersData = [];
 var PAGE_SIZE = 15, currentPage = 1, totalPages = 1, currentSearchTerm = '', currentStatusFilter = @json($waitingListTab);
+var currentDateFilter = (function() {
+    var p = new URLSearchParams(window.location.search).get('date');
+    if (p) return p;
+    var n = new Date();
+    return n.getFullYear() + '-' + String(n.getMonth() + 1).padStart(2, '0') + '-' + String(n.getDate()).padStart(2, '0');
+})();
 var currentView = localStorage.getItem('customersView') || 'grid';
 
 var colorClasses = [
@@ -209,6 +218,15 @@ function applyFilters() {
         if (currentStatusFilter === 'booked') return item.appointment && item.appointment.toLowerCase() === 'booked';
         return true;
     });
+    if (currentDateFilter) {
+        filtered = filtered.filter(function(item) {
+            var dt = item.appointment_datetime || item.created_at;
+            if (!dt) return false;
+            var itemDate = new Date(dt);
+            var y = itemDate.getFullYear(), m = String(itemDate.getMonth() + 1).padStart(2, '0'), d = String(itemDate.getDate()).padStart(2, '0');
+            return (y + '-' + m + '-' + d) === currentDateFilter;
+        });
+    }
     if (currentSearchTerm) {
         filtered = filtered.filter(function(c) {
             var text = (c.firstName + ' ' + c.lastName + ' ' + (c.email || '') + ' ' + (c.phone || '')).toLowerCase();
@@ -241,6 +259,17 @@ window.filterByStatus = function(status) {
         el.classList.toggle('text-gray-900', active); el.classList.toggle('border-[#003047]', active);
         el.classList.toggle('text-gray-500', !active); el.classList.toggle('border-transparent', !active);
     });
+    applyFilters();
+};
+window.filterByDate = function(dateStr) {
+    currentDateFilter = dateStr || '';
+    var url = new URL(window.location.href);
+    if (currentDateFilter) {
+        url.searchParams.set('date', currentDateFilter);
+    } else {
+        url.searchParams.delete('date');
+    }
+    window.history.pushState({}, '', url);
     applyFilters();
 };
 function getStatusFromURL() {
@@ -914,14 +943,28 @@ async function fetchCustomers() {
         mergeAppointmentsWithCustomers();
         allMergedData = allMergedData.filter(function(item) { return (item.status || '').toLowerCase() === 'waiting'; });
         currentStatusFilter = getStatusFromURL();
-        if (!new URLSearchParams(window.location.search).get('status')) {
+        var urlParams = new URLSearchParams(window.location.search);
+        var needsReplace = false;
+        if (!urlParams.get('status')) { needsReplace = true; }
+        if (!urlParams.get('date')) { needsReplace = true; }
+        if (needsReplace) {
             var url = new URL(window.location);
             url.searchParams.set('status', currentStatusFilter);
+            url.searchParams.set('date', currentDateFilter);
             window.history.replaceState({}, '', url);
         }
         updateTabStates(currentStatusFilter);
         applyFilters();
-        window.addEventListener('popstate', function() { currentStatusFilter = getStatusFromURL(); updateTabStates(currentStatusFilter); applyFilters(); });
+        window.addEventListener('popstate', function() {
+            var params = new URLSearchParams(window.location.search);
+            currentStatusFilter = getStatusFromURL();
+            var _n = new Date();
+            currentDateFilter = params.get('date') || (_n.getFullYear() + '-' + String(_n.getMonth() + 1).padStart(2, '0') + '-' + String(_n.getDate()).padStart(2, '0'));
+            var dateInput = document.getElementById('dateFilterInput');
+            if (dateInput) dateInput.value = currentDateFilter;
+            updateTabStates(currentStatusFilter);
+            applyFilters();
+        });
     } catch (err) {
         console.error('Error fetching data:', err);
         showErrorMessage('Failed to load data');
@@ -969,6 +1012,8 @@ window.hideTechPhotoPreview = function() {
 document.addEventListener('DOMContentLoaded', function() {
     var saved = localStorage.getItem('customersPerPage');
     if (saved) { var sel = document.getElementById('perPageSelect'); if (sel) { sel.value = saved; PAGE_SIZE = saved === 'all' ? Infinity : parseInt(saved, 10); } }
+    var dateInput = document.getElementById('dateFilterInput');
+    if (dateInput) dateInput.value = currentDateFilter;
     setViewUI(currentView);
     fetchCustomers().then(function() { window.toggleView(currentView); });
 });

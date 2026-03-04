@@ -22,6 +22,7 @@ class ServiceService
                 'active' => filter_var($data['active'] ?? true, FILTER_VALIDATE_BOOLEAN),
                 'image' => $data['image'] ?? null,
                 'color' => $data['color'] ?? null,
+                'service_count' => $data['service_count'] ?? 0,
             ]);
             $this->syncCategoriesBySlug($service, $data['categories'] ?? []);
 
@@ -56,6 +57,9 @@ class ServiceService
             }
             if (array_key_exists('color', $data)) {
                 $attrs['color'] = $data['color'] ?: null;
+            }
+            if (array_key_exists('service_count', $data)) {
+                $attrs['service_count'] = $data['service_count'];
             }
             if ($attrs !== []) {
                 $service->update($attrs);

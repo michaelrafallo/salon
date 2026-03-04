@@ -8,7 +8,6 @@ use App\Models\Appointment;
 use App\Models\AppointmentService;
 use App\Models\Payment;
 use App\Models\Setting;
-use App\Models\TurnTracker;
 use App\Models\User;
 use App\Services\Salon\CustomerService;
 use Illuminate\Http\JsonResponse;
@@ -155,13 +154,6 @@ class SalonPaymentController extends Controller
 
                 if (! empty($pivotUpdates)) {
                     $appointment->technicians()->syncWithoutDetaching($pivotUpdates);
-                }
-
-                foreach ($technicianIds as $techId) {
-                    TurnTracker::query()->updateOrCreate(
-                        ['user_id' => $techId],
-                        []
-                    )->increment('services');
                 }
 
                 $appointment->update(['status' => $status]);

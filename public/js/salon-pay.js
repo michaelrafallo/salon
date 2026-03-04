@@ -19,6 +19,7 @@ var cart = [], techniciansData = [], assignedTechnicianIds = [], selectedTechnic
 var paymentSubtotal = 0, paymentTax = 0, paymentTip = 0, paymentDiscount = 0, paymentCredits = 0, paymentGiftCard = 0, paymentAmountStr = '';
 var currentStep = 1, technicianTips = {}, tipSplitMode = 'percentage';
 var lastSavedCartSignature = null;
+var initialTechServices = {};
 function salonPayServiceColorDot(serviceIdOrName) {
     var svc = null;
     if (typeof serviceIdOrName === 'number' || (typeof serviceIdOrName === 'string' && /^\d+$/.test(serviceIdOrName))) {
@@ -68,6 +69,9 @@ function salonPayApplyBootstrapCatalog() {
     if (Array.isArray(bootstrap.users)) {
         techniciansData = bootstrap.users.filter(function(u) {
             return (u.role === 'technician' || u.userlevel === 'technician') && (u.status === 'active' || !u.status);
+        });
+        techniciansData.forEach(function(t) {
+            initialTechServices[t.id.toString()] = typeof t.services === 'number' ? t.services : 0;
         });
     }
 
@@ -324,6 +328,11 @@ async function salonPayFetchTechnicians() {
         var data = await res.json();
         techniciansData = (data.users || []).filter(function(u) {
             return (u.role === 'technician' || u.userlevel === 'technician') && (u.status === 'active' || !u.status);
+        });
+        techniciansData.forEach(function(t) {
+            if (!(t.id.toString() in initialTechServices)) {
+                initialTechServices[t.id.toString()] = typeof t.services === 'number' ? t.services : 0;
+            }
         });
         salonPayRenderTechniciansList();
     } catch (err) {
@@ -960,6 +969,26 @@ function salonPaySaveCartRequest(options) {
             appointmentData.services = res.data.services;
         }
         lastSavedCartSignature = signature;
+
+        // Update turn tracker services for each assigned technician
+        var entries = [];
+        assignedTechnicianIds.forEach(function(idStr) {
+            var technician = techniciansData.find(function(t) { return t.id.toString() === idStr; });
+            if (!technician) return;
+            var baseServices = idStr in initialTechServices ? initialTechServices[idStr] : (typeof technician.services === 'number' ? technician.services : 0);
+            var techCartItems = cart.filter(function(item) { return item.technician_id === idStr; });
+            var cartServiceCount = techCartItems.reduce(function(sum, item) {
+                var svc = servicesData.find(function(s) { return s.id == item.service_id; });
+                var sc = svc && typeof svc.service_count === 'number' ? svc.service_count : 0;
+                return sum + (sc * (item.quantity || 1));
+            }, 0);
+            entries.push({ user_id: parseInt(idStr, 10), services: baseServices + cartServiceCount });
+        });
+        if (entries.length > 0 && salonApi.put) {
+            var turnTrackerUrl = base.replace(/\/data\/?$/, '') + '/turn-tracker';
+            salonApi.put(turnTrackerUrl, { entries: entries }).catch(function(err) { console.error('Turn tracker update failed:', err); });
+        }
+
         if (!opts.silentSuccess) {
             if (typeof showSuccessMessage === 'function') showSuccessMessage('Cart saved successfully.');
             else alert('Cart saved successfully.');
@@ -1076,7 +1105,14 @@ function salonPayRenderTechniciansList() {
         var fullName = technician.firstName + ' ' + technician.lastName;
         var photo = technician.profilePhotoUrl || technician.photo || null;
         var techServices = cart.filter(function(item) { return item.technician_id === idStr; });
-        html += '<div onclick="salonPaySelectTechnician(\'' + idStr + '\')" class="flex flex-col gap-2 p-3 rounded-lg border-2 cursor-pointer transition ' + (isActive ? 'border-[#003047] bg-white' : 'border-gray-200 bg-white hover:bg-gray-50') + '"><div class="flex items-center gap-3"><div class="relative flex-shrink-0">' + (photo ? '<img src="' + photo + '" alt="' + fullName + '" class="w-12 h-12 rounded-full object-cover border-2 border-white">' : '<div class="w-12 h-12 bg-[#e6f0f3] rounded-full flex items-center justify-center border-2 border-white"><span class="text-sm font-bold text-[#003047]">' + initials + '</span></div>') + '<div class="absolute -bottom-1 -right-1 w-5 h-5 bg-[#003047] text-white rounded-full flex items-center justify-center text-xs font-bold border-2 border-white">✓</div></div><div class="flex-1 min-w-0"><p class="text-sm font-medium text-gray-900 truncate">' + fullName + '</p><p class="text-xs text-gray-500">Technician</p></div></div>';
+        var baseServices = idStr in initialTechServices ? initialTechServices[idStr] : (typeof technician.services === 'number' ? technician.services : 0);
+        var cartServiceCount = techServices.reduce(function(sum, item) {
+            var svc = servicesData.find(function(s) { return s.id == item.service_id; });
+            var sc = svc && typeof svc.service_count === 'number' ? svc.service_count : 0;
+            return sum + (sc * (item.quantity || 1));
+        }, 0);
+        var totalServices = baseServices + cartServiceCount;
+        html += '<div onclick="salonPaySelectTechnician(\'' + idStr + '\')" class="flex flex-col gap-2 p-3 rounded-lg border-2 cursor-pointer transition ' + (isActive ? 'border-[#003047] bg-white' : 'border-gray-200 bg-white hover:bg-gray-50') + '"><div class="flex items-center gap-3"><div class="relative flex-shrink-0">' + (photo ? '<img src="' + photo + '" alt="' + fullName + '" class="w-12 h-12 rounded-full object-cover border-2 border-white">' : '<div class="w-12 h-12 bg-[#e6f0f3] rounded-full flex items-center justify-center border-2 border-white"><span class="text-sm font-bold text-[#003047]">' + initials + '</span></div>') + '<div class="absolute -bottom-1 -right-1 w-5 h-5 bg-[#003047] text-white rounded-full flex items-center justify-center text-xs font-bold border-2 border-white">✓</div></div><div class="flex-1 min-w-0"><p class="text-sm font-medium text-gray-900 truncate">' + fullName + '</p><p class="text-xs text-gray-500">Technician</p><p class="text-xs text-gray-500">Services: ' + totalServices + '</p></div></div>';
         html += '<div class="mt-2 pt-2 border-t border-gray-200"><p class="text-xs font-semibold text-gray-600 mb-2">Assigned services</p>';
         if (techServices.length > 0) {
             html += '<div class="space-y-2">';

@@ -24,7 +24,7 @@ class SyncTurnTrackerRequest extends FormRequest
                 'integer',
                 Rule::exists('users', 'id')->where('role', 'technician'),
             ],
-            'entries.*.services' => ['required', 'integer', 'min:0'],
+            'entries.*.services' => ['required', 'numeric', 'min:0'],
         ];
     }
 }

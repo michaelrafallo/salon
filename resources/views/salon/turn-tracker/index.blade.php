@@ -53,7 +53,7 @@ function salonTurnTrackerApplyPayload(data) {
             fullName: e.fullName || ((e.firstName || '') + ' ' + (e.lastName || '')).trim() || 'Technician',
             initials: e.initials || (((e.firstName || '')[0] || '') + ((e.lastName || '')[0] || '')).toUpperCase() || '—',
             photo: e.photo || null,
-            serviceCount: typeof e.services === 'number' ? e.services : parseInt(e.services, 10) || 0,
+            serviceCount: typeof e.services === 'number' ? e.services : parseFloat(e.services) || 0,
             clockIn: e.clock_in || null,
             clockInDisplay: e.clock_in_display || null
         };
@@ -101,7 +101,7 @@ function salonTurnTrackerDebouncedSave() {
 window.salonTurnTrackerUpdateServiceCount = function(technicianId, newCount, showToast) {
     var tech = techniciansData.find(function(t) { return t.id === technicianId || t.id === parseInt(technicianId, 10); });
     if (tech) {
-        tech.serviceCount = parseInt(newCount, 10) || 0;
+        tech.serviceCount = parseFloat(newCount) || 0;
         salonTurnTrackerDebouncedSave();
         if (techniciansData.length > 0) {
             techniciansData.sort(salonTurnTrackerSortCompare);
@@ -161,10 +161,14 @@ function salonTurnTrackerRenderTechnicians() {
     techniciansData.forEach(function(tech, index) {
         var clockInLabel = salonTurnTrackerFormatClockIn(tech.clockIn, tech.clockInDisplay);
         var safePhotoUrl = tech.photo ? (tech.photo || '').replace(/"/g, '&quot;').replace(/'/g, "\\'") : '';
-        var photoHtml = tech.photo
+        var isOnline = !!tech.clockIn;
+        var badgeColor = isOnline ? 'bg-green-500' : 'bg-gray-400';
+        var statusBadge = '<span class="absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ' + badgeColor + '"></span>';
+        var photoInner = tech.photo
             ? '<img src="' + safePhotoUrl + '" alt="" class="w-10 h-10 rounded-full object-cover border border-gray-200 cursor-pointer hover:opacity-80 transition" onclick="event.stopPropagation();previewTurnTrackerPhoto(\'' + safePhotoUrl + '\')">'
             : '<div class="w-10 h-10 bg-[#e6f0f3] rounded-full flex items-center justify-center border border-gray-200"><span class="text-xs font-bold text-[#003047]">' + (tech.initials || '—') + '</span></div>';
-        html += '<div class="technician-item flex items-center gap-3 p-3 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-all" data-index="' + index + '" data-technician-id="' + tech.id + '"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-[#003047] text-white flex items-center justify-center font-bold text-sm">' + (index + 1) + '</div><div class="flex-shrink-0">' + photoHtml + '</div><div class="flex-1 min-w-0"><p class="font-semibold text-gray-900 text-sm truncate">' + (tech.fullName || '').replace(/</g, '&lt;') + '</p><p class="text-xs text-gray-500 truncate">Clock In: ' + String(clockInLabel).replace(/</g, '&lt;') + '</p></div><div class="flex-shrink-0 flex items-center gap-2"><span class="text-xs text-gray-600">Services:</span><input type="number" value="' + tech.serviceCount + '" min="0" class="w-20 px-2 py-1 text-sm font-semibold text-[#003047] border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" onchange="salonTurnTrackerUpdateServiceCount(' + tech.id + ', this.value)" onblur="salonTurnTrackerSaveServiceCount(' + tech.id + ')" data-technician-id="' + tech.id + '"></div></div>';
+        var photoHtml = '<div class="relative">' + photoInner + statusBadge + '</div>';
+        html += '<div class="technician-item flex items-center gap-3 p-3 rounded-lg border border-gray-200 bg-gray-50 hover:bg-gray-100 transition-all" data-index="' + index + '" data-technician-id="' + tech.id + '"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-[#003047] text-white flex items-center justify-center font-bold text-sm">' + (index + 1) + '</div><div class="flex-shrink-0">' + photoHtml + '</div><div class="flex-1 min-w-0"><p class="font-semibold text-gray-900 text-sm truncate">' + (tech.fullName || '').replace(/</g, '&lt;') + '</p><p class="text-xs text-gray-500 truncate">Clock In: ' + String(clockInLabel).replace(/</g, '&lt;') + '</p></div><div class="flex-shrink-0 flex items-center gap-2"><span class="text-xs text-gray-600">Services:</span><input type="number" step="0.01" value="' + tech.serviceCount + '" min="0" class="w-20 px-2 py-1 text-sm font-semibold text-[#003047] border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" onchange="salonTurnTrackerUpdateServiceCount(' + tech.id + ', this.value)" onblur="salonTurnTrackerSaveServiceCount(' + tech.id + ')" data-technician-id="' + tech.id + '"></div></div>';
     });
     container.innerHTML = html;
 }

@@ -19,7 +19,7 @@ class TurnTracker extends Model
     protected function casts(): array
     {
         return [
-            'services' => 'integer',
+            'services' => 'decimal:2',
             'clock_in' => 'datetime',
             'clock_out' => 'datetime',
         ];

@@ -76,7 +76,7 @@ class SalonTurnTrackerController extends Controller
                 TurnTracker::query()->updateOrCreate(
                     ['user_id' => $item['user_id']],
                     [
-                        'services' => (int) $item['services'],
+                        'services' => round((float) $item['services'], 2),
                     ]
                 );
             }
@@ -101,13 +101,10 @@ class SalonTurnTrackerController extends Controller
             return response()->json(['success' => false, 'message' => 'User is not a technician.'], 422);
         }
 
-        $existing = TurnTracker::query()->where('user_id', $user->id)->first();
-        $services = $existing ? $existing->services : 0;
-
         $tracker = TurnTracker::query()->updateOrCreate(
             ['user_id' => $user->id],
             [
-                'services' => $services,
+                'services' => 0,
                 'clock_in' => now(),
                 'clock_out' => null,
             ]
