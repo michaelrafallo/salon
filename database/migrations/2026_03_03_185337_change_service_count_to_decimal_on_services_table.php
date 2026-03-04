@@ -11,9 +11,15 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('services', function (Blueprint $table) {
-            $table->decimal('service_count', 5, 1)->default(0)->change();
-        });
+        if (Schema::hasColumn('services', 'service_count')) {
+            Schema::table('services', function (Blueprint $table) {
+                $table->decimal('service_count', 5, 1)->default(0)->change();
+            });
+        } else {
+            Schema::table('services', function (Blueprint $table) {
+                $table->decimal('service_count', 5, 1)->default(0)->after('price');
+            });
+        }
     }
 
     /**
@@ -21,8 +27,10 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('services', function (Blueprint $table) {
-            $table->unsignedInteger('service_count')->default(1)->change();
-        });
+        if (Schema::hasColumn('services', 'service_count')) {
+            Schema::table('services', function (Blueprint $table) {
+                $table->unsignedInteger('service_count')->default(1)->change();
+            });
+        }
     }
 };
