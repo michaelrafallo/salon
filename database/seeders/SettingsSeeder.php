@@ -21,6 +21,7 @@ class SettingsSeeder extends Seeder
             'tax_apply_to_all' => true,
             'currency_code' => 'USD',
             'commission_rate' => '30.00',
+            'timezone' => 'America/New_York',
             'turn_tracker_order' => 'lowest',
             'discounts_enabled' => true,
             'gift_cards_enabled' => true,

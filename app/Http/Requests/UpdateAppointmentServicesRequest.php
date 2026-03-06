@@ -18,7 +18,7 @@ class UpdateAppointmentServicesRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'services' => ['required', 'array'],
+            'services' => ['present', 'array'],
             'services.*.service' => ['required', 'string', Rule::exists('service_categories', 'slug')],
             'services.*.service_id' => ['nullable', 'integer', Rule::exists('services', 'id')],
             'services.*.technician_id' => [

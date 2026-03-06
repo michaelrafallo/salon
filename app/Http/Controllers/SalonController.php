@@ -652,7 +652,7 @@ class SalonController extends Controller
         $paymentRows = Payment::query()
             ->whereIn('appointment_id', $appointmentIds)
             ->with(['appointment.customer', 'appointment.appointmentServices.service', 'appointment.appointmentServices.serviceCategory'])
-            ->orderBy('paid_at')
+            ->orderBy('paid_at', 'desc')
             ->get();
 
         $payments = $paymentRows->map(function (Payment $p) {
@@ -696,7 +696,7 @@ class SalonController extends Controller
                 'refunded_at' => $p->refunded_at?->format('Y-m-d\TH:i'),
                 'statusColor' => in_array($status, ['Refunded', 'Voided'], true) ? 'bg-gray-100' : ($status === 'Pending' ? 'bg-amber-100' : 'bg-green-100'),
                 'statusTextColor' => in_array($status, ['Refunded', 'Voided'], true) ? 'text-gray-700' : ($status === 'Pending' ? 'text-amber-700' : 'text-green-700'),
-                'date' => $p->paid_at?->format('Y-m-d'),
+                'date' => $p->paid_at?->format('Y-m-d h:i A'),
                 'services' => $services,
                 'bookingId' => 'ORDER'.$p->appointment_id,
             ];
@@ -1335,7 +1335,7 @@ class SalonController extends Controller
                 'refunded_at' => $p->refunded_at?->format('Y-m-d\TH:i'),
                 'statusColor' => in_array($status, ['Refunded', 'Voided'], true) ? 'bg-gray-100' : ($status === 'Pending' ? 'bg-amber-100' : 'bg-green-100'),
                 'statusTextColor' => in_array($status, ['Refunded', 'Voided'], true) ? 'text-gray-700' : ($status === 'Pending' ? 'text-amber-700' : 'text-green-700'),
-                'date' => $p->paid_at?->format('Y-m-d'),
+                'date' => $p->paid_at?->format('Y-m-d h:i A'),
                 'services' => $services,
                 'bookingId' => 'ORDER'.$p->appointment_id,
             ];

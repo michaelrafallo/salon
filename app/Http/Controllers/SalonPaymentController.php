@@ -49,7 +49,7 @@ class SalonPaymentController extends Controller
                 $appointment = Appointment::query()->with('customer')->lockForUpdate()->findOrFail($validated['appointment_id']);
 
                 $paymentId = strtoupper(Str::random(20));
-                $status = $validated['status'] ?? 'Paid';
+                $status = strtolower($validated['status']) ?? 'paid';
 
                 $payment = Payment::query()->create([
                     'id' => $paymentId,
@@ -64,7 +64,7 @@ class SalonPaymentController extends Controller
                     'tip' => $validated['tip'],
                     'method' => $validated['method'] ?? null,
                     'status' => $status,
-                    'paid_at' => now()->toDateString(),
+                    'paid_at' => now(),
                 ]);
 
                 AppointmentService::query()

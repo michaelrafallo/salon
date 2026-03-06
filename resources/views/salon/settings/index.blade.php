@@ -24,7 +24,7 @@
         <div id="tab-general" class="settings-tab {{ $settingsTab === 'general' ? '' : 'hidden' }}">
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
                 <h2 class="text-lg font-semibold text-gray-900 mb-4">Business Information</h2>
-                <form class="space-y-4 settings-form" data-settings-keys="business_name,business_phone,business_email,business_address">
+                <form class="space-y-4 settings-form" data-settings-keys="business_name,business_phone,business_email,business_address,timezone">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Business Name</label>
@@ -41,6 +41,14 @@
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Address</label>
                             <input type="text" name="business_address" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="123 Main Street">
+                        </div>
+                        <div>
+                            <label class="flex items-center justify-between text-sm font-medium text-gray-700 mb-2"><span>Timezone</span><span id="timezoneCurrentTime" class="text-xs text-gray-500 font-normal"></span></label>
+                            <select name="timezone" id="timezoneSelect" class="w-full">
+                                @foreach(timezone_identifiers_list() as $tz)
+                                    <option value="{{ $tz }}">{{ $tz }}</option>
+                                @endforeach
+                            </select>
                         </div>
                     </div>
                     <div class="flex justify-end">
@@ -290,6 +298,17 @@
         </div>
     </div>
 </main>
+@push('styles')
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<style>
+.select2-container--default .select2-selection--single { height: 48px; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 0.5rem; background: #fff; }
+.select2-container--default .select2-selection--single .select2-selection__rendered { line-height: 28px; color: #374151; }
+.select2-container--default .select2-selection--single .select2-selection__arrow { height: 46px; }
+.select2-container--default.select2-container--focus .select2-selection--single { border-color: #003047; box-shadow: 0 0 0 2px rgba(0,48,71,.2); outline: none; }
+.select2-dropdown { border-color: #d1d5db; border-radius: 0.5rem; }
+.select2-results__option--highlighted[aria-selected] { background-color: #003047 !important; }
+</style>
+@endpush
 @push('scripts')
 <script>
 window.salonSettingsBootstrap = window.salonSettingsBootstrap || @json($settingsBootstrap ?? null);
@@ -330,6 +349,7 @@ function salonSettingsLoad() {
             }
         });
         salonPointsRateToggle();
+        if (typeof $ !== 'undefined' && $.fn.select2) $('#timezoneSelect').trigger('change.select2');
         return;
     }
 
@@ -348,6 +368,7 @@ function salonSettingsLoad() {
                 }
             });
             salonPointsRateToggle();
+            if (typeof $ !== 'undefined' && $.fn.select2) $('#timezoneSelect').trigger('change.select2');
         })
         .catch(function() {});
 }
@@ -686,6 +707,28 @@ window.salonSettingsConfirmDeleteCoupon = function(id) {
         if (typeof showErrorMessage === 'function') showErrorMessage(err && err.message ? err.message : 'Failed to remove coupon.');
     });
 };
+</script>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+$(document).ready(function() {
+    $('#timezoneSelect').select2({ placeholder: 'Select timezone', width: '100%' });
+
+    function updateTimezoneClock() {
+        var tz = $('#timezoneSelect').val();
+        if (tz) {
+            try {
+                var now = new Date().toLocaleString('en-US', { timeZone: tz, weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                $('#timezoneCurrentTime').text(now);
+            } catch(e) { $('#timezoneCurrentTime').text(''); }
+        } else {
+            $('#timezoneCurrentTime').text('');
+        }
+    }
+    $('#timezoneSelect').on('change', updateTimezoneClock);
+    updateTimezoneClock();
+    setInterval(updateTimezoneClock, 1000);
+});
 </script>
 @endpush
 @endsection

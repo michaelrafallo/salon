@@ -46,6 +46,7 @@ class Setting extends Model
             'turn_tracker_order',
             'discounts_enabled',
             'gift_cards_enabled',
+            'timezone',
             'ghl_webhook_book_appointment',
             'ghl_webhook_no_show_sms',
         ];

@@ -49,12 +49,13 @@ class SalonDataController extends Controller
                 'status' => $apt->status,
                 'color' => $apt->color,
                 'created_at' => $apt->created_at?->toIso8601String(),
-                'appointment_datetime' => $apt->appointment_datetime?->toIso8601String(),
+                'appointment_datetime' => $apt->appointment_datetime?->format('Y-m-d\TH:i:s'),
                 'assigned_technician' => $apt->technicians->pluck('id')->values()->all(),
                 'services' => $apt->appointmentServices->map(fn ($as) => [
                     'service' => $as->serviceCategory?->slug,
                     'service_id' => $as->service_id,
                     'service_name' => $as->service?->name,
+                    'service_color' => $as->service?->color,
                     'technician_id' => $as->user_id,
                     'quantity' => (int) ($as->quantity ?? 1),
                     'unit_price' => $as->unit_price !== null ? (float) $as->unit_price : null,
@@ -198,7 +199,7 @@ class SalonDataController extends Controller
                 'refunded_at' => $p->refunded_at?->format('Y-m-d\TH:i'),
                 'statusColor' => in_array($status, ['Refunded', 'Voided'], true) ? 'bg-gray-100' : ($status === 'Pending' ? 'bg-amber-100' : 'bg-green-100'),
                 'statusTextColor' => in_array($status, ['Refunded', 'Voided'], true) ? 'text-gray-700' : ($status === 'Pending' ? 'text-amber-700' : 'text-green-700'),
-                'date' => $p->paid_at?->format('Y-m-d'),
+                'date' => $p->paid_at?->format('Y-m-d h:i A'),
                 'services' => $services,
                 'bookingId' => 'ORDER'.$p->appointment_id,
             ];

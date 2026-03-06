@@ -1990,7 +1990,7 @@ window.salonPayProcessPayment = function(event) {
         gift_card: paymentGiftCard,
         tax: paymentTax,
         tip: totalTipSplitAmount,
-        status: 'Paid',
+        status: 'paid',
         tips_by_technician: tipsByTechnician
     }).then(function() {
         if (typeof showSuccessMessage === 'function') {

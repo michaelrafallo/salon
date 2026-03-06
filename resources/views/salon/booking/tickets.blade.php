@@ -54,7 +54,7 @@
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Time</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned Technicians</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Appointment</th>
-                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Details</th>
+                            <th id="paymentDetailsHeader" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment Details</th>
                             <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
@@ -75,7 +75,33 @@
         <div id="ticketsPagination" class="mt-4 flex justify-center"></div>
     </div>
 </main>
+@push('styles')
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick.css"/>
+<link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick-theme.css"/>
+<style>
+.select-svc-carousel-wrapper { position: relative; padding: 0 40px; }
+.select-svc-slick-carousel { height: 70px; opacity: 0; visibility: hidden; transition: opacity 0.3s ease-in-out; }
+.select-svc-slick-carousel.slick-initialized { opacity: 1; visibility: visible; }
+.select-svc-slick-carousel.show-fallback { opacity: 1 !important; visibility: visible !important; display: flex !important; flex-wrap: wrap !important; gap: 8px !important; overflow-x: auto !important; height: auto !important; }
+.select-svc-slick-carousel.show-fallback > div { flex: 0 0 auto; width: calc(16.666% - 7px); }
+.select-svc-slick-carousel .slick-slide { margin: 0 4px; height: 70px !important; display: flex; align-items: stretch; }
+.select-svc-slick-carousel .slick-slide > div { height: 70px !important; width: 100%; display: flex; }
+.select-svc-slick-carousel .slick-list { margin: 0 -4px; height: 70px; }
+.select-svc-slick-carousel .slick-track { display: flex !important; align-items: stretch; height: 70px; }
+.select-svc-cat-card { word-wrap: break-word; overflow-wrap: break-word; hyphens: auto; height: 70px !important; min-height: 70px; max-height: 70px; }
+.select-svc-slick-carousel .slick-prev, .select-svc-slick-carousel .slick-next { width: 32px; height: 32px; background: white; border: 1px solid #d1d5db; border-radius: 50%; box-shadow: 0 1px 3px 0 rgba(0,0,0,0.1); z-index: 10; }
+.select-svc-slick-carousel .slick-prev { left: -40px; }
+.select-svc-slick-carousel .slick-next { right: -40px; }
+.select-svc-slick-carousel .slick-prev:before, .select-svc-slick-carousel .slick-next:before { content: ''; display: inline-block; width: 16px; height: 16px; background-size: contain; background-repeat: no-repeat; background-position: center; opacity: 1; }
+.select-svc-slick-carousel .slick-prev:before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%234b5563'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M15 19l-7-7 7-7'/%3E%3C/svg%3E"); }
+.select-svc-slick-carousel .slick-next:before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%234b5563'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9 5l7 7-7 7'/%3E%3C/svg%3E"); }
+.select-svc-slick-carousel .slick-prev:hover, .select-svc-slick-carousel .slick-next:hover { background: #f9fafb; }
+.select-svc-slick-carousel .slick-disabled { opacity: 0.3; cursor: default; }
+</style>
+@endpush
 @push('scripts')
+<script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/slick-carousel@1.8.1/slick/slick.min.js"></script>
 <script>
 (function() {
 var base = window.salonJsonBase || '{{ url("api/salon/data") }}';
@@ -102,6 +128,11 @@ var currentCustomerName = '';
 var technicianSearchTerm = '';
 var assignedTechnicianSearchTerm = '';
 var resizeHandlerForTechnicians = null;
+var currentEventModalElement = null;
+// Select services state
+var selectServicesData = [], selectServicesCategoriesMap = {}, selectServicesCategory = null, selectServicesCart = [];
+var selectServicesAppointmentId = null, selectServicesTechnicianId = null, selectServicesTechnicianName = '';
+var selectServicesLoaded = false, selectServicesOldServiceCount = 0;
 var colorClasses = [
     { bg: 'bg-[#e6f0f3]', text: 'text-[#003047]' }, { bg: 'bg-purple-100', text: 'text-purple-600' },
     { bg: 'bg-teal-100', text: 'text-teal-600' }, { bg: 'bg-indigo-100', text: 'text-indigo-600' },
@@ -204,7 +235,7 @@ function parseDate(dateString) {
     }
 }
 function getTimeStarted(customer) {
-    var startTime = customer.appointment_datetime || customer.created_at;
+    var startTime = customer.appointment_datetime;
     if (!startTime) return 'N/A';
     var date = parseDate(startTime);
     if (!date) return 'N/A';
@@ -279,7 +310,7 @@ function getActionButtons(customer, fullName, isGrid) {
     }
     var assignButtonClass = isGrid ? 'flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium text-sm active:scale-95' : 'inline-flex items-center gap-2 px-4 py-2 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium text-sm active:scale-95';
     var payButtonClass = isGrid ? 'flex-1 inline-flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium text-sm active:scale-95' : 'inline-flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium text-sm active:scale-95';
-    return '<button onclick="event.stopPropagation(); salonTicketsAssignCustomer(\'' + customer.id + '\', \'' + escapedName + '\')" class="' + assignButtonClass + '"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>Assign</button><button onclick="event.stopPropagation(); window.location.href=\'' + payUrl + '?id=' + appointmentId + '\'" class="' + payButtonClass + '">Pay</button>';
+    return '<button onclick="event.stopPropagation(); salonTicketsViewDetails(\'' + appointmentId + '\', \'' + escapedName + '\')" class="' + assignButtonClass + '"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>View</button><button onclick="event.stopPropagation(); window.location.href=\'' + payUrl + '?id=' + appointmentId + '\'" class="' + payButtonClass + '">Pay</button>';
 }
 function getPaginated() {
     if (PAGE_SIZE === 'all' || PAGE_SIZE === Infinity) return ticketsData;
@@ -364,9 +395,13 @@ function renderGrid() {
 function renderList() {
     var tbody = document.getElementById('listViewBody');
     if (!tbody) return;
+    var isUnpaid = currentStatusFilter === 'unpaid';
+    var paymentHeader = document.getElementById('paymentDetailsHeader');
+    if (paymentHeader) paymentHeader.style.display = isUnpaid ? 'none' : '';
+    var colSpan = isUnpaid ? '6' : '7';
     var list = getPaginated();
     if (list.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-12 text-center"><svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg><p class="text-gray-500 text-sm">No tickets found</p></td></tr>';
+        tbody.innerHTML = '<tr><td colspan="' + colSpan + '" class="px-6 py-12 text-center"><svg class="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg><p class="text-gray-500 text-sm">No tickets found</p></td></tr>';
         return;
     }
     tbody.innerHTML = list.map(function(customer, index) {
@@ -379,9 +414,10 @@ function renderList() {
         var rowNum = (PAGE_SIZE === 'all' || PAGE_SIZE === Infinity) ? index + 1 : (currentPage - 1) * PAGE_SIZE + index + 1;
         var customerStatus = (customer.status || '').toLowerCase();
         var startTimeCell = customerStatus === 'unpaid' || customerStatus === 'waiting' || customerStatus === 'in-progress'
-            ? '<div class="flex flex-col gap-1"><div class="text-sm text-gray-900">' + getTimeStarted(customer) + '</div><div class="text-base font-bold text-[#003047] duration-counter" data-start-time="' + (customer.appointment_datetime || customer.created_at || '').toString() + '" data-customer-id="' + (customer.id || customer.appointmentId || '') + '">' + calculateDuration(customer.appointment_datetime || customer.created_at) + '</div></div>'
+            ? '<div class="flex flex-col gap-1"><div class="text-sm text-gray-900">' + getTimeStarted(customer) + '</div><div class="text-base font-bold text-[#003047] duration-counter" data-start-time="' + (customer.appointment_datetime || '').toString() + '" data-customer-id="' + (customer.id || customer.appointmentId || '') + '">' + calculateDuration(customer.appointment_datetime) + '</div></div>'
             : '<div class="text-sm text-gray-900">' + getTimeStarted(customer) + '</div>';
-        return '<tr class="customer-row hover:bg-gray-50 transition"><td class="px-3 py-4 whitespace-nowrap text-center"><div class="text-sm text-gray-600">' + rowNum + '</div></td><td class="px-6 py-4 whitespace-nowrap"><div class="flex items-center"><div class="w-10 h-10 ' + color.bg + ' rounded-full flex items-center justify-center flex-shrink-0 mr-3"><span class="text-sm font-bold ' + color.text + '">' + initials + '</span></div><div><div class="text-base font-normal text-gray-900">' + fullName + '</div></div></div></td><td class="px-6 py-4 whitespace-nowrap">' + startTimeCell + '</td><td class="px-6 py-4">' + renderTechniciansList(customer.assigned_technician) + '</td><td class="px-6 py-4 whitespace-nowrap"><span class="inline-block px-3 py-1 ' + statusClass + ' text-xs font-medium rounded-full">' + appointmentType + '</span></td><td class="px-6 py-4 whitespace-nowrap">' + getPaymentDetails(customer) + '</td><td class="px-6 py-4 whitespace-nowrap text-right"><div class="flex items-center justify-end gap-2">' + getActionButtons(customer, fullName) + '</div></td></tr>';
+        var paymentCell = isUnpaid ? '' : '<td class="px-6 py-4 whitespace-nowrap">' + getPaymentDetails(customer) + '</td>';
+        return '<tr class="customer-row hover:bg-gray-50 transition"><td class="px-3 py-4 whitespace-nowrap text-center"><div class="text-sm text-gray-600">' + rowNum + '</div></td><td class="px-6 py-4 whitespace-nowrap"><div class="flex items-center"><div class="w-10 h-10 ' + color.bg + ' rounded-full flex items-center justify-center flex-shrink-0 mr-3"><span class="text-sm font-bold ' + color.text + '">' + initials + '</span></div><div><div class="text-base font-normal text-gray-900">' + fullName + '</div></div></div></td><td class="px-6 py-4 whitespace-nowrap">' + startTimeCell + '</td><td class="px-6 py-4">' + renderTechniciansList(customer.assigned_technician) + '</td><td class="px-6 py-4 whitespace-nowrap"><span class="inline-block px-3 py-1 ' + statusClass + ' text-xs font-medium rounded-full">' + appointmentType + '</span></td>' + paymentCell + '<td class="px-6 py-4 whitespace-nowrap text-right"><div class="flex items-center justify-end gap-2">' + getActionButtons(customer, fullName) + '</div></td></tr>';
     }).join('');
     setTimeout(function() { startDurationCounters(); }, 100);
 }
@@ -396,7 +432,7 @@ function applyFilters() {
     var filtered = allMergedData.filter(function(item) {
         if (!item || !item.status) return false;
         var status = item.status.toLowerCase().trim();
-        if (currentStatusFilter === 'unpaid') return status === 'unpaid' || status === 'waiting';
+        if (currentStatusFilter === 'unpaid') return status === 'unpaid';
         if (currentStatusFilter === 'paid') return status === 'paid';
         if (currentStatusFilter === 'cancelled') return status === 'cancelled' || status === 'canceled';
         if (currentStatusFilter === 'refunded') {
@@ -542,6 +578,63 @@ window.salonTicketsToggleView = function(view) {
     }
     renderList();
 };
+
+// Build technician display HTML for the detail modal (like waiting list)
+function buildTicketTechnicianDisplayHtml(appointmentId) {
+    var appointment = allAppointments.find(function(a) { return a.id.toString() === appointmentId.toString(); });
+    var assignedIds = appointment && Array.isArray(appointment.assigned_technician) ? appointment.assigned_technician : [];
+    if (assignedIds.length === 0) return '<p class="text-sm text-gray-400">Not Assigned</p>';
+    var allSvcs = appointment && Array.isArray(appointment.services) ? appointment.services : [];
+    return '<div class="space-y-2">' + assignedIds.map(function(techId) {
+        var tech = allTechnicians.find(function(t) { return t.id.toString() === techId.toString(); });
+        if (!tech) return '';
+        var name = tech.firstName + ' ' + tech.lastName;
+        var initials = tech.initials || (tech.firstName || '')[0] + (tech.lastName || '')[0];
+        var photo = tech.profilePhotoUrl || tech.photo || null;
+        var serviceCount = typeof tech.services === 'number' ? tech.services : 0;
+        var techSvcs = allSvcs.filter(function(s) { return s.technician_id && s.technician_id.toString() === techId.toString(); });
+        var techIsOnline = !!(tech.clock_in && !tech.clock_out);
+        var techBadgeColor = techIsOnline ? 'bg-green-500' : 'bg-gray-400';
+        var techStatusBadge = '<span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white ' + techBadgeColor + '"></span>';
+        var avatarInner = photo
+            ? '<div class="w-9 h-9 rounded-full overflow-hidden border border-gray-200" style="min-width:36px;min-height:36px;max-width:36px;max-height:36px"><img src="' + photo + '" alt="' + name + '" style="width:36px;height:36px;object-fit:cover"></div>'
+            : '<div class="w-9 h-9 bg-[#e6f0f3] rounded-full flex items-center justify-center border border-gray-200" style="min-width:36px;min-height:36px;max-width:36px;max-height:36px"><span class="text-xs font-bold text-[#003047]">' + initials + '</span></div>';
+        var avatarHtml = '<div class="relative">' + avatarInner + techStatusBadge + '</div>';
+        var svcListHtml = '';
+        if (techSvcs.length > 0) {
+            var svcItems = techSvcs.map(function(s) {
+                var sName = s.service_name || s.service || 'Service';
+                var qty = s.quantity || 1;
+                var sColor = s.service_color || '';
+                if (!sColor && s.service_id && selectServicesData && selectServicesData.length > 0) {
+                    var svcInfo = selectServicesData.find(function(d) { return d.id === s.service_id; });
+                    if (svcInfo && svcInfo.color) sColor = svcInfo.color;
+                }
+                var colorDot = sColor ? '<span class="inline-block w-2 h-2 rounded-full flex-shrink-0" style="background:' + sColor + '"></span>' : '';
+                return '<span class="inline-flex items-center gap-1 text-xs text-gray-500 truncate">' + colorDot + '<span class="truncate">' + sName + (qty > 1 ? ' x' + qty : '') + '</span></span>';
+            });
+            svcListHtml = '<div class="mt-1 grid grid-cols-4 gap-1">' + svcItems.join('') + '</div>';
+        }
+        return '<div class="p-2 bg-white rounded-lg border border-gray-200">'
+            + '<div class="flex items-center gap-3">'
+            + '<div class="flex-shrink-0">' + avatarHtml + '</div>'
+            + '<div class="flex-1 min-w-0">'
+            + '<p class="text-sm font-medium text-gray-900 truncate">' + name + '</p>'
+            + '<p class="text-xs text-gray-500">Services: ' + serviceCount + '</p>'
+            + '</div>'
+            + '<button onclick="event.stopPropagation(); salonTicketsOpenSelectServices(' + appointmentId + ', ' + techId + ', \'' + name.replace(/'/g, "\\'") + '\')" class="px-3 py-1.5 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition-all font-medium text-xs flex items-center gap-1 flex-shrink-0">'
+            + '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>'
+            + 'Select</button>'
+            + '</div>'
+            + svcListHtml
+            + '</div>';
+    }).join('') + '</div>';
+}
+function updateTicketTechnicianDisplay() {
+    if (!currentEventModalElement || !currentAppointmentId) return;
+    currentEventModalElement.innerHTML = buildTicketTechnicianDisplayHtml(currentAppointmentId);
+}
+
 window.salonTicketsViewDetails = function(appointmentId, customerName) {
     var appointment = allMergedData.find(function(apt) {
         if (apt.appointmentId && apt.appointmentId.toString() === appointmentId.toString()) return true;
@@ -552,6 +645,10 @@ window.salonTicketsViewDetails = function(appointmentId, customerName) {
         alert('Appointment not found. Please try again.');
         return;
     }
+    var aptId2 = appointment.appointmentId || appointment.id;
+    currentAppointmentId = aptId2;
+    currentCustomerName = customerName;
+    assignedTechnicianIds = (appointment.assigned_technician && Array.isArray(appointment.assigned_technician)) ? appointment.assigned_technician.map(function(id) { return id.toString(); }) : [];
     var customerId = appointment.customer_id;
     var customer = customerId ? allCustomers.find(function(c) { return c.id.toString() === customerId.toString(); }) : null;
     var fullName = customer ? customer.firstName + ' ' + customer.lastName : (appointment.firstName && appointment.lastName ? appointment.firstName + ' ' + appointment.lastName : customerName);
@@ -570,7 +667,13 @@ window.salonTicketsViewDetails = function(appointmentId, customerName) {
     var servicesByTechnician = {};
     if (services.length > 0) {
         services.forEach(function(s) {
-            var serviceName = s.service ? s.service.replace(/-/g, ' ').replace(/\b\w/g, function(l) { return l.toUpperCase(); }) : 'Unknown';
+            var serviceName = s.service_name || (s.service ? s.service.replace(/-/g, ' ').replace(/\b\w/g, function(l) { return l.toUpperCase(); }) : 'Unknown');
+            var sColor = s.service_color || '';
+            if (!sColor && s.service_id && selectServicesData && selectServicesData.length > 0) {
+                var svcInfo = selectServicesData.find(function(d) { return d.id === s.service_id; });
+                if (svcInfo && svcInfo.color) sColor = svcInfo.color;
+            }
+            var qty = s.quantity || 1;
             var techId = s.technician_id;
             var techName = 'Not Assigned';
             if (techId) {
@@ -578,13 +681,14 @@ window.salonTicketsViewDetails = function(appointmentId, customerName) {
                 techName = technician ? technician.firstName + ' ' + technician.lastName : 'Technician #' + techId;
             }
             if (!servicesByTechnician[techName]) servicesByTechnician[techName] = [];
-            servicesByTechnician[techName].push(serviceName);
+            servicesByTechnician[techName].push({ name: serviceName, color: sColor, quantity: qty });
         });
     }
     var enhancedServicesList = Object.keys(servicesByTechnician).length > 0 ? Object.keys(servicesByTechnician).map(function(techName) {
         var techServices = servicesByTechnician[techName];
-        return '<div class="mb-4 last:mb-0"><div class="mb-2"><h5 class="text-sm font-semibold text-gray-900">' + techName + '</h5></div><div class="space-y-1 ml-4">' + techServices.map(function(serviceName) {
-            return '<div class="text-sm text-gray-700 pl-3 border-l-2 border-gray-200">' + serviceName + '</div>';
+        return '<div class="mb-4 last:mb-0"><div class="mb-2"><h5 class="text-sm font-semibold text-gray-900">' + techName + '</h5></div><div class="grid grid-cols-4 gap-1 ml-4">' + techServices.map(function(svc) {
+            var colorDot = svc.color ? '<span class="inline-block w-2 h-2 rounded-full flex-shrink-0" style="background:' + svc.color + '"></span>' : '';
+            return '<span class="inline-flex items-center gap-1 text-xs text-gray-700 truncate">' + colorDot + '<span class="truncate">' + svc.name + (svc.quantity > 1 ? ' x' + svc.quantity : '') + '</span></span>';
         }).join('') + '</div></div>';
     }).join('') : '<div class="text-sm text-gray-400 p-2">No services</div>';
     var technicians = appointment.assigned_technician || [];
@@ -606,8 +710,31 @@ window.salonTicketsViewDetails = function(appointmentId, customerName) {
     var aptId = appointment.appointmentId || appointment.id || 'N/A';
     var createdDate = appointment.created_at ? new Date(appointment.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A';
     var transactionId = payment ? (payment.id || payment.bookingId || 'N/A') : 'N/A';
-    var content = '<div class="max-h-[90vh] flex flex-col"><div class="p-6 border-b border-gray-200 flex items-center justify-between flex-shrink-0"><h3 class="text-2xl font-bold text-gray-900">Ticket Details</h3><button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><div class="flex-1 min-h-0 overflow-y-auto p-6"><div class="space-y-2"><div class="bg-gray-50 rounded-xl p-4"><h4 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Ticket Information</h4><div class="grid grid-cols-2 gap-4"><div><p class="text-xs text-gray-500 mb-1">Ticket ID</p><p class="text-base font-semibold text-gray-900">#' + aptId + '</p></div><div><p class="text-xs text-gray-500 mb-1">Status</p><span class="inline-block px-3 py-1 ' + statusClass + ' text-xs font-medium rounded-full">' + statusDisplay + '</span></div><div><p class="text-xs text-gray-500 mb-1">Appointment Type</p><p class="text-base font-semibold text-gray-900">' + appointmentTypeDisplay + '</p></div><div><p class="text-xs text-gray-500 mb-1">Created Date</p><p class="text-base font-semibold text-gray-900">' + createdDate + '</p></div></div></div><div class="bg-gray-50 rounded-xl p-4"><h4 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Customer Information</h4><div class="grid grid-cols-2 gap-4"><div><p class="text-xs text-gray-500 mb-1">Name</p><p class="text-base font-semibold text-gray-900">' + fullName + '</p></div><div><p class="text-xs text-gray-500 mb-1">Phone</p><p class="text-base font-semibold text-gray-900">' + customerPhone + '</p></div><div><p class="text-xs text-gray-500 mb-1">Email</p><p class="text-base font-semibold text-gray-900">' + customerEmail + '</p></div><div><p class="text-xs text-gray-500 mb-1">Customer ID</p><p class="text-base font-semibold text-gray-900">#' + (appointment.customer_id || 'N/A') + '</p></div></div></div><div class="bg-gray-50 rounded-xl p-4"><h4 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Appointment Details</h4><div class="grid grid-cols-2 gap-4"><div><p class="text-xs text-gray-500 mb-1">Date</p><p class="text-base font-semibold text-gray-900">' + appointmentDate + '</p></div><div><p class="text-xs text-gray-500 mb-1">Time</p><p class="text-base font-semibold text-gray-900">' + appointmentTime + '</p></div><div><p class="text-xs text-gray-500 mb-1">Assigned Technicians</p><p class="text-base font-semibold text-gray-900">' + techniciansList + '</p></div></div></div><div class="bg-gray-50 rounded-xl p-4"><h4 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Services</h4><div class="space-y-2">' + enhancedServicesList + '</div></div>' + (status !== 'cancelled' && status !== 'canceled' ? '<div class="bg-gray-50 rounded-xl p-4"><h4 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Payment Information</h4><div class="grid grid-cols-2 gap-4"><div><p class="text-xs text-gray-500 mb-1">Amount</p><p class="text-lg font-bold text-gray-900">' + paymentAmount + '</p></div><div><p class="text-xs text-gray-500 mb-1">Payment Method</p><p class="text-base font-semibold text-gray-900">' + paymentMethod + '</p></div><div><p class="text-xs text-gray-500 mb-1">Payment Status</p><span class="inline-block px-3 py-1 ' + (paymentStatus === 'Completed' ? 'bg-green-100 text-green-700' : paymentStatus === 'Refunded' ? 'bg-gray-100 text-gray-700' : paymentStatus === 'Failed' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700') + ' text-xs font-medium rounded-full">' + paymentStatus + '</span></div><div><p class="text-xs text-gray-500 mb-1">Payment Date</p><p class="text-base font-semibold text-gray-900">' + paymentDate + '</p></div>' + (transactionId !== 'N/A' ? '<div><p class="text-xs text-gray-500 mb-1">Transaction ID</p><p class="text-base font-semibold text-gray-900">' + transactionId + '</p></div>' : '') + '</div></div>' : '') + (status === 'cancelled' || status === 'canceled' ? '<div class="bg-gray-50 rounded-xl p-4"><div class="flex items-center justify-between flex-wrap gap-3"><div><h4 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Ticket Status</h4><p class="text-base text-gray-700">This ticket has been cancelled</p></div><div class="flex items-center gap-2"><button onclick="salonTicketsShowRestoreConfirm(\'' + aptId + '\', \'' + fullName.replace(/'/g, "\\'") + '\')" class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium text-sm active:scale-95"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>Restore</button><button onclick="salonTicketsShowDeleteConfirm(\'' + aptId + '\', \'' + fullName.replace(/'/g, "\\'") + '\')" class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium text-sm active:scale-95"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>Delete</button></div></div></div>' : '') + '</div></div><div class="flex items-center justify-between gap-3 p-6 border-t border-gray-200 flex-shrink-0">' + (status === 'paid' ? '<button onclick="salonTicketsConfirmRefund(\'' + aptId + '\', \'' + fullName.replace(/'/g, "\\'") + '\', \'' + paymentAmount + '\')" class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium text-sm active:scale-95"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>Refund</button>' : '<div></div>') + '<button onclick="closeModal()" class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium active:scale-95">Close</button></div></div>';
+    var techDisplayHtml = buildTicketTechnicianDisplayHtml(aptId);
+    var escapedFullName = fullName.replace(/'/g, "\\'");
+    var content = '<div class="max-h-[90vh] flex flex-col">'
+        + '<div class="p-6 border-b border-gray-200 flex items-center justify-between flex-shrink-0"><h3 class="text-2xl font-bold text-gray-900">Ticket Details</h3><div class="flex items-center gap-2"><span class="px-3 py-1.5 rounded-lg text-xs font-semibold border bg-gray-100 text-gray-700 border-gray-200">#' + aptId + '</span><span class="px-3 py-1.5 rounded-lg text-xs font-semibold border ' + statusClass + '">' + statusDisplay + '</span><button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div></div>'
+        + '<div class="flex-1 min-h-0 overflow-y-auto p-6"><div class="space-y-2">'
+        + '<div class="bg-gray-50 rounded-xl p-4"><h4 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Ticket Information</h4><div class="grid grid-cols-3 gap-4"><div><p class="text-xs text-gray-500 mb-1">Ticket ID</p><p class="text-base font-semibold text-gray-900">#' + aptId + '</p></div><div><p class="text-xs text-gray-500 mb-1">Status</p><span class="inline-block px-3 py-1 ' + statusClass + ' text-xs font-medium rounded-full">' + statusDisplay + '</span></div><div><p class="text-xs text-gray-500 mb-1">Appointment Type</p><p class="text-base font-semibold text-gray-900">' + appointmentTypeDisplay + '</p></div><div><p class="text-xs text-gray-500 mb-1">Date</p><p class="text-base font-semibold text-gray-900">' + appointmentDate + '</p></div><div><p class="text-xs text-gray-500 mb-1">Time</p><p class="text-base font-semibold text-gray-900">' + appointmentTime + '</p></div><div><p class="text-xs text-gray-500 mb-1">Created Date</p><p class="text-base font-semibold text-gray-900">' + createdDate + '</p></div></div></div>'
+        + '<div class="bg-gray-50 rounded-xl p-4"><h4 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Customer Information</h4><div class="grid grid-cols-2 gap-4"><div><p class="text-xs text-gray-500 mb-1">Name</p><p class="text-base font-semibold text-gray-900">' + fullName + '</p></div><div><p class="text-xs text-gray-500 mb-1">Phone</p><p class="text-base font-semibold text-gray-900">' + customerPhone + '</p></div><div><p class="text-xs text-gray-500 mb-1">Email</p><p class="text-base font-semibold text-gray-900">' + customerEmail + '</p></div><div><p class="text-xs text-gray-500 mb-1">Customer ID</p><p class="text-base font-semibold text-gray-900">#' + (appointment.customer_id || 'N/A') + '</p></div></div></div>'
+        // Technician section with Assign button and technician cards (like waiting list) - only for unpaid
+        + (status === 'unpaid' ? '<div class="bg-gray-50 rounded-xl p-4"><div class="flex items-center justify-between mb-2"><p class="text-sm font-semibold text-gray-500 uppercase tracking-wide">Technicians</p>'
+        + '<button onclick="salonTicketsOpenTechnicianModal()" class="px-3 py-1.5 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition-all font-medium text-xs flex items-center gap-1"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>Assign</button>'
+        + '</div><div id="ticketTechnicianDisplay_' + aptId + '">' + techDisplayHtml + '</div></div>' : '')
+        + (status !== 'unpaid' && status !== 'waiting' ? '<div class="bg-gray-50 rounded-xl p-4"><h4 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Services</h4><div class="space-y-2">' + enhancedServicesList + '</div></div>' : '')
+        + (status !== 'unpaid' && status !== 'waiting' && status !== 'cancelled' && status !== 'canceled' ? '<div class="bg-gray-50 rounded-xl p-4"><h4 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Payment Information</h4><div class="grid grid-cols-2 gap-4"><div><p class="text-xs text-gray-500 mb-1">Amount</p><p class="text-lg font-bold text-gray-900">' + paymentAmount + '</p></div><div><p class="text-xs text-gray-500 mb-1">Payment Method</p><p class="text-base font-semibold text-gray-900">' + paymentMethod + '</p></div><div><p class="text-xs text-gray-500 mb-1">Payment Status</p><span class="inline-block px-3 py-1 ' + (paymentStatus === 'Completed' ? 'bg-green-100 text-green-700' : paymentStatus === 'Refunded' ? 'bg-gray-100 text-gray-700' : paymentStatus === 'Failed' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700') + ' text-xs font-medium rounded-full">' + paymentStatus + '</span></div><div><p class="text-xs text-gray-500 mb-1">Payment Date</p><p class="text-base font-semibold text-gray-900">' + paymentDate + '</p></div>' + (transactionId !== 'N/A' ? '<div><p class="text-xs text-gray-500 mb-1">Transaction ID</p><p class="text-base font-semibold text-gray-900">' + transactionId + '</p></div>' : '') + '</div></div>' : '')
+        + (status === 'cancelled' || status === 'canceled' ? '<div class="bg-gray-50 rounded-xl p-4"><div class="flex items-center justify-between flex-wrap gap-3"><div><h4 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-1">Ticket Status</h4><p class="text-base text-gray-700">This ticket has been cancelled</p></div><div class="flex items-center gap-2"><button onclick="salonTicketsShowRestoreConfirm(\'' + aptId + '\', \'' + escapedFullName + '\')" class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium text-sm active:scale-95"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>Restore</button><button onclick="salonTicketsShowDeleteConfirm(\'' + aptId + '\', \'' + escapedFullName + '\')" class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium text-sm active:scale-95"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>Delete</button></div></div></div>' : '')
+        + '</div></div>'
+        + '<div class="flex items-center justify-between gap-3 p-6 border-t border-gray-200 flex-shrink-0">'
+        + (status === 'paid' ? '<button onclick="salonTicketsConfirmRefund(\'' + aptId + '\', \'' + escapedFullName + '\', \'' + paymentAmount + '\')" class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium text-sm active:scale-95"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"></path></svg>Refund</button>' : '<div></div>')
+        + '<div class="flex items-center gap-3">'
+        + '<button onclick="closeModal()" class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium active:scale-95">Close</button>'
+        + (status === 'unpaid' ? '<a href="' + payUrl + '?id=' + aptId + '" class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium active:scale-95 inline-flex items-center gap-2 no-underline"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>Pay</a>' : '')
+        + '</div></div></div>';
     openModal(content, 'medium');
+    setTimeout(function() {
+        currentEventModalElement = document.getElementById('ticketTechnicianDisplay_' + aptId);
+    }, 100);
 };
 window.salonTicketsConfirmRefund = function(appointmentId, customerName, amount) {
     var amountValue = parseFloat(amount.replace(/[^0-9.\-]/g, ''));
@@ -724,25 +851,18 @@ window.salonTicketsProcessDelete = function(appointmentId, customerName) {
         showErrorMessage(err.message || 'Failed to delete ticket. Please try again.');
     });
 };
-window.salonTicketsAssignCustomer = function(customerId, customerName) {
-    currentCustomerId = customerId;
-    currentCustomerName = customerName;
-    technicianSearchTerm = '';
-    var customer = allMergedData.find(function(c) {
-        return (c.id && c.id.toString() === customerId.toString()) || (c.customer_id && c.customer_id.toString() === customerId.toString());
-    });
-    currentAppointmentId = customer && customer.appointmentId ? customer.appointmentId : null;
-    if (customer && customer.assigned_technician && Array.isArray(customer.assigned_technician)) {
-        assignedTechnicianIds = customer.assigned_technician.map(function(id) { return id.toString(); });
-    } else {
-        assignedTechnicianIds = [];
-    }
+// Open technician selection as nested modal from detail modal
+window.salonTicketsOpenTechnicianModal = function() {
+    technicianSearchTerm = ''; assignedTechnicianSearchTerm = '';
+    // Refresh assigned IDs from current appointment data
+    var appointment = allAppointments.find(function(a) { return a.id.toString() === currentAppointmentId.toString(); });
+    assignedTechnicianIds = (appointment && Array.isArray(appointment.assigned_technician)) ? appointment.assigned_technician.map(function(id) { return id.toString(); }) : [];
     var modalHtml = '<div class="flex flex-col h-[80vh] max-h-[80vh] overflow-hidden">' +
         '<!-- Fixed Header -->' +
         '<div class="flex-shrink-0 px-4 sm:px-6 py-4 border-b border-gray-200 bg-white">' +
             '<div class="flex items-center justify-between">' +
-                '<h3 class="text-xl font-bold text-gray-900">Assign Technician to ' + customerName + '</h3>' +
-                '<button onclick="salonTicketsCloseAssignModal()" class="p-2 -m-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2" aria-label="Close">' +
+                '<h3 class="text-xl font-bold text-gray-900">Select Technicians for ' + currentCustomerName + '</h3>' +
+                '<button onclick="closeNestedModal()" class="p-2 -m-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2" aria-label="Close">' +
                     '<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>' +
                 '</button>' +
             '</div>' +
@@ -791,7 +911,7 @@ window.salonTicketsAssignCustomer = function(customerId, customerName) {
         '<!-- Fixed Footer -->' +
         '<div class="flex-shrink-0 px-4 sm:px-6 py-4 border-t border-gray-200 bg-white">' +
             '<div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-end gap-3">' +
-                '<button onclick="salonTicketsCloseAssignModal()" class="min-w-[5rem] px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium active:scale-95 text-center">' +
+                '<button onclick="closeNestedModal()" class="min-w-[5rem] px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium active:scale-95 text-center">' +
                     'Cancel' +
                 '</button>' +
                 '<button onclick="salonTicketsConfirmAssign()" class="min-w-[5rem] px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95 text-center">' +
@@ -800,7 +920,7 @@ window.salonTicketsAssignCustomer = function(customerId, customerName) {
             '</div>' +
         '</div>' +
     '</div>';
-    openModal(modalHtml, 'large-flex', false);
+    openNestedModal(modalHtml, 'large-flex', false);
     setTimeout(function() {
         // Setup dynamic height for containers based on screen size
         resizeHandlerForTechnicians = function() {
@@ -829,15 +949,13 @@ window.salonTicketsAssignCustomer = function(customerId, customerName) {
     }, 50);
 };
 window.salonTicketsCloseAssignModal = function() {
-    // Cleanup resize handler
     if (resizeHandlerForTechnicians) {
         window.removeEventListener('resize', resizeHandlerForTechnicians);
         resizeHandlerForTechnicians = null;
     }
-    // Reset search terms
     assignedTechnicianSearchTerm = '';
     technicianSearchTerm = '';
-    closeModal();
+    closeNestedModal();
 };
 window.salonTicketsLoadTechnicians = function() {
     fetch(base + '/users').then(function(r) { return r.json(); }).then(function(data) {
@@ -1009,10 +1127,6 @@ window.salonTicketsUpdateCounts = function() {
     if (assignedCountEl) assignedCountEl.textContent = assignedTechnicianIds.length;
 };
 window.salonTicketsConfirmAssign = function() {
-    if (!assignedTechnicianIds.length) {
-        alert('Please assign at least one technician');
-        return;
-    }
     if (!currentAppointmentId) {
         showErrorMessage('Appointment not found.');
         return;
@@ -1020,11 +1134,37 @@ window.salonTicketsConfirmAssign = function() {
     var payload = { assigned_technician: assignedTechnicianIds.map(function(id) { return parseInt(id, 10); }) };
     var btn = document.querySelector('[onclick*="salonTicketsConfirmAssign"]');
     if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
+
+    // Detect removed technicians for service cleanup
+    var appointment = allAppointments.find(function(a) { return a.id.toString() === currentAppointmentId.toString(); });
+    var prevTechIds = (appointment && Array.isArray(appointment.assigned_technician)) ? appointment.assigned_technician.map(function(id) { return id.toString(); }) : [];
+    var removedTechIds = prevTechIds.filter(function(id) { return !assignedTechnicianIds.some(function(t) { return t.toString() === id; }); });
+    var allTechsCleared = assignedTechnicianIds.length === 0;
+
     salonApi.put(apiAppointmentsUrl + '/' + currentAppointmentId, payload).then(function(res) {
         var data = res.data;
         var idx = allAppointments.findIndex(function(a) { return a.id === currentAppointmentId; });
         if (idx >= 0 && data) allAppointments[idx] = data;
         else if (data) allAppointments.push(data);
+
+        // Clean up appointment_services for removed technicians
+        var aptData = allAppointments.find(function(a) { return a.id.toString() === currentAppointmentId.toString(); });
+        var hasRemovedTechs = removedTechIds.length > 0;
+        if ((hasRemovedTechs || allTechsCleared) && aptData && Array.isArray(aptData.services) && aptData.services.length > 0) {
+            var keepServices = allTechsCleared ? [] : aptData.services.filter(function(s) {
+                return s.technician_id && !removedTechIds.some(function(rid) { return rid === s.technician_id.toString(); });
+            });
+            var svcPayload = keepServices.map(function(s) {
+                var svcData = selectServicesData.length > 0 ? selectServicesData.find(function(d) { return d.id === s.service_id; }) : null;
+                return { service: (svcData && svcData.categories && svcData.categories[0]) || s.service || '', service_id: s.service_id, technician_id: s.technician_id, quantity: s.quantity || 1, unit_price: s.unit_price };
+            });
+            var svcUrl = base.replace(/\/data\/?$/, '') + '/appointments/' + currentAppointmentId + '/services';
+            salonApi.put(svcUrl, { services: svcPayload }).then(function(svcRes) {
+                if (aptData && svcRes && svcRes.data && Array.isArray(svcRes.data.services)) aptData.services = svcRes.data.services;
+                updateTicketTechnicianDisplay();
+            }).catch(function(err) { console.error('Service cleanup failed:', err); });
+        }
+
         mergeAppointmentsWithCustomers();
         applyFilters();
         var assignedNames = assignedTechnicianIds.map(function(id) {
@@ -1033,19 +1173,215 @@ window.salonTicketsConfirmAssign = function() {
         }).filter(Boolean);
         var message = res.message || (currentCustomerName + ' assigned to ' + assignedNames.join(', ') + ' successfully.');
         showSuccessMessage(message);
-
-        // Use custom close function to cleanup
-        salonTicketsCloseAssignModal();
-        assignedTechnicianIds = [];
-        currentCustomerId = null;
-        currentCustomerName = '';
-        currentAppointmentId = null;
+        closeNestedModal();
+        updateTicketTechnicianDisplay();
     }).catch(function(err) {
         showErrorMessage(err.message || 'Failed to save assignment.');
     }).finally(function() {
         if (btn) { btn.disabled = false; btn.textContent = 'Save Assignment'; }
     });
 };
+// --- Select Services Modal ---
+window.salonTicketsOpenSelectServices = function(appointmentId, technicianId, technicianName) {
+    selectServicesAppointmentId = appointmentId;
+    selectServicesTechnicianId = technicianId;
+    selectServicesTechnicianName = technicianName;
+    selectServicesCategory = null;
+    selectServicesCart = [];
+    selectServicesOldServiceCount = 0;
+
+    var appointment = allAppointments.find(function(a) { return a.id.toString() === appointmentId.toString(); });
+    var existingSvcs = appointment && Array.isArray(appointment.services) ? appointment.services : [];
+    var techSvcs = existingSvcs.filter(function(s) { return s.technician_id && s.technician_id.toString() === technicianId.toString(); });
+
+    var modalContent = '<div class="flex flex-col h-[80vh] max-h-[80vh] overflow-hidden">'
+        + '<div class="flex-shrink-0 px-6 py-4 border-b border-gray-200 bg-white"><div class="flex items-center justify-between"><div><h3 class="text-xl font-bold text-gray-900">Select Services</h3><p class="text-sm text-gray-500">' + technicianName + '</p></div>'
+        + '<button onclick="closeNestedModal()" class="p-2 -m-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div></div>'
+        + '<div class="flex-1 min-h-0 px-6 py-4 bg-gray-50 overflow-y-auto">'
+        + '<div class="mb-4"><div class="relative"><svg class="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>'
+        + '<input type="text" id="selectServicesSearchInput" placeholder="Search services..." class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] text-sm" oninput="salonTicketsRenderSelectServicesGrid()"></div></div>'
+        + '<div class="select-svc-carousel-wrapper mb-4"><div id="selectServicesCategoriesList" class="select-svc-slick-carousel"></div></div>'
+        + '<div id="selectServicesGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div></div>'
+        + '<div class="flex-shrink-0 px-6 py-4 border-t border-gray-200 bg-white">'
+        + '<div id="selectServicesCartSummary" class="mb-3"></div>'
+        + '<div class="flex items-center justify-end gap-3">'
+        + '<button onclick="closeNestedModal()" class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium">Cancel</button>'
+        + '<button id="selectServicesSaveBtn" onclick="salonTicketsSaveSelectServicesCart()" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium flex items-center gap-2">Save Services</button>'
+        + '</div></div></div>';
+
+    openNestedModal(modalContent, 'large-flex', false);
+
+    function populateCartFromExisting() {
+        techSvcs.forEach(function(s) {
+            var svcData = selectServicesData.find(function(d) { return d.id === s.service_id; });
+            var sc = svcData && typeof svcData.service_count === 'number' ? svcData.service_count : 0;
+            selectServicesCart.push({
+                service_id: s.service_id,
+                name: s.service_name || (svcData ? svcData.name : s.service) || 'Service',
+                price: s.unit_price != null ? s.unit_price : (svcData ? svcData.price : 0),
+                quantity: s.quantity || 1,
+                category_slug: (svcData && svcData.categories && svcData.categories[0]) || s.service || '',
+                service_count: sc
+            });
+            selectServicesOldServiceCount += sc * (s.quantity || 1);
+        });
+    }
+
+    if (selectServicesLoaded) {
+        populateCartFromExisting();
+        salonTicketsRenderSelectServicesCategories();
+        salonTicketsRenderSelectServicesGrid();
+    } else {
+        Promise.all([
+            fetch(base + '/services').then(function(r) { return r.json(); }),
+            fetch(base + '/service-categories').then(function(r) { return r.json(); })
+        ]).then(function(results) {
+            selectServicesData = (results[0].services || []).filter(function(s) { return s.active !== false; });
+            selectServicesCategoriesMap = results[1].categories || results[1] || {};
+            selectServicesLoaded = true;
+            populateCartFromExisting();
+            salonTicketsRenderSelectServicesCategories();
+            salonTicketsRenderSelectServicesGrid();
+        }).catch(function(err) { console.error('Failed to load services:', err); });
+    }
+};
+
+function salonTicketsRenderSelectServicesCategories() {
+    var container = document.getElementById('selectServicesCategoriesList');
+    if (!container) return;
+    var $c = $(container);
+    if ($c.hasClass('slick-initialized')) { try { $c.slick('unslick'); } catch (e) {} }
+    var activeClass = 'bg-[#e6f0f3] border-[#003047] text-[#003047]';
+    var inactiveClass = 'bg-white border-gray-200 text-gray-700 hover:border-[#003047] hover:bg-[#e6f0f3] hover:text-[#003047]';
+    var html = '<div><button type="button" onclick="salonTicketsFilterServiceCategory(null)" class="select-svc-cat-card w-full h-[70px] px-4 py-2 rounded-lg text-sm font-medium border transition-all duration-200 flex items-center justify-center text-center break-words active:scale-95 ' + (selectServicesCategory === null ? activeClass : inactiveClass) + '" data-category-key="all">All Categories</button></div>';
+    var sorted = Object.entries(selectServicesCategoriesMap).sort(function(a, b) { return (a[1] || '').localeCompare(b[1] || ''); });
+    sorted.forEach(function(entry) {
+        html += '<div><button type="button" onclick="salonTicketsFilterServiceCategory(\'' + entry[0] + '\')" class="select-svc-cat-card w-full h-[70px] px-4 py-2 rounded-lg text-sm font-medium border transition-all duration-200 flex items-center justify-center text-center break-words active:scale-95 ' + (selectServicesCategory === entry[0] ? activeClass : inactiveClass) + '" data-category-key="' + entry[0] + '">' + entry[1] + '</button></div>';
+    });
+    container.innerHTML = html;
+    setTimeout(function() {
+        if (typeof $ !== 'undefined' && typeof $.fn.slick !== 'undefined') {
+            $c.slick({ slidesToShow: 6, slidesToScroll: 6, infinite: false, arrows: true, dots: false, adaptiveHeight: false, variableWidth: false, responsive: [{ breakpoint: 1024, settings: { slidesToShow: 4, slidesToScroll: 4 } }, { breakpoint: 640, settings: { slidesToShow: 2, slidesToScroll: 2 } }] });
+            $c.css({ opacity: '1', visibility: 'visible' });
+        } else { container.classList.add('show-fallback'); container.style.opacity = '1'; container.style.visibility = 'visible'; }
+    }, 50);
+}
+
+window.salonTicketsFilterServiceCategory = function(key) {
+    selectServicesCategory = key;
+    document.querySelectorAll('.select-svc-cat-card').forEach(function(card) {
+        var cardKey = card.getAttribute('data-category-key');
+        var isActive = (key === null && cardKey === 'all') || (key === cardKey);
+        if (isActive) { card.classList.remove('bg-white', 'border-gray-200', 'text-gray-700'); card.classList.add('bg-[#e6f0f3]', 'border-[#003047]', 'text-[#003047]'); }
+        else { card.classList.remove('bg-[#e6f0f3]', 'border-[#003047]', 'text-[#003047]'); card.classList.add('bg-white', 'border-gray-200', 'text-gray-700'); }
+    });
+    salonTicketsRenderSelectServicesGrid();
+};
+
+window.salonTicketsRenderSelectServicesGrid = function() {
+    var container = document.getElementById('selectServicesGrid');
+    if (!container) return;
+    var filtered = selectServicesData;
+    if (selectServicesCategory !== null) filtered = filtered.filter(function(s) { return s.categories && s.categories.indexOf(selectServicesCategory) >= 0; });
+    var searchInput = document.getElementById('selectServicesSearchInput');
+    if (searchInput && searchInput.value.trim() !== '') { var term = searchInput.value.toLowerCase(); filtered = filtered.filter(function(s) { return s.name.toLowerCase().indexOf(term) >= 0; }); }
+    if (filtered.length === 0) { container.innerHTML = '<div class="col-span-full text-center py-8"><p class="text-gray-500 text-sm">No services found</p></div>'; return; }
+    var html = '';
+    filtered.forEach(function(service) {
+        var cartItem = selectServicesCart.find(function(c) { return c.service_id === service.id; });
+        var imgUrl = service.image_url || null;
+        var thumbHtml = imgUrl
+            ? '<div class="relative w-full bg-gray-100 rounded-t-lg overflow-hidden" style="height:120px"><img src="' + imgUrl + '" alt="" class="w-full h-full object-cover" onerror="this.parentNode.innerHTML=\'<div class=\\\'w-full h-full flex items-center justify-center bg-gray-100\\\'><svg class=\\\'w-8 h-8 text-gray-300\\\' fill=\\\'none\\\' stroke=\\\'currentColor\\\' viewBox=\\\'0 0 24 24\\\'><path stroke-linecap=\\\'round\\\' stroke-linejoin=\\\'round\\\' stroke-width=\\\'1.5\\\' d=\\\'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z\\\'></path></svg></div>\'"></div>'
+            : '<div class="w-full flex items-center justify-center rounded-t-lg" style="height:120px;background:' + (service.color || '#f3f4f6') + '"><svg class="w-8 h-8 ' + (service.color ? 'text-white opacity-50' : 'text-gray-300') + '" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg></div>';
+        var colorDot = service.color ? '<span class="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0" style="background:' + service.color + '"></span>' : '';
+        html += '<div class="bg-white border border-gray-200 rounded-lg overflow-hidden hover:border-[#003047] hover:shadow-md transition-all flex flex-col">'
+            + thumbHtml + '<div class="p-3 flex flex-col flex-1">'
+            + '<h4 class="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-1.5">' + colorDot + service.name + '</h4>'
+            + '<p class="text-sm text-gray-600 mb-2">' + window.salonFormatMoney(service.price) + '</p>'
+            + (cartItem
+                ? '<div class="flex items-center justify-between mt-auto bg-gray-100 rounded-lg p-1">'
+                + '<button onclick="salonTicketsSelectServicesUpdateQty(' + service.id + ', -1)" class="w-8 h-8 flex items-center justify-center bg-white text-gray-700 hover:bg-red-50 hover:text-red-600 rounded-md border border-gray-200 shadow-sm transition active:scale-95"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"></path></svg></button>'
+                + '<span class="text-sm font-bold text-gray-900 min-w-[2rem] text-center">' + cartItem.quantity + '</span>'
+                + '<button onclick="salonTicketsSelectServicesUpdateQty(' + service.id + ', 1)" class="w-8 h-8 flex items-center justify-center bg-white text-gray-700 hover:bg-green-50 hover:text-green-600 rounded-md border border-gray-200 shadow-sm transition active:scale-95"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg></button></div>'
+                : '<button onclick="salonTicketsSelectServicesAddToCart(' + service.id + ')" class="w-full px-3 py-2 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium text-xs active:scale-95 mt-auto">Add</button>')
+            + '</div></div>';
+    });
+    container.innerHTML = html;
+    salonTicketsRenderSelectServicesCartSummary();
+};
+
+window.salonTicketsSelectServicesAddToCart = function(serviceId) {
+    var service = selectServicesData.find(function(s) { return s.id === serviceId; });
+    if (!service) return;
+    var existing = selectServicesCart.find(function(c) { return c.service_id === serviceId; });
+    if (existing) { existing.quantity += 1; }
+    else { selectServicesCart.push({ service_id: serviceId, name: service.name, price: service.price, quantity: 1, category_slug: (service.categories && service.categories[0]) || '', service_count: typeof service.service_count === 'number' ? service.service_count : 0 }); }
+    salonTicketsRenderSelectServicesGrid();
+};
+window.salonTicketsSelectServicesUpdateQty = function(serviceId, delta) {
+    var item = selectServicesCart.find(function(c) { return c.service_id === serviceId; });
+    if (!item) return;
+    item.quantity += delta;
+    if (item.quantity <= 0) selectServicesCart = selectServicesCart.filter(function(c) { return c.service_id !== serviceId; });
+    salonTicketsRenderSelectServicesGrid();
+};
+window.salonTicketsSelectServicesRemoveFromCart = function(serviceId) {
+    selectServicesCart = selectServicesCart.filter(function(c) { return c.service_id !== serviceId; });
+    salonTicketsRenderSelectServicesGrid();
+};
+
+function salonTicketsRenderSelectServicesCartSummary() {
+    var container = document.getElementById('selectServicesCartSummary');
+    if (!container) return;
+    if (selectServicesCart.length === 0) { container.innerHTML = '<p class="text-sm text-gray-400">No services selected</p>'; return; }
+    var total = 0;
+    var html = '<div class="overflow-y-auto space-y-1" style="max-height:150px">';
+    selectServicesCart.forEach(function(item) {
+        var lineTotal = item.price * item.quantity; total += lineTotal;
+        html += '<div class="flex items-center justify-between text-sm"><div class="flex items-center gap-2">'
+            + '<button onclick="salonTicketsSelectServicesRemoveFromCart(' + item.service_id + ')" class="w-5 h-5 flex items-center justify-center rounded-full bg-red-100 text-red-500 hover:bg-red-200 transition flex-shrink-0"><svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>'
+            + '<span class="text-gray-700">' + item.name + ' &times; ' + item.quantity + '</span></div>'
+            + '<span class="font-medium text-gray-900">' + window.salonFormatMoney(lineTotal) + '</span></div>';
+    });
+    html += '</div><div class="flex items-center justify-between text-sm font-bold pt-1 border-t border-gray-200 mt-1"><span>Total</span><span>' + window.salonFormatMoney(total) + '</span></div>';
+    container.innerHTML = html;
+}
+
+window.salonTicketsSaveSelectServicesCart = function() {
+    var saveBtn = document.getElementById('selectServicesSaveBtn');
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.classList.add('opacity-50', 'cursor-not-allowed'); saveBtn.innerHTML = '<svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Saving...'; }
+    function resetSaveBtn() { if (saveBtn) { saveBtn.disabled = false; saveBtn.classList.remove('opacity-50', 'cursor-not-allowed'); saveBtn.innerHTML = 'Save Services'; } }
+
+    var appointment = allAppointments.find(function(a) { return a.id.toString() === selectServicesAppointmentId.toString(); });
+    var existingSvcs = appointment && Array.isArray(appointment.services) ? appointment.services : [];
+    var otherTechSvcs = existingSvcs.filter(function(s) { return !s.technician_id || s.technician_id.toString() !== selectServicesTechnicianId.toString(); }).map(function(s) {
+        var svcData = selectServicesData.find(function(d) { return d.id === s.service_id; });
+        return { service: (svcData && svcData.categories && svcData.categories[0]) || s.service || '', service_id: s.service_id, technician_id: s.technician_id, quantity: s.quantity || 1, unit_price: s.unit_price };
+    });
+    var currentTechSvcs = selectServicesCart.map(function(item) { return { service: item.category_slug, service_id: item.service_id, technician_id: selectServicesTechnicianId, quantity: item.quantity, unit_price: item.price }; });
+    var servicesPayload = otherTechSvcs.concat(currentTechSvcs).filter(function(s) { return s.service && s.technician_id; });
+    var apiUrl = base.replace(/\/data\/?$/, '') + '/appointments/' + selectServicesAppointmentId + '/services';
+
+    if (typeof salonApi !== 'undefined' && salonApi.put) {
+        salonApi.put(apiUrl, { services: servicesPayload }).then(function(res) {
+            if (appointment && res && res.data && Array.isArray(res.data.services)) appointment.services = res.data.services;
+            // Update turn tracker
+            var tech = allTechnicians.find(function(t) { return t.id === selectServicesTechnicianId; });
+            var baseServices = tech && typeof tech.services === 'number' ? tech.services : 0;
+            var newCartServiceCount = selectServicesCart.reduce(function(sum, item) { return sum + ((item.service_count || 0) * item.quantity); }, 0);
+            var newTotal = baseServices - selectServicesOldServiceCount + newCartServiceCount;
+            var turnTrackerUrl = base.replace(/\/data\/?$/, '') + '/turn-tracker';
+            salonApi.put(turnTrackerUrl, { entries: [{ user_id: selectServicesTechnicianId, services: newTotal }] }).then(function() {
+                if (tech) tech.services = newTotal;
+                updateTicketTechnicianDisplay();
+            }).catch(function(err) { console.error('Turn tracker update failed:', err); });
+            if (typeof showSuccessMessage === 'function') showSuccessMessage('Services saved for ' + selectServicesTechnicianName + '.');
+            closeNestedModal();
+            updateTicketTechnicianDisplay();
+        }).catch(function(err) { resetSaveBtn(); if (typeof showErrorMessage === 'function') showErrorMessage(err && err.message ? err.message : 'Failed to save services.'); });
+    }
+};
+
 async function fetchTickets() {
     try {
         if (window.salonTicketsBootstrap && window.salonTicketsBootstrap.appointments) {
@@ -1067,6 +1403,18 @@ async function fetchTickets() {
             allAppointments = aptData.appointments || [];
             allTechnicians = (techData.users || []).filter(function(u) { return u.role === 'technician' || u.userlevel === 'technician'; });
             allPayments = payData.payments || [];
+        }
+        // Preload services data for color dots in technician display
+        if (!selectServicesLoaded) {
+            try {
+                var svcResults = await Promise.all([
+                    fetch(base + '/services').then(function(r) { return r.json(); }),
+                    fetch(base + '/service-categories').then(function(r) { return r.json(); })
+                ]);
+                selectServicesData = (svcResults[0].services || []).filter(function(s) { return s.active !== false; });
+                selectServicesCategoriesMap = svcResults[1].categories || svcResults[1] || {};
+                selectServicesLoaded = true;
+            } catch(e) { console.error('Failed to preload services:', e); }
         }
         mergeAppointmentsWithCustomers();
         currentStatusFilter = getStatusFromURL();

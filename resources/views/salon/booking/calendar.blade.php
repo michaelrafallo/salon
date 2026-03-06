@@ -119,6 +119,8 @@ let resizeHandlerForTechnicians = null; // Resize handler for dynamic container 
 let currentEvent = null; // Current FullCalendar event being edited
 let currentEventModalElement = null; // Reference to the technician display element in the event modal
 let activeAppointmentFilter = 'all'; // Track active appointment type filter (all, booked, walkin)
+let turnTrackerOrder = 'lowest'; // Turn tracker sort order from settings
+let turnTrackerUserIds = new Set(); // User IDs listed in the turn tracker
 
 // --- Date helpers (avoid UTC date shifting for YYYY-MM-DD inputs) ---
 function formatYmdLocal(date) {
@@ -193,11 +195,24 @@ async function fetchTechnicians() {
     }
 }
 
+// Fetch turn tracker order setting and listed user IDs
+async function fetchTurnTrackerOrder() {
+    try {
+        var settingsUrl = base.replace(/\/data\/?$/, '') + '/turn-tracker';
+        const response = await fetch(settingsUrl, { credentials: 'same-origin' });
+        const data = await response.json();
+        turnTrackerOrder = data.turn_tracker_order === 'highest' ? 'highest' : 'lowest';
+        turnTrackerUserIds = new Set((data.entries || []).map(function(e) { return e.user_id; }));
+    } catch (error) {
+        console.error('Error fetching turn tracker order:', error);
+    }
+}
+
 // Fetch appointments from JSON
 async function fetchBookings() {
     try {
-        // Fetch appointments, customers, and technicians in parallel
-        await Promise.all([fetchCustomers(), fetchTechnicians()]);
+        // Fetch appointments, customers, technicians, and turn tracker order in parallel
+        await Promise.all([fetchCustomers(), fetchTechnicians(), fetchTurnTrackerOrder()]);
         
         const response = await fetch(base + '/appointments');
         const data = await response.json();
@@ -238,7 +253,7 @@ function convertAppointmentsToEvents(appointments) {
         const customerEmail = customer ? (customer.email || '') : '';
         
         // Parse appointment datetime as local time (ignore Z so saved time displays correctly in calendar and modal)
-        let appointmentDateTime = appointment.appointment_datetime || appointment.created_at;
+        let appointmentDateTime = appointment.appointment_datetime;
         let startDate;
         if (appointmentDateTime) {
             if (typeof appointmentDateTime !== 'string') appointmentDateTime = String(appointmentDateTime);
@@ -315,23 +330,22 @@ function convertAppointmentsToEvents(appointments) {
             classNames.push('event-no-show');
         }
         
-        // Apply gray styling if no show
-        let eventBgColor = hasTechnician ? '#003047' : 'transparent';
-        let eventBorderColor = '#003047';
-        let eventTextColor = hasTechnician ? '#ffffff' : '#003047';
-        
-        if (isNoShow) {
-            eventBgColor = '#9ca3af';
-            eventBorderColor = '#6b7280';
-            eventTextColor = '#003047';
-        }
+        // Apply event colors based on state — no-show always wins (CSS handles it)
+        let eventBgColor, eventBorderColor, eventTextColor;
 
-        // Custom color override
-        if (appointment.color) {
+        if (isNoShow) {
+            eventBgColor = '';
+            eventBorderColor = '';
+            eventTextColor = '';
+        } else if (appointment.color) {
             eventBgColor = appointment.color;
             eventBorderColor = appointment.color;
             eventTextColor = '#ffffff';
             classNames.push('event-custom-color');
+        } else {
+            eventBgColor = hasTechnician ? '#003047' : 'transparent';
+            eventBorderColor = '#003047';
+            eventTextColor = hasTechnician ? '#ffffff' : '#003047';
         }
 
         return {
@@ -478,7 +492,13 @@ document.addEventListener('DOMContentLoaded', async function() {
         eventDidMount: function(info) {
             info.el.setAttribute('data-event-id', info.event.id);
             var customColor = info.event.extendedProps.color;
-            if (customColor) {
+            var isNoShow = info.event.extendedProps.isNoShow || false;
+            if (isNoShow) {
+                // No-show always wins — remove all inline styles so CSS .event-no-show takes over
+                info.el.removeAttribute('style');
+                var mainEl = info.el.querySelector('.fc-event-main');
+                if (mainEl) mainEl.removeAttribute('style');
+            } else if (customColor) {
                 info.el.style.setProperty('background-color', customColor, 'important');
                 info.el.style.setProperty('background', customColor, 'important');
                 info.el.style.setProperty('border-color', customColor, 'important');
@@ -672,7 +692,7 @@ document.addEventListener('DOMContentLoaded', async function() {
             return { domNodes: arrayOfDomNodes };
         },
         slotMinTime: '08:00:00',
-        slotMaxTime: '20:00:00',
+        slotMaxTime: '24:00:00',
         businessHours: {
             daysOfWeek: [1, 2, 3, 4, 5, 6],
             startTime: '09:00',
@@ -847,18 +867,19 @@ function renderTechnicianListView() {
     // Apply appointment type filter
     const filteredBookings = getFilteredAppointments(bookingsData);
 
-    // Match the technician ordering used in the Waiting List "Assign Technician" modal (Available Technicians).
-    // Sort priority: assigned-to-current-context last (not applicable here), online first, fewer services first,
-    // earlier clock-in first.
+    // Match the turn tracker page ordering: technicians listed in the turn tracker first,
+    // sorted by service count (respecting turn_tracker_order setting), then by clock-in time.
+    // Technicians not in the turn tracker go last.
     const orderedTechnicians = [...techniciansData].sort((a, b) => {
-        const aOnline = !!(a.clock_in && !a.clock_out);
-        const bOnline = !!(b.clock_in && !b.clock_out);
-        if (aOnline && !bOnline) return -1;
-        if (!aOnline && bOnline) return 1;
+        const aInTracker = turnTrackerUserIds.has(a.id);
+        const bInTracker = turnTrackerUserIds.has(b.id);
+        if (aInTracker && !bInTracker) return -1;
+        if (!aInTracker && bInTracker) return 1;
 
-        const aServices = typeof a.services === 'number' ? a.services : 0;
-        const bServices = typeof b.services === 'number' ? b.services : 0;
-        const diff = aServices - bServices;
+        const aServices = typeof a.services === 'number' ? a.services : parseFloat(a.services) || 0;
+        const bServices = typeof b.services === 'number' ? b.services : parseFloat(b.services) || 0;
+        let diff = aServices - bServices;
+        if (turnTrackerOrder === 'highest') diff = -diff;
         if (diff !== 0) return diff;
 
         const aTime = a.clock_in ? new Date(a.clock_in).getTime() : Infinity;
@@ -873,9 +894,10 @@ function renderTechnicianListView() {
     // Format date for date picker (YYYY-MM-DD)
     const datePickerValue = formatYmdLocal(selectedDate) || selectedDate.toISOString().split('T')[0];
     
-    // Generate time slots from 8am to 8pm
+    // Generate 24-hour time slots starting at 8:00 AM
     const timeSlots = [];
-    for (let hour = 8; hour <= 20; hour++) {
+    for (let i = 0; i < 24; i++) {
+        const hour = (8 + i) % 24;
         const timeString = `${hour.toString().padStart(2, '0')}:00`;
         const displayTime = `${hour > 12 ? hour - 12 : hour === 0 ? 12 : hour === 12 ? 12 : hour}:00 ${hour >= 12 ? 'PM' : 'AM'}`;
         timeSlots.push({ value: timeString, display: displayTime, hour: hour });
@@ -1070,7 +1092,7 @@ function renderTechnicianListView() {
 
                 // Build time display with optional clock icon
                 const clockIcon = isUnpaid ? '<svg style="width: 12px; height: 12px; color: #008106; display: inline-block; margin-right: 4px;" class="rotating-clock" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>' : '';
-                const timeDisplay = `${clockIcon}${startTime} - ${endTime}`;
+                const timeDisplay = `${clockIcon}${startTime}`;
 
                 html += `<div class="mb-1 p-2 rounded border-2 text-xs font-medium ${colorClass} cursor-move hover:opacity-80 draggable-appointment" style="${inlineStyle}"
                     draggable="true"
@@ -1219,7 +1241,7 @@ function renderTechnicianListView() {
 
                     // Build time display with optional clock icon
                     const clockIcon = isUnpaid ? '<svg style="width: 12px; height: 12px; color: #008106; display: inline-block; margin-right: 4px;" class="rotating-clock" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>' : '';
-                    const timeDisplay = `${clockIcon}${startTime} - ${endTime}`;
+                    const timeDisplay = `${clockIcon}${startTime}`;
 
                     html += `<div class="mb-1 p-2 rounded border-2 text-xs font-medium ${colorClass} cursor-move hover:opacity-80 draggable-appointment" style="${inlineStyle}"
                         draggable="true"
@@ -1865,26 +1887,34 @@ async function handleSlotDrop(event, technicianId, timeSlot) {
             // Update extended props
             event.setExtendedProp('hasTechnician', appointment.assigned_technician && appointment.assigned_technician.length > 0);
             
-            // Update styling based on technician assignment
+            // Update styling — no-show: no inline styles, CSS handles it
             const hasTechnician = appointment.assigned_technician && appointment.assigned_technician.length > 0;
-            if (hasTechnician) {
-                event.setProp('backgroundColor', noShowStatus[appointment.id] ? '#9ca3af' : '#003047');
-                event.setProp('textColor', noShowStatus[appointment.id] ? '#003047' : '#ffffff');
-            } else {
-                event.setProp('backgroundColor', noShowStatus[appointment.id] ? '#9ca3af' : 'transparent');
-                event.setProp('textColor', '#003047');
-            }
-            
-            // Ensure no-show events always have gray background
-            if (noShowStatus[appointment.id]) {
-                event.setProp('backgroundColor', '#9ca3af');
-            }
-            
-            // Update border color for no show
-            if (noShowStatus[appointment.id]) {
-                event.setProp('borderColor', '#6b7280');
-            } else {
+            const isNoShowNow = noShowStatus[appointment.id] === true;
+            const customColor = appointment.color || null;
+            if (isNoShowNow) {
+                event.setProp('backgroundColor', '');
+                event.setProp('borderColor', '');
+                event.setProp('textColor', '');
+                setTimeout(function() {
+                    var targetEls = document.querySelectorAll('[data-event-id="' + appointment.id + '"]');
+                    targetEls.forEach(function(el) {
+                        el.removeAttribute('style');
+                        var mainEl = el.querySelector('.fc-event-main');
+                        if (mainEl) mainEl.removeAttribute('style');
+                    });
+                }, 50);
+            } else if (customColor) {
+                event.setProp('backgroundColor', customColor);
+                event.setProp('borderColor', customColor);
+                event.setProp('textColor', '#ffffff');
+            } else if (hasTechnician) {
+                event.setProp('backgroundColor', '#003047');
                 event.setProp('borderColor', '#003047');
+                event.setProp('textColor', '#ffffff');
+            } else {
+                event.setProp('backgroundColor', 'transparent');
+                event.setProp('borderColor', '#003047');
+                event.setProp('textColor', '#003047');
             }
             
             // Update technician name in extended props
@@ -1948,6 +1978,9 @@ function showAppointmentModal(appointmentData) {
                         <h3 class="text-2xl font-bold text-gray-900 mb-1">${customerName}</h3>
                     </div>
                     <div class="flex items-center gap-2">
+                        <span class="px-3 py-1.5 rounded-lg text-xs font-semibold border bg-gray-100 text-gray-700 border-gray-200">
+                            #${appointmentId}
+                        </span>
                         <span class="px-3 py-1.5 rounded-lg text-xs font-semibold border ${typeBadgeClass}">
                             ${bookingType}
                         </span>
@@ -2000,12 +2033,18 @@ function showAppointmentModal(appointmentData) {
                             const avatarHtml = '<div class="relative">' + avatarInner + techStatusBadge + '</div>';
                             let svcListHtml = '';
                             if (techSvcs.length > 0) {
-                                const svcNames = techSvcs.map(function(s) {
+                                const svcItems = techSvcs.map(function(s) {
                                     const sName = s.service_name || s.service || 'Service';
                                     const qty = s.quantity || 1;
-                                    return sName + (qty > 1 ? ' x' + qty : '');
+                                    var sColor = s.service_color || '';
+                                    if (!sColor && s.service_id && typeof selectServicesData !== 'undefined' && selectServicesData.length > 0) {
+                                        var svcInfo = selectServicesData.find(function(d) { return d.id === s.service_id; });
+                                        if (svcInfo && svcInfo.color) sColor = svcInfo.color;
+                                    }
+                                    const colorDot = sColor ? '<span class="inline-block w-2 h-2 rounded-full flex-shrink-0" style="background:' + sColor + '"></span>' : '';
+                                    return '<span class="inline-flex items-center gap-1 text-xs text-gray-500 truncate">' + colorDot + '<span class="truncate">' + sName + (qty > 1 ? ' x' + qty : '') + '</span></span>';
                                 });
-                                svcListHtml = '<p class="mt-1 text-xs text-gray-500">' + svcNames.join(', ') + '</p>';
+                                svcListHtml = '<div class="mt-1 grid grid-cols-4 gap-1">' + svcItems.join('') + '</div>';
                             }
                             return '<div class="p-2 bg-white rounded-lg border border-gray-200">'
                                 + '<div class="flex items-center gap-3">'
@@ -2070,9 +2109,13 @@ function showAppointmentModal(appointmentData) {
                     ` : ''}
                 </div>
                 ${!isTechnician ? `
-                <div class="p-4 bg-gray-50 rounded-xl" style="min-width:340px">
+                <div id="eventColorSection_${appointmentId}" class="p-4 bg-gray-50 rounded-xl ${(function() {
+                    const apt = bookingsData.find(a => a.id.toString() === appointmentId.toString());
+                    const hasAssigned = apt && Array.isArray(apt.assigned_technician) && apt.assigned_technician.length > 0;
+                    return hasAssigned ? '' : 'hidden';
+                })()}" style="min-width:340px">
                     <div class="flex items-center gap-4">
-                        <div class="flex-shrink-0" style="width:48px;height:48px;position:relative">
+                        <div id="eventColorPreview_${appointmentId}" class="flex-shrink-0" style="width:48px;height:48px;position:relative">
                             ${eventColor
                                 ? '<div style="width:48px;height:48px;border-radius:9999px;border:2px solid #fff;box-shadow:0 4px 6px -1px rgba(0,0,0,.1);background:' + eventColor + '"></div><button onclick="setEventColor(\'' + appointmentId + '\', null)" style="position:absolute;top:-4px;left:-4px;width:18px;height:18px;border-radius:9999px;background:#fff;border:1px solid #d1d5db;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.1)" title="Remove color"><svg style="width:10px;height:10px" fill="none" stroke="#9ca3af" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg></button>'
                                 : '<div style="width:48px;height:48px;border-radius:9999px;border:2px dashed #d1d5db;display:flex;align-items:center;justify-content:center;background:#fff"><svg class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path></svg></div>'
@@ -2080,27 +2123,32 @@ function showAppointmentModal(appointmentData) {
                         </div>
                         <div class="flex-1 min-w-0">
                             <p class="text-xs font-medium text-gray-500 mb-2">Event Color</p>
-                            <div class="flex items-center gap-2 flex-wrap">
-                                ${[
-                                    {hex:'#FF0000',name:'Red'},{hex:'#800000',name:'Maroon'},{hex:'#FF4500',name:'Orange Red'},
-                                    {hex:'#FF8C00',name:'Dark Orange'},{hex:'#FFA500',name:'Orange'},{hex:'#FF7F50',name:'Coral'},
-                                    {hex:'#FFD700',name:'Gold'},{hex:'#FFFF00',name:'Yellow'},{hex:'#32CD32',name:'Lime Green'},
-                                    {hex:'#008000',name:'Green'},{hex:'#006400',name:'Dark Green'},{hex:'#2E8B57',name:'Sea Green'},
-                                    {hex:'#008080',name:'Teal'},{hex:'#00CED1',name:'Turquoise'},{hex:'#00BFFF',name:'Sky Blue'},
-                                    {hex:'#4169E1',name:'Royal Blue'},{hex:'#0000FF',name:'Blue'},{hex:'#000080',name:'Navy'},
-                                    {hex:'#4B0082',name:'Indigo'},{hex:'#8A2BE2',name:'Violet'},{hex:'#800080',name:'Purple'},
-                                    {hex:'#FF00FF',name:'Magenta'},{hex:'#FF69B4',name:'Hot Pink'},{hex:'#FF1493',name:'Deep Pink'},
-                                    {hex:'#8B4513',name:'Brown'},{hex:'#D2691E',name:'Chocolate'},
-                                    {hex:'#000000',name:'Black'}
-                                ].map(function(c) {
-                                    const isSelected = eventColor && eventColor.toUpperCase() === c.hex;
-                                    return '<button onclick="setEventColor(\'' + appointmentId + '\', \'' + c.hex + '\')" class="rounded-full border-2 transition-all hover:scale-110 ' + (isSelected ? 'border-gray-900 ring-2 ring-offset-1 ring-gray-900' : 'border-white shadow-sm') + '" style="width:28px;height:28px;background:' + c.hex + '" title="' + c.name + '"></button>';
-                                }).join('')}
-                                <div class="relative">
-                                    <button onclick="document.getElementById('customColorPicker_${appointmentId}').click()" class="rounded-full border-2 transition-all hover:scale-110 flex items-center justify-center ${eventColor && !['#FF0000','#800000','#FF4500','#FF8C00','#FFA500','#FF7F50','#FFD700','#FFFF00','#32CD32','#008000','#006400','#2E8B57','#008080','#00CED1','#00BFFF','#4169E1','#0000FF','#000080','#4B0082','#8A2BE2','#800080','#FF00FF','#FF69B4','#FF1493','#8B4513','#D2691E','#000000'].some(function(p){ return eventColor.toUpperCase() === p; }) ? 'border-gray-900 ring-2 ring-offset-1 ring-gray-900' : 'border-gray-300'}" style="width:28px;height:28px;background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red)" title="Custom color">
-                                    </button>
-                                    <input type="color" id="customColorPicker_${appointmentId}" value="${eventColor || '#003047'}" class="absolute opacity-0 w-0 h-0" onchange="setEventColor('${appointmentId}', this.value)">
-                                </div>
+                            <div id="eventColorSwatches_${appointmentId}" class="flex items-center gap-2 flex-wrap">
+                                ${(function() {
+                                    const apt = bookingsData.find(a => a.id.toString() === appointmentId.toString());
+                                    const svcs = apt && Array.isArray(apt.services) ? apt.services : [];
+                                    const serviceColors = [];
+                                    const seenColors = {};
+                                    svcs.forEach(function(s) {
+                                        var c = s.service_color;
+                                        if (!c && s.service_id && typeof selectServicesData !== 'undefined' && selectServicesData.length > 0) {
+                                            var svcInfo = selectServicesData.find(function(d) { return d.id === s.service_id; });
+                                            if (svcInfo && svcInfo.color) c = svcInfo.color;
+                                        }
+                                        if (c && !seenColors[c.toUpperCase()]) {
+                                            seenColors[c.toUpperCase()] = true;
+                                            serviceColors.push({hex: c.toUpperCase(), name: (s.service_name || 'Service')});
+                                        }
+                                    });
+                                    var serviceSwatches = serviceColors.map(function(c) {
+                                        const isSelected = eventColor && eventColor.toUpperCase() === c.hex;
+                                        return '<button onclick="setEventColor(\'' + appointmentId + '\', \'' + c.hex + '\')" class="rounded-full border-2 transition-all hover:scale-110 ' + (isSelected ? 'border-gray-900 ring-2 ring-offset-1 ring-gray-900' : 'border-white shadow-sm') + '" style="width:28px;height:28px;background:' + c.hex + '" title="' + c.name + '"></button>';
+                                    }).join('');
+                                    var knownHexes = serviceColors.map(function(c) { return c.hex; });
+                                    var isCustom = eventColor && !knownHexes.some(function(p){ return eventColor.toUpperCase() === p; });
+                                    var customBtn = '<div class="relative"><button onclick="document.getElementById(\'customColorPicker_' + appointmentId + '\').click()" class="rounded-full border-2 transition-all hover:scale-110 flex items-center justify-center ' + (isCustom ? 'border-gray-900 ring-2 ring-offset-1 ring-gray-900' : 'border-gray-300') + '" style="width:28px;height:28px;background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red)" title="Custom color"></button><input type="color" id="customColorPicker_' + appointmentId + '" value="' + (eventColor || '#003047') + '" class="absolute opacity-0 w-0 h-0" onchange="setEventColor(\'' + appointmentId + '\', this.value)"></div>';
+                                    return serviceSwatches + customBtn;
+                                })()}
                             </div>
                         </div>
                     </div>
@@ -2260,9 +2308,9 @@ function setEventColor(appointmentId, color) {
                     const hasTech = event.extendedProps.hasTechnician;
                     const isNoShow = event.extendedProps.isNoShow;
                     if (isNoShow) {
-                        event.setProp('backgroundColor', '#9ca3af');
-                        event.setProp('borderColor', '#6b7280');
-                        event.setProp('textColor', '#003047');
+                        event.setProp('backgroundColor', '');
+                        event.setProp('borderColor', '');
+                        event.setProp('textColor', '');
                     } else {
                         event.setProp('backgroundColor', hasTech ? '#003047' : 'transparent');
                         event.setProp('borderColor', '#003047');
@@ -2276,9 +2324,15 @@ function setEventColor(appointmentId, color) {
 
                 // Force !important styles on the DOM element after FullCalendar re-renders
                 setTimeout(function() {
+                    var evIsNoShow = event.extendedProps.isNoShow;
                     const targetEls = document.querySelectorAll('[data-event-id="' + appointmentId + '"]');
                     targetEls.forEach(function(el) {
-                        if (color) {
+                        if (evIsNoShow) {
+                            el.removeAttribute('style');
+                            el.removeAttribute('data-custom-color');
+                            var mainEl = el.querySelector('.fc-event-main');
+                            if (mainEl) mainEl.removeAttribute('style');
+                        } else if (color) {
                             el.style.setProperty('background-color', color, 'important');
                             el.style.setProperty('background', color, 'important');
                             el.style.setProperty('border-color', color, 'important');
@@ -2612,24 +2666,52 @@ function updateNoShowUI(bookingId, isNoShow, event) {
         event = calendarInstance.getEventById(bookingId.toString());
     }
     if (event) {
+        var apt = bookingsData.find(function(a) { return a.id.toString() === bookingId.toString(); });
+        var customColor = (apt && apt.color) || (event.extendedProps && event.extendedProps.color) || null;
+        var hasTechnician = event.extendedProps && event.extendedProps.hasTechnician;
+
         if (isNoShow) {
-            event.setProp('backgroundColor', '#9ca3af');
-            event.setProp('borderColor', '#6b7280');
-            event.setProp('textColor', '#003047');
+            // No-show always wins — clear all inline colors, let CSS handle it
+            event.setProp('backgroundColor', '');
+            event.setProp('borderColor', '');
+            event.setProp('textColor', '');
             if (!event.classNames.includes('event-no-show')) {
                 event.setProp('classNames', [...event.classNames, 'event-no-show']);
             }
         } else {
-            var extendedProps = event.extendedProps;
-            var hasTechnician = extendedProps && extendedProps.hasTechnician;
-            event.setProp('backgroundColor', hasTechnician ? '#003047' : 'transparent');
-            event.setProp('textColor', hasTechnician ? '#ffffff' : '#003047');
-            event.setProp('borderColor', '#003047');
+            if (customColor) {
+                event.setProp('backgroundColor', customColor);
+                event.setProp('borderColor', customColor);
+                event.setProp('textColor', '#ffffff');
+            } else {
+                event.setProp('backgroundColor', hasTechnician ? '#003047' : 'transparent');
+                event.setProp('textColor', hasTechnician ? '#ffffff' : '#003047');
+                event.setProp('borderColor', '#003047');
+            }
             var classNames = event.classNames.filter(function(cn) { return cn !== 'event-no-show'; });
             event.setProp('classNames', classNames);
         }
         event.setExtendedProp('isNoShow', isNoShow);
+
         if (calendarInstance) calendarInstance.render();
+
+        // Force DOM cleanup after render
+        setTimeout(function() {
+            var targetEls = document.querySelectorAll('[data-event-id="' + bookingId + '"]');
+            targetEls.forEach(function(el) {
+                if (isNoShow) {
+                    // Remove all inline styles so CSS .event-no-show takes full control
+                    el.removeAttribute('style');
+                    var mainEl = el.querySelector('.fc-event-main');
+                    if (mainEl) mainEl.removeAttribute('style');
+                } else if (customColor) {
+                    el.style.setProperty('background-color', customColor, 'important');
+                    el.style.setProperty('background', customColor, 'important');
+                    el.style.setProperty('border-color', customColor, 'important');
+                    el.style.setProperty('color', '#ffffff', 'important');
+                }
+            });
+        }, 50);
     }
     var listViewContainer = document.getElementById('listViewContainer');
     if (listViewContainer && !listViewContainer.classList.contains('hidden') && typeof renderTechnicianListView === 'function') {
@@ -3082,9 +3164,10 @@ function renderAvailableTechnicians() {
         const bOnline = !!(b.clock_in && !b.clock_out);
         if (aOnline && !bOnline) return -1;
         if (!aOnline && bOnline) return 1;
-        const aServices = typeof a.services === 'number' ? a.services : 0;
-        const bServices = typeof b.services === 'number' ? b.services : 0;
-        const diff = aServices - bServices;
+        const aServices = typeof a.services === 'number' ? a.services : parseFloat(a.services) || 0;
+        const bServices = typeof b.services === 'number' ? b.services : parseFloat(b.services) || 0;
+        let diff = aServices - bServices;
+        if (turnTrackerOrder === 'highest') diff = -diff;
         if (diff !== 0) return diff;
         const aTime = a.clock_in ? new Date(a.clock_in).getTime() : Infinity;
         const bTime = b.clock_in ? new Date(b.clock_in).getTime() : Infinity;
@@ -3295,8 +3378,50 @@ function confirmTechnicianSelection() {
     if (apiUrl && typeof salonApi !== 'undefined' && salonApi.put) {
         const btn = document.querySelector('[onclick="confirmTechnicianSelection()"]');
         if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+
+        // Find which technicians were removed to clean up their services
+        var aptData = bookingsData.find(function(a) { return a.id.toString() === currentAppointmentId.toString(); });
+        var prevTechIds = aptData && Array.isArray(aptData.assigned_technician)
+            ? aptData.assigned_technician.map(function(id) { return id.toString(); })
+            : [];
+        var removedTechIds = prevTechIds.filter(function(id) { return !technicianIds.some(function(t) { return t.toString() === id; }); });
+
         salonApi.put(apiUrl + '/' + currentAppointmentId, { assigned_technician: technicianIds })
             .then(function() {
+                // Remove services for removed technicians, or all services if no technicians left
+                var hasRemovedTechs = removedTechIds.length > 0;
+                var allTechsCleared = technicianIds.length === 0;
+                if ((hasRemovedTechs || allTechsCleared) && aptData && Array.isArray(aptData.services) && aptData.services.length > 0) {
+                    var keepServices = allTechsCleared ? [] : aptData.services.filter(function(s) {
+                        return !removedTechIds.some(function(rid) { return s.technician_id && s.technician_id.toString() === rid; });
+                    });
+                    var payload = keepServices.map(function(s) {
+                        var svcData = selectServicesData.length > 0 ? selectServicesData.find(function(d) { return d.id === s.service_id; }) : null;
+                        return {
+                            service: (svcData && svcData.categories && svcData.categories[0]) || s.service || '',
+                            service_id: s.service_id,
+                            technician_id: s.technician_id,
+                            quantity: s.quantity || 1,
+                            unit_price: s.unit_price
+                        };
+                    }).filter(function(s) { return s.service && s.technician_id; });
+                    var svcUrl = base.replace(/\/data\/?$/, '') + '/appointments/' + currentAppointmentId + '/services';
+                    salonApi.put(svcUrl, { services: payload }).then(function(res) {
+                        if (aptData && res && res.data && Array.isArray(res.data.services)) {
+                            aptData.services = res.data.services.map(function(s) {
+                                if (!s.service_color && s.service_id && selectServicesData.length > 0) {
+                                    var info = selectServicesData.find(function(d) { return d.id === s.service_id; });
+                                    if (info && info.color) s.service_color = info.color;
+                                }
+                                return s;
+                            });
+                        } else if (aptData) {
+                            aptData.services = keepServices;
+                        }
+                        updateEventModalTechnicianDisplay();
+                        refreshEventColorSwatches(currentAppointmentId);
+                    }).catch(function(err) { console.error('Failed to clean up services:', err); });
+                }
                 doUpdateUI();
             })
             .catch(function(err) {
@@ -3308,7 +3433,18 @@ function confirmTechnicianSelection() {
     } else {
         const appointmentIndex = bookingsData.findIndex(apt => apt.id.toString() === currentAppointmentId.toString());
         if (appointmentIndex !== -1) {
+            var fallbackPrevIds = Array.isArray(bookingsData[appointmentIndex].assigned_technician)
+                ? bookingsData[appointmentIndex].assigned_technician.map(function(id) { return id.toString(); })
+                : [];
+            var fallbackRemovedIds = fallbackPrevIds.filter(function(id) { return !technicianIds.some(function(t) { return t.toString() === id; }); });
             bookingsData[appointmentIndex].assigned_technician = technicianIds.length > 0 ? technicianIds : null;
+            if (technicianIds.length === 0) {
+                bookingsData[appointmentIndex].services = [];
+            } else if (fallbackRemovedIds.length > 0 && Array.isArray(bookingsData[appointmentIndex].services)) {
+                bookingsData[appointmentIndex].services = bookingsData[appointmentIndex].services.filter(function(s) {
+                    return !fallbackRemovedIds.some(function(rid) { return s.technician_id && s.technician_id.toString() === rid; });
+                });
+            }
         }
         updateEventModalTechnicianDisplay();
         updateCalendarEventDisplay();
@@ -3336,9 +3472,20 @@ function updateEventModalTechnicianDisplay() {
             ? appointment.assigned_technician.map(function(id) { return id.toString(); })
             : []);
 
+    // Show/hide event color section based on technician assignment
+    var colorSection = document.getElementById('eventColorSection_' + currentAppointmentId);
     if (techIds.length === 0) {
         currentEventModalElement.innerHTML = '<p class="text-sm text-gray-400">Not Assigned</p>';
+        // Hide event color section and clear color when no technicians
+        if (colorSection) {
+            colorSection.classList.add('hidden');
+            setEventColor(currentAppointmentId, null);
+        }
         return;
+    }
+    // Show event color section when technicians are assigned
+    if (colorSection) {
+        colorSection.classList.remove('hidden');
     }
 
     var allSvcs = appointment && Array.isArray(appointment.services) ? appointment.services : [];
@@ -3360,12 +3507,18 @@ function updateEventModalTechnicianDisplay() {
         var avatarHtml = '<div class="relative">' + avatarInner + techStatusBadge + '</div>';
         var svcListHtml = '';
         if (techSvcs.length > 0) {
-            var svcNames = techSvcs.map(function(s) {
+            var svcItems = techSvcs.map(function(s) {
                 var sName = s.service_name || s.service || 'Service';
                 var qty = s.quantity || 1;
-                return sName + (qty > 1 ? ' x' + qty : '');
+                var sColor = s.service_color || '';
+                if (!sColor && s.service_id && selectServicesData.length > 0) {
+                    var svcInfo = selectServicesData.find(function(d) { return d.id === s.service_id; });
+                    if (svcInfo && svcInfo.color) sColor = svcInfo.color;
+                }
+                var colorDot = sColor ? '<span class="inline-block w-2 h-2 rounded-full flex-shrink-0" style="background:' + sColor + '"></span>' : '';
+                return '<span class="inline-flex items-center gap-1 text-xs text-gray-500 truncate">' + colorDot + '<span class="truncate">' + sName + (qty > 1 ? ' x' + qty : '') + '</span></span>';
             });
-            svcListHtml = '<p class="mt-1 text-xs text-gray-500">' + svcNames.join(', ') + '</p>';
+            svcListHtml = '<div class="mt-1 grid grid-cols-4 gap-1">' + svcItems.join('') + '</div>';
         }
         html += '<div class="p-2 bg-white rounded-lg border border-gray-200">'
             + '<div class="flex items-center gap-3">'
@@ -3410,28 +3563,31 @@ function updateCalendarEventDisplay() {
     // Update event extended props
     currentEvent.setExtendedProp('technician', techniciansText);
     
-    // Update event styling based on technician assignment
+    // Update event styling — no-show: no inline styles, CSS handles it
     const isNoShow = noShowStatus[appointment.id] === true;
-    let eventBgColor = hasTechnician ? '#003047' : 'transparent';
-    let eventBorderColor = '#003047';
-    let eventTextColor = hasTechnician ? '#ffffff' : '#003047';
-    
+
     if (isNoShow) {
-        eventBgColor = '#9ca3af';
-        eventBorderColor = '#6b7280';
-        eventTextColor = '#003047';
+        currentEvent.setProp('backgroundColor', '');
+        currentEvent.setProp('borderColor', '');
+        currentEvent.setProp('textColor', '');
+    } else if (appointment.color) {
+        currentEvent.setProp('backgroundColor', appointment.color);
+        currentEvent.setProp('borderColor', appointment.color);
+        currentEvent.setProp('textColor', '#ffffff');
+    } else {
+        currentEvent.setProp('backgroundColor', hasTechnician ? '#003047' : 'transparent');
+        currentEvent.setProp('borderColor', '#003047');
+        currentEvent.setProp('textColor', hasTechnician ? '#ffffff' : '#003047');
     }
-    
-    // Update event colors
-    currentEvent.setProp('backgroundColor', eventBgColor);
-    currentEvent.setProp('borderColor', eventBorderColor);
-    currentEvent.setProp('textColor', eventTextColor);
-    
+
     // Update class names - preserve existing status class and update technician/no-show classes
     const existingClassNames = currentEvent.classNames || [];
     const statusClass = existingClassNames.find(cn => cn.startsWith('event-status-') || ['event-booked', 'event-in-booking', 'event-completed', 'event-in-progress'].includes(cn));
     const classNames = [];
     if (statusClass) classNames.push(statusClass);
+    if (!isNoShow && appointment.color) {
+        classNames.push('event-custom-color');
+    }
     if (hasTechnician) {
         classNames.push('event-has-technician');
     }
@@ -3439,6 +3595,18 @@ function updateCalendarEventDisplay() {
         classNames.push('event-no-show');
     }
     currentEvent.setProp('classNames', classNames);
+
+    // Strip inline styles from DOM for no-show
+    if (isNoShow) {
+        setTimeout(function() {
+            var targetEls = document.querySelectorAll('[data-event-id="' + currentAppointmentId + '"]');
+            targetEls.forEach(function(el) {
+                el.removeAttribute('style');
+                var mainEl = el.querySelector('.fc-event-main');
+                if (mainEl) mainEl.removeAttribute('style');
+            });
+        }, 50);
+    }
 }
 
 // =========================================================================
@@ -3753,12 +3921,67 @@ function renderSelectServicesCartSummary() {
     container.innerHTML = html;
 }
 
-window.saveSelectServicesCart = function() {
-    if (selectServicesCart.length === 0) {
-        if (typeof showErrorMessage === 'function') showErrorMessage('Please select at least one service.');
-        return;
+window.refreshEventColorSwatches = function(appointmentId) {
+    var swatchesEl = document.getElementById('eventColorSwatches_' + appointmentId);
+    if (!swatchesEl) return;
+    var apt = bookingsData.find(function(a) { return a.id.toString() === appointmentId.toString(); });
+    var currentColor = apt ? (apt.color || null) : null;
+    var svcs = apt && Array.isArray(apt.services) ? apt.services : [];
+    var serviceColors = [];
+    var seenColors = {};
+    svcs.forEach(function(s) {
+        var c = s.service_color;
+        var svcInfo = null;
+        // Fallback: look up color from selectServicesData if not in response
+        if (s.service_id && selectServicesData.length > 0) {
+            svcInfo = selectServicesData.find(function(d) { return d.id === s.service_id; });
+            if (!c && svcInfo && svcInfo.color) c = svcInfo.color;
+        }
+        if (c && !seenColors[c.toUpperCase()]) {
+            seenColors[c.toUpperCase()] = true;
+            var svcCount = svcInfo && typeof svcInfo.service_count === 'number' ? svcInfo.service_count : 0;
+            serviceColors.push({hex: c.toUpperCase(), name: (s.service_name || 'Service'), service_count: svcCount});
+        }
+    });
+
+    var knownHexes = serviceColors.map(function(c) { return c.hex; });
+    var colorInServices = currentColor && knownHexes.some(function(p) { return currentColor.toUpperCase() === p; });
+
+    // 1) No services at all → clear color
+    if (serviceColors.length === 0) {
+        if (currentColor) {
+            setEventColor(appointmentId, null);
+            currentColor = null;
+        }
+    // 2) Current color not in available service colors → auto-select best
+    } else if (!currentColor || !colorInServices) {
+        var best = serviceColors.reduce(function(a, b) { return b.service_count > a.service_count ? b : a; }, serviceColors[0]);
+        if (best && best.hex) {
+            setEventColor(appointmentId, best.hex);
+            currentColor = best.hex;
+        }
     }
 
+    var serviceSwatches = serviceColors.map(function(c) {
+        var isSelected = currentColor && currentColor.toUpperCase() === c.hex;
+        return '<button onclick="setEventColor(\'' + appointmentId + '\', \'' + c.hex + '\')" class="rounded-full border-2 transition-all hover:scale-110 ' + (isSelected ? 'border-gray-900 ring-2 ring-offset-1 ring-gray-900' : 'border-white shadow-sm') + '" style="width:28px;height:28px;background:' + c.hex + '" title="' + c.name + '"></button>';
+    }).join('');
+    var isCustom = currentColor && !knownHexes.some(function(p) { return currentColor.toUpperCase() === p; });
+    var customBtn = '<div class="relative"><button onclick="document.getElementById(\'customColorPicker_' + appointmentId + '\').click()" class="rounded-full border-2 transition-all hover:scale-110 flex items-center justify-center ' + (isCustom ? 'border-gray-900 ring-2 ring-offset-1 ring-gray-900' : 'border-gray-300') + '" style="width:28px;height:28px;background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red)" title="Custom color"></button><input type="color" id="customColorPicker_' + appointmentId + '" value="' + (currentColor || '#003047') + '" class="absolute opacity-0 w-0 h-0" onchange="setEventColor(\'' + appointmentId + '\', this.value)"></div>';
+    swatchesEl.innerHTML = serviceSwatches + customBtn;
+
+    // Update the preview circle
+    var previewEl = document.getElementById('eventColorPreview_' + appointmentId);
+    if (previewEl) {
+        if (currentColor) {
+            previewEl.innerHTML = '<div style="width:48px;height:48px;border-radius:9999px;border:2px solid #fff;box-shadow:0 4px 6px -1px rgba(0,0,0,.1);background:' + currentColor + '"></div><button onclick="setEventColor(\'' + appointmentId + '\', null)" style="position:absolute;top:-4px;left:-4px;width:18px;height:18px;border-radius:9999px;background:#fff;border:1px solid #d1d5db;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.1)" title="Remove color"><svg style="width:10px;height:10px" fill="none" stroke="#9ca3af" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg></button>';
+        } else {
+            previewEl.innerHTML = '<div style="width:48px;height:48px;border-radius:9999px;border:2px dashed #d1d5db;display:flex;align-items:center;justify-content:center;background:#fff"><svg class="w-5 h-5 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path></svg></div>';
+        }
+    }
+};
+
+window.saveSelectServicesCart = function() {
     // Show loading state
     var saveBtn = document.getElementById('selectServicesSaveBtn');
     if (saveBtn) {
@@ -3812,7 +4035,14 @@ window.saveSelectServicesCart = function() {
             // Update bookingsData with new services from response
             var appointment = bookingsData.find(function(a) { return a.id.toString() === selectServicesAppointmentId.toString(); });
             if (appointment && res && res.data && Array.isArray(res.data.services)) {
-                appointment.services = res.data.services;
+                // Enrich response services with color from selectServicesData
+                appointment.services = res.data.services.map(function(s) {
+                    if (!s.service_color && s.service_id && selectServicesData.length > 0) {
+                        var svcInfo = selectServicesData.find(function(d) { return d.id === s.service_id; });
+                        if (svcInfo && svcInfo.color) s.service_color = svcInfo.color;
+                    }
+                    return s;
+                });
             }
 
             // Update turn tracker: subtract old service count, add new
@@ -3833,6 +4063,8 @@ window.saveSelectServicesCart = function() {
             closeNestedModal();
             // Refresh technician display with updated services list
             updateEventModalTechnicianDisplay();
+            // Refresh color swatches with updated service colors
+            refreshEventColorSwatches(selectServicesAppointmentId);
         }).catch(function(err) {
             resetSaveBtn();
             if (typeof showErrorMessage === 'function') showErrorMessage(err && err.message ? err.message : 'Failed to save services.');

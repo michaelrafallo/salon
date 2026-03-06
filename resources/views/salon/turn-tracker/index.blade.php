@@ -114,7 +114,7 @@ window.salonTurnTrackerUpdateServiceCount = function(technicianId, newCount, sho
 window.salonTurnTrackerSaveServiceCount = function(technicianId) {
     var input = document.querySelector('input[data-technician-id="' + technicianId + '"]');
     if (input) {
-        var newCount = parseInt(input.value, 10) || 0;
+        var newCount = parseFloat(input.value) || 0;
         salonTurnTrackerUpdateServiceCount(technicianId, newCount, true);
     }
 };

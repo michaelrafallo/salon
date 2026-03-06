@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class UpdateSettingsRequest extends FormRequest
 {
@@ -22,6 +23,7 @@ class UpdateSettingsRequest extends FormRequest
             'settings.points_unit_value' => ['nullable', 'numeric', 'min:0'],
             'settings.points_per_unit' => ['nullable', 'numeric', 'min:0'],
             'settings.reward_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'settings.timezone' => ['nullable', 'string', Rule::in(timezone_identifiers_list())],
             'settings.*' => ['nullable'],
         ];
     }

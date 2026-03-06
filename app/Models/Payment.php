@@ -39,7 +39,7 @@ class Payment extends Model
             'gift_card' => 'decimal:2',
             'tax' => 'decimal:2',
             'tip' => 'decimal:2',
-            'paid_at' => 'date',
+            'paid_at' => 'datetime',
             'refunded_at' => 'datetime',
         ];
     }
