@@ -4192,9 +4192,10 @@ window.saveSelectServicesCart = function() {
                 return sum + ((item.service_count || 0) * item.quantity);
             }, 0);
             var newTotal = baseServices - selectServicesOldServiceCount + newCartServiceCount;
+            // Update local data immediately so UI reflects the change
+            if (tech) tech.services = newTotal;
             var turnTrackerUrl = base.replace(/\/data\/?$/, '') + '/turn-tracker';
             salonApi.put(turnTrackerUrl, { entries: [{ user_id: selectServicesTechnicianId, services: newTotal }] }).then(function() {
-                if (tech) tech.services = newTotal;
                 // Refresh technician display with updated services
                 updateEventModalTechnicianDisplay();
             }).catch(function(err) { console.error('Turn tracker update failed:', err); });
@@ -4205,7 +4206,7 @@ window.saveSelectServicesCart = function() {
             updateEventModalTechnicianDisplay();
             // Refresh color swatches with updated service colors
             refreshEventColorSwatches(selectServicesAppointmentId);
-            // Re-render list view to update event card colors
+            // Re-render list view to update event card colors and service count in header
             var listViewContainer = document.getElementById('listViewContainer');
             if (listViewContainer && !listViewContainer.classList.contains('hidden')) {
                 renderTechnicianListView();
