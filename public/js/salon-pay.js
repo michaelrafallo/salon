@@ -758,6 +758,28 @@ window.salonPayHandleDiscountCodeInput = function(value) {
 // --- Assign Technicians Modal (copied from Waiting List UI/UX) ---
 var payAvailableTechnicians = [];
 var payTechnicianSearchTerm = '';
+var payTurnTrackerOrder = 'lowest', payTurnTrackerUserIds = new Set(), payTurnTrackerPositions = new Map();
+
+function payFetchTurnTrackerOrder() {
+    var turnTrackerUrl = base.replace(/\/data\/?$/, '') + '/turn-tracker';
+    return fetch(turnTrackerUrl, { credentials: 'same-origin' }).then(function(r) { return r.json(); }).then(function(data) {
+        payTurnTrackerOrder = data.turn_tracker_order === 'highest' ? 'highest' : 'lowest';
+        var entries = (data.entries || []).map(function(e) {
+            return { user_id: e.user_id, services: typeof e.services === 'number' ? e.services : parseFloat(e.services) || 0, clock_in: e.clock_in || null };
+        });
+        entries.sort(function(a, b) {
+            var diff = a.services - b.services;
+            if (payTurnTrackerOrder === 'highest') diff = -diff;
+            if (diff !== 0) return diff;
+            var aTime = a.clock_in ? new Date(a.clock_in).getTime() : 0;
+            var bTime = b.clock_in ? new Date(b.clock_in).getTime() : 0;
+            return aTime - bTime;
+        });
+        payTurnTrackerUserIds = new Set(entries.map(function(e) { return e.user_id; }));
+        payTurnTrackerPositions = new Map();
+        entries.forEach(function(e, i) { payTurnTrackerPositions.set(e.user_id, i); });
+    }).catch(function(err) { console.error('Error fetching turn tracker order:', err); });
+}
 
 window.salonPayOpenAssignTechnicianModal = function() {
     if (!appointmentId) return;
@@ -780,20 +802,25 @@ window.salonPayOpenAssignTechnicianModal = function() {
 };
 
 function salonPayLoadTechniciansForAssign() {
-    // Prefer already-loaded technicians from the Pay page.
-    if (techniciansData && techniciansData.length) {
-        payAvailableTechnicians = techniciansData.slice();
+    function finishLoad() {
         salonPayRenderAvailableTechnicians();
         salonPayRenderAssignedTechnicians();
         salonPayUpdateTechnicianCounts();
-        return;
     }
 
-    fetch(base + '/users').then(function(r) { return r.json(); }).then(function(data) {
-        payAvailableTechnicians = (data.users || []).filter(function(u) { return u.role === 'technician' || u.userlevel === 'technician'; });
-        salonPayRenderAvailableTechnicians();
-        salonPayRenderAssignedTechnicians();
-        salonPayUpdateTechnicianCounts();
+    var techReady = Promise.resolve();
+    if (techniciansData && techniciansData.length) {
+        payAvailableTechnicians = techniciansData.slice();
+    } else {
+        techReady = fetch(base + '/users').then(function(r) { return r.json(); }).then(function(data) {
+            payAvailableTechnicians = (data.users || []).filter(function(u) { return u.role === 'technician' || u.userlevel === 'technician'; });
+        });
+    }
+
+    techReady.then(function() {
+        return payFetchTurnTrackerOrder();
+    }).then(function() {
+        finishLoad();
     }).catch(function(err) {
         console.error(err);
         var c = document.getElementById('availableTechniciansContainer');
@@ -844,19 +871,15 @@ function salonPayRenderAvailableTechnicians() {
         if (aIsAssigned && !bIsAssigned) return 1;
         if (!aIsAssigned && bIsAssigned) return -1;
 
-        var aOnline = !!(a.clock_in && !a.clock_out);
-        var bOnline = !!(b.clock_in && !b.clock_out);
-        if (aOnline && !bOnline) return -1;
-        if (!aOnline && bOnline) return 1;
-
-        var aServices = typeof a.services === 'number' ? a.services : 0;
-        var bServices = typeof b.services === 'number' ? b.services : 0;
-        var diff = aServices - bServices;
-        if (diff !== 0) return diff;
-
-        var aTime = a.clock_in ? new Date(a.clock_in).getTime() : Infinity;
-        var bTime = b.clock_in ? new Date(b.clock_in).getTime() : Infinity;
-        return aTime - bTime;
+        // Turn tracker technicians first, in exact turn tracker order; non-tracker last
+        var aInTracker = payTurnTrackerUserIds.has(a.id);
+        var bInTracker = payTurnTrackerUserIds.has(b.id);
+        if (aInTracker && !bInTracker) return -1;
+        if (!aInTracker && bInTracker) return 1;
+        if (aInTracker && bInTracker) {
+            return (payTurnTrackerPositions.get(a.id) || 0) - (payTurnTrackerPositions.get(b.id) || 0);
+        }
+        return 0;
     });
 
     container.innerHTML = filtered.map(function(tech) {

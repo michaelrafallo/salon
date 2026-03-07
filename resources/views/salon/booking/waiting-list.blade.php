@@ -51,6 +51,7 @@
                         <tr>
                             <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider w-16">#</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Start Time</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned Technicians</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created At</th>
@@ -99,6 +100,8 @@
 .select-svc-slick-carousel .slick-next:before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%234b5563'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9 5l7 7-7 7'/%3E%3C/svg%3E"); }
 .select-svc-slick-carousel .slick-prev:hover, .select-svc-slick-carousel .slick-next:hover { background: #f9fafb; }
 .select-svc-slick-carousel .slick-disabled { opacity: 0.3; cursor: default; }
+@keyframes rotate-clock { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.rotating-clock { animation: rotate-clock 2s linear infinite; display: inline-block; }
 </style>
 @endpush
 @push('scripts')
@@ -164,6 +167,55 @@ function formatAppointmentDate(isoStr) {
     return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) + ' ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 }
 function getInitials(c) { return c.initials || ((c.firstName||'')[0] + (c.lastName||'')[0]).toUpperCase(); }
+var durationInterval = null;
+function parseDate(dateString) {
+    if (!dateString) return null;
+    try {
+        var cleaned = dateString.toString().replace(/Z$/, '').replace(/[+-]\d{2}:\d{2}$/, '').replace(/\.\d+/, '');
+        var match = cleaned.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?/);
+        if (match) return new Date(parseInt(match[1]), parseInt(match[2]) - 1, parseInt(match[3]), parseInt(match[4]), parseInt(match[5]), parseInt(match[6]) || 0);
+        var d = new Date(dateString);
+        return isNaN(d.getTime()) ? null : d;
+    } catch (e) { return null; }
+}
+function getTimeStarted(customer) {
+    var startTime = customer.appointment_datetime;
+    if (!startTime) return 'N/A';
+    var date = parseDate(startTime);
+    if (!date) return 'N/A';
+    try { return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }); } catch (e) { return 'N/A'; }
+}
+function calculateDuration(startTime) {
+    if (!startTime) return '00:00:00';
+    var start = parseDate(startTime);
+    if (!start || isNaN(start.getTime())) return '00:00:00';
+    var now = new Date();
+    var diff = Math.max(0, Math.floor((now - start) / 1000));
+    var hours = Math.floor(diff / 3600);
+    var minutes = Math.floor((diff % 3600) / 60);
+    var seconds = diff % 60;
+    return String(hours).padStart(2, '0') + ':' + String(minutes).padStart(2, '0') + ':' + String(seconds).padStart(2, '0');
+}
+function updateDurationCounters() {
+    var counters = document.querySelectorAll('.duration-counter');
+    counters.forEach(function(counter) {
+        var startTime = counter.getAttribute('data-start-time');
+        if (startTime && startTime !== 'null' && startTime !== 'undefined' && startTime.trim() !== '') {
+            var duration = calculateDuration(startTime);
+            if (counter.textContent !== duration) counter.textContent = duration;
+        } else {
+            if (counter.textContent !== '00:00:00') counter.textContent = '00:00:00';
+        }
+    });
+}
+function startDurationCounters() {
+    if (durationInterval) clearInterval(durationInterval);
+    updateDurationCounters();
+    durationInterval = setInterval(updateDurationCounters, 1000);
+}
+function stopDurationCounters() {
+    if (durationInterval) { clearInterval(durationInterval); durationInterval = null; }
+}
 
 function getPaginatedCustomers() {
     if (PAGE_SIZE === 'all' || PAGE_SIZE === Infinity) return customersData;
@@ -217,7 +269,8 @@ function renderGridView() {
         var color = colorClasses[index % colorClasses.length], initials = getInitials(customer), fullName = customer.firstName + ' ' + customer.lastName;
         var aptType = customer.appointment || 'Walk-In', statusClass = aptType.toLowerCase() === 'walk-in' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700';
         var aptDateStr = formatAppointmentDate(customer.created_at);
-        return '<div class="customer-card bg-white rounded-lg shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow flex flex-col h-full"><div class="flex-1"><div class="flex items-center gap-4 mb-4"><div class="w-16 h-16 ' + color.bg + ' rounded-full flex items-center justify-center flex-shrink-0"><span class="text-2xl font-bold ' + color.text + '">' + initials + '</span></div><div class="flex-1 min-w-0"><h3 class="font-normal text-gray-900 text-xl truncate">' + fullName + '</h3><p class="text-sm text-gray-500">' + (customer.phone || '') + '</p><div class="mt-2">' + renderTechniciansList(customer.assigned_technician) + '</div></div></div></div><div class="pt-4 border-t border-gray-200 mt-auto space-y-3"><span class="inline-block px-3 py-1 ' + statusClass + ' text-xs font-medium rounded-full">' + aptType + '</span>' + (aptDateStr !== '—' ? '<p class="text-xs text-gray-500">' + aptDateStr + '</p>' : '') + '<div class="flex gap-2"><button onclick="event.stopPropagation(); assignCustomer(\'' + customer.id + '\', \'' + fullName.replace(/'/g, "\\'") + '\')" class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium text-sm active:scale-95"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>Assign</button><button type="button" onclick="event.stopPropagation(); removeFromWaitingList(' + (customer.appointmentId || 0) + ', \'' + fullName.replace(/'/g, "\\'") + '\')" class="px-4 py-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition font-medium text-sm active:scale-95" title="Remove from waiting list"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button></div></div></div>';
+        var gridStartTime = '<div class="flex items-center gap-2 text-sm text-gray-700"><svg style="width:12px;height:12px;color:#008106;" class="rotating-clock" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg><span>' + getTimeStarted(customer) + '</span><span class="font-bold text-[#003047] duration-counter" data-start-time="' + (customer.appointment_datetime || '').toString() + '" data-customer-id="' + (customer.id || customer.appointmentId || '') + '">' + calculateDuration(customer.appointment_datetime) + '</span></div>';
+        return '<div class="customer-card bg-white rounded-lg shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow flex flex-col h-full"><div class="flex-1"><div class="flex items-center gap-4 mb-4"><div class="w-16 h-16 ' + color.bg + ' rounded-full flex items-center justify-center flex-shrink-0"><span class="text-2xl font-bold ' + color.text + '">' + initials + '</span></div><div class="flex-1 min-w-0"><h3 class="font-normal text-gray-900 text-xl truncate">' + fullName + '</h3><p class="text-sm text-gray-500">' + (customer.phone || '') + '</p><div class="mt-2">' + renderTechniciansList(customer.assigned_technician) + '</div></div></div></div><div class="pt-4 border-t border-gray-200 mt-auto space-y-3"><span class="inline-block px-3 py-1 ' + statusClass + ' text-xs font-medium rounded-full">' + aptType + '</span>' + gridStartTime + (aptDateStr !== '—' ? '<p class="text-xs text-gray-500">' + aptDateStr + '</p>' : '') + '<div class="flex gap-2"><button onclick="event.stopPropagation(); assignCustomer(\'' + customer.id + '\', \'' + fullName.replace(/'/g, "\\'") + '\')" class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium text-sm active:scale-95"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>Assign</button><button type="button" onclick="event.stopPropagation(); removeFromWaitingList(' + (customer.appointmentId || 0) + ', \'' + fullName.replace(/'/g, "\\'") + '\')" class="px-4 py-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition font-medium text-sm active:scale-95" title="Remove from waiting list"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button></div></div></div>';
     }).join('');
 }
 function renderListView() {
@@ -225,7 +278,7 @@ function renderListView() {
     if (!tbody) return;
     var list = getPaginatedCustomers();
     if (list.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-12 text-center"><p class="text-gray-500 text-sm">No customers found</p></td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" class="px-6 py-12 text-center"><p class="text-gray-500 text-sm">No customers found</p></td></tr>';
         return;
     }
     tbody.innerHTML = list.map(function(customer, index) {
@@ -233,10 +286,11 @@ function renderListView() {
         var aptType = customer.appointment || 'Walk-In', statusClass = aptType.toLowerCase() === 'walk-in' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700';
         var rowNum = (PAGE_SIZE === 'all' || PAGE_SIZE === Infinity) ? index + 1 : (currentPage - 1) * PAGE_SIZE + index + 1;
         var aptDateStr = formatAppointmentDate(customer.created_at);
-        return '<tr class="customer-row hover:bg-gray-50 transition"><td class="px-3 py-4 whitespace-nowrap text-center"><div class="text-sm text-gray-600">' + rowNum + '</div></td><td class="px-6 py-4 whitespace-nowrap"><div class="flex items-center"><div class="w-10 h-10 ' + color.bg + ' rounded-full flex items-center justify-center flex-shrink-0 mr-3"><span class="text-sm font-bold ' + color.text + '">' + initials + '</span></div><div><div class="text-base font-normal text-gray-900">' + fullName + '</div></div></div></td><td class="px-6 py-4 whitespace-nowrap"><div class="text-sm text-gray-900">' + (customer.phone || '') + '</div></td><td class="px-6 py-4">' + renderTechniciansList(customer.assigned_technician) + '</td><td class="px-6 py-4 whitespace-nowrap"><div class="text-sm text-gray-900">' + aptDateStr + '</div></td><td class="px-6 py-4 whitespace-nowrap"><span class="inline-block px-3 py-1 ' + statusClass + ' text-xs font-medium rounded-full">' + aptType + '</span></td><td class="px-6 py-4 whitespace-nowrap text-right"><div class="flex items-center justify-end gap-2"><button onclick="event.stopPropagation(); assignCustomer(\'' + customer.id + '\', \'' + fullName.replace(/'/g, "\\'") + '\')" class="inline-flex items-center gap-2 px-4 py-2 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium text-sm active:scale-95"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>Assign</button><button type="button" onclick="event.stopPropagation(); removeFromWaitingList(' + (customer.appointmentId || 0) + ', \'' + fullName.replace(/'/g, "\\'") + '\')" class="inline-flex items-center justify-center px-3 py-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition font-medium text-sm active:scale-95" title="Remove from waiting list"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button></div></td></tr>';
+        var startTimeCell = '<div class="flex flex-col gap-1"><div class="text-sm text-gray-900">' + getTimeStarted(customer) + '</div><div class="flex items-center gap-1"><svg style="width:12px;height:12px;color:#008106;" class="rotating-clock" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg><span class="text-base font-bold text-[#003047] duration-counter" data-start-time="' + (customer.appointment_datetime || '').toString() + '" data-customer-id="' + (customer.id || customer.appointmentId || '') + '">' + calculateDuration(customer.appointment_datetime) + '</span></div></div>';
+        return '<tr class="customer-row hover:bg-gray-50 transition"><td class="px-3 py-4 whitespace-nowrap text-center"><div class="text-sm text-gray-600">' + rowNum + '</div></td><td class="px-6 py-4 whitespace-nowrap"><div class="flex items-center"><div class="w-10 h-10 ' + color.bg + ' rounded-full flex items-center justify-center flex-shrink-0 mr-3"><span class="text-sm font-bold ' + color.text + '">' + initials + '</span></div><div><div class="text-base font-normal text-gray-900">' + fullName + '</div></div></div></td><td class="px-6 py-4 whitespace-nowrap">' + startTimeCell + '</td><td class="px-6 py-4 whitespace-nowrap"><div class="text-sm text-gray-900">' + (customer.phone || '') + '</div></td><td class="px-6 py-4">' + renderTechniciansList(customer.assigned_technician) + '</td><td class="px-6 py-4 whitespace-nowrap"><div class="text-sm text-gray-900">' + aptDateStr + '</div></td><td class="px-6 py-4 whitespace-nowrap"><span class="inline-block px-3 py-1 ' + statusClass + ' text-xs font-medium rounded-full">' + aptType + '</span></td><td class="px-6 py-4 whitespace-nowrap text-right"><div class="flex items-center justify-end gap-2"><button onclick="event.stopPropagation(); assignCustomer(\'' + customer.id + '\', \'' + fullName.replace(/'/g, "\\'") + '\')" class="inline-flex items-center gap-2 px-4 py-2 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium text-sm active:scale-95"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>Assign</button><button type="button" onclick="event.stopPropagation(); removeFromWaitingList(' + (customer.appointmentId || 0) + ', \'' + fullName.replace(/'/g, "\\'") + '\')" class="inline-flex items-center justify-center px-3 py-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition font-medium text-sm active:scale-95" title="Remove from waiting list"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button></div></td></tr>';
     }).join('');
 }
-function renderCustomers() { updatePaginationState(); renderGridView(); renderListView(); renderPagination(); updateResultsCounter(); }
+function renderCustomers() { updatePaginationState(); renderGridView(); renderListView(); renderPagination(); updateResultsCounter(); setTimeout(function() { startDurationCounters(); }, 100); }
 
 function applyFilters() {
     var filtered = allMergedData.filter(function(item) {
@@ -519,6 +573,7 @@ function doRemoveFromWaitingList(appointmentId) {
 }
 
 var availableTechnicians = [], originalTechnicianOrder = [], assignedTechnicianIds = [], currentCustomerId = null, currentCustomerName = '', currentAppointmentId = null, technicianSearchTerm = '', assignedTechnicianSearchTerm = '', selectedStatus = 'waiting', resizeHandlerForTechnicians = null;
+var turnTrackerOrder = 'lowest', turnTrackerUserIds = new Set(), turnTrackerPositions = new Map();
 var currentEventModalElement = null;
 // Select services state
 var selectServicesData = [], selectServicesCategoriesMap = {}, selectServicesCategory = null, selectServicesCart = [];
@@ -690,13 +745,31 @@ window.openWaitingListTechnicianModal = function() {
         window.addEventListener('resize', resizeHandlerForTechnicians);
     }, 50);
 }
+function fetchTurnTrackerOrder() {
+    var turnTrackerUrl = base.replace(/\/data\/?$/, '') + '/turn-tracker';
+    return fetch(turnTrackerUrl, { credentials: 'same-origin' }).then(function(r) { return r.json(); }).then(function(data) {
+        turnTrackerOrder = data.turn_tracker_order === 'highest' ? 'highest' : 'lowest';
+        var entries = (data.entries || []).map(function(e) {
+            return { user_id: e.user_id, services: typeof e.services === 'number' ? e.services : parseFloat(e.services) || 0, clock_in: e.clock_in || null };
+        });
+        entries.sort(function(a, b) {
+            var diff = a.services - b.services;
+            if (turnTrackerOrder === 'highest') diff = -diff;
+            if (diff !== 0) return diff;
+            var aTime = a.clock_in ? new Date(a.clock_in).getTime() : 0;
+            var bTime = b.clock_in ? new Date(b.clock_in).getTime() : 0;
+            return aTime - bTime;
+        });
+        turnTrackerUserIds = new Set(entries.map(function(e) { return e.user_id; }));
+        turnTrackerPositions = new Map();
+        entries.forEach(function(e, i) { turnTrackerPositions.set(e.user_id, i); });
+    }).catch(function(err) { console.error('Error fetching turn tracker order:', err); });
+}
 function loadTechniciansForAssign() {
-    if (allTechnicians && allTechnicians.length) {
-        availableTechnicians = allTechnicians;
-        originalTechnicianOrder = availableTechnicians.map(function(t) { return t.id; });
+    function finishLoad() {
         renderAvailableTechnicians();
         renderAssignedTechnicians();
-    updateCounts();
+        updateCounts();
         var dropdownText = document.getElementById('statusDropdownText');
         if (dropdownText) {
             if (selectedStatus === 'waiting') dropdownText.textContent = 'Waiting';
@@ -705,23 +778,21 @@ function loadTechniciansForAssign() {
             else dropdownText.textContent = 'In Progress';
         }
         updateStatusHighlighting();
-        return;
     }
 
-    fetch(base + '/users').then(function(r) { return r.json(); }).then(function(data) {
-        availableTechnicians = (data.users || []).filter(function(u) { return u.role === 'technician' || u.userlevel === 'technician'; });
+    var techReady = Promise.resolve();
+    if (!allTechnicians || !allTechnicians.length) {
+        techReady = fetch(base + '/users').then(function(r) { return r.json(); }).then(function(data) {
+            allTechnicians = (data.users || []).filter(function(u) { return u.role === 'technician' || u.userlevel === 'technician'; });
+        });
+    }
+
+    techReady.then(function() {
+        availableTechnicians = allTechnicians;
         originalTechnicianOrder = availableTechnicians.map(function(t) { return t.id; });
-        renderAvailableTechnicians();
-        renderAssignedTechnicians();
-    updateCounts();
-        var dropdownText = document.getElementById('statusDropdownText');
-        if (dropdownText) {
-            if (selectedStatus === 'waiting') dropdownText.textContent = 'Waiting';
-            else if (selectedStatus === 'in-progress') dropdownText.textContent = 'In Progress';
-            else if (selectedStatus === 'completed') dropdownText.textContent = 'Completed';
-            else dropdownText.textContent = 'In Progress';
-        }
-        updateStatusHighlighting();
+        return fetchTurnTrackerOrder();
+    }).then(function() {
+        finishLoad();
     }).catch(function(err) { console.error(err); var c = document.getElementById('availableTechniciansContainer'); if (c) c.innerHTML = '<div class="text-center py-8 text-sm text-gray-400">Error loading technicians</div>'; });
 }
 window.waitingListSearchTechnicians = function(val) {
@@ -773,22 +844,22 @@ function renderAvailableTechnicians() {
         return;
     }
     filtered.sort(function(a, b) {
+        // Assigned technicians go last
         var aIdStr = a.id.toString(), bIdStr = b.id.toString();
         var aIsAssigned = assignedTechnicianIds.indexOf(aIdStr) >= 0;
         var bIsAssigned = assignedTechnicianIds.indexOf(bIdStr) >= 0;
         if (aIsAssigned && !bIsAssigned) return 1;
         if (!aIsAssigned && bIsAssigned) return -1;
-        var aOnline = !!(a.clock_in && !a.clock_out);
-        var bOnline = !!(b.clock_in && !b.clock_out);
-        if (aOnline && !bOnline) return -1;
-        if (!aOnline && bOnline) return 1;
-        var aServices = typeof a.services === 'number' ? a.services : 0;
-        var bServices = typeof b.services === 'number' ? b.services : 0;
-        var diff = aServices - bServices;
-        if (diff !== 0) return diff;
-        var aTime = a.clock_in ? new Date(a.clock_in).getTime() : Infinity;
-        var bTime = b.clock_in ? new Date(b.clock_in).getTime() : Infinity;
-        return aTime - bTime;
+
+        // Turn tracker technicians first, in exact turn tracker order; non-tracker last
+        var aInTracker = turnTrackerUserIds.has(a.id);
+        var bInTracker = turnTrackerUserIds.has(b.id);
+        if (aInTracker && !bInTracker) return -1;
+        if (!aInTracker && bInTracker) return 1;
+        if (aInTracker && bInTracker) {
+            return (turnTrackerPositions.get(a.id) || 0) - (turnTrackerPositions.get(b.id) || 0);
+        }
+        return 0;
     });
     container.innerHTML = filtered.map(function(tech) {
         var idStr = tech.id.toString(), isAssigned = assignedTechnicianIds.indexOf(idStr) >= 0;
@@ -930,7 +1001,12 @@ document.addEventListener('click', function(e) {
 });
 window.waitingListConfirmAssign = function() {
     if (!currentAppointmentId) { showErrorMessage('Appointment not found.'); return; }
-    var payload = { assigned_technician: assignedTechnicianIds.map(function(id) { return parseInt(id, 10); }) };
+    var now = new Date();
+    var appointmentDatetime = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0') + 'T' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0');
+    var payload = {
+        assigned_technician: assignedTechnicianIds.map(function(id) { return parseInt(id, 10); }),
+        appointment_datetime: appointmentDatetime
+    };
     var btn = document.querySelector('[onclick*="waitingListConfirmAssign"]');
     if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
 
@@ -986,16 +1062,20 @@ window.confirmAssignmentToTicket = function() {
     var techIds = (appointment && Array.isArray(appointment.assigned_technician)) ? appointment.assigned_technician : assignedTechnicianIds;
     if (!techIds.length) { alert('Please assign at least one technician first.'); return; }
     var now = new Date();
-    var appointmentDate = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
-    var appointmentTime = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+    var appointmentDatetime = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0') + 'T' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0');
     var payload = {
         assigned_technician: techIds.map(function(id) { return parseInt(id, 10); }),
         status: 'unpaid',
-        appointment_date: appointmentDate,
-        appointment_time: appointmentTime
+        appointment_datetime: appointmentDatetime
     };
     var btn = document.querySelector('[onclick*="confirmAssignmentToTicket"]');
-    if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
+    var btnOriginalHtml = '';
+    if (btn) {
+        btnOriginalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+        btn.innerHTML = '<span class="flex items-center gap-2"><svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Processing...</span>';
+    }
     salonApi.put(apiAppointmentsUrl + '/' + currentAppointmentId, payload).then(function(res) {
         var data = res.data;
         var idx = allAppointments.findIndex(function(a) { return a.id === currentAppointmentId; });
@@ -1008,7 +1088,7 @@ window.confirmAssignmentToTicket = function() {
     }).catch(function(err) {
         showErrorMessage(err.message || 'Failed to confirm assignment.');
     }).finally(function() {
-        if (btn) { btn.disabled = false; btn.style.opacity = '1'; }
+        if (btn) { btn.disabled = false; btn.classList.remove('opacity-50', 'cursor-not-allowed'); btn.innerHTML = btnOriginalHtml; }
     });
 };
 

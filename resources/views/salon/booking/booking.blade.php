@@ -128,6 +128,7 @@ var webhookApiUrl = '{{ url("api/salon/settings/webhook") }}';
 var allCustomers = [], selectedCustomer = null, selectedAppointmentDate = null, selectedAppointmentTime = null;
 var currentCalendarMonth = new Date().getMonth(), currentCalendarYear = new Date().getFullYear();
 var availableTechnicians = [], assignedTechnicianIds = [], technicianSearchTerm = '';
+var turnTrackerOrder = 'lowest', turnTrackerUserIds = new Set(), turnTrackerPositions = new Map();
 function getInitials(c) {
     var first = (c.firstName || '')[0] || '';
     var last = (c.lastName || '')[0] || '';
@@ -371,11 +372,33 @@ window.selectAppointmentTime = function(time) {
     selectedAppointmentTime = time;
     updateAvailableTimeSlots();
 };
+function fetchTurnTrackerOrder() {
+    var turnTrackerUrl = base.replace(/\/data\/?$/, '') + '/turn-tracker';
+    return fetch(turnTrackerUrl, { credentials: 'same-origin' }).then(function(r) { return r.json(); }).then(function(data) {
+        turnTrackerOrder = data.turn_tracker_order === 'highest' ? 'highest' : 'lowest';
+        var entries = (data.entries || []).map(function(e) {
+            return { user_id: e.user_id, services: typeof e.services === 'number' ? e.services : parseFloat(e.services) || 0, clock_in: e.clock_in || null };
+        });
+        entries.sort(function(a, b) {
+            var diff = a.services - b.services;
+            if (turnTrackerOrder === 'highest') diff = -diff;
+            if (diff !== 0) return diff;
+            var aTime = a.clock_in ? new Date(a.clock_in).getTime() : 0;
+            var bTime = b.clock_in ? new Date(b.clock_in).getTime() : 0;
+            return aTime - bTime;
+        });
+        turnTrackerUserIds = new Set(entries.map(function(e) { return e.user_id; }));
+        turnTrackerPositions = new Map();
+        entries.forEach(function(e, i) { turnTrackerPositions.set(e.user_id, i); });
+    }).catch(function(err) { console.error('Error fetching turn tracker order:', err); });
+}
 function fetchTechnicians() {
     return fetch(base + '/users').then(function(r) { return r.json(); }).then(function(data) {
         availableTechnicians = (data.users || []).filter(function(u) {
             return (u.role === 'technician' || u.userlevel === 'technician') && (u.status === 'active' || !u.status);
         });
+        return fetchTurnTrackerOrder();
+    }).then(function() {
         renderAvailableTechnicians();
         renderAssignedTechnicians();
         updateCounts();
@@ -413,22 +436,22 @@ function renderAvailableTechnicians() {
         return;
     }
     list.sort(function(a, b) {
+        // Assigned technicians go last
         var aIdStr = a.id.toString(), bIdStr = b.id.toString();
         var aIsAssigned = assignedTechnicianIds.indexOf(aIdStr) >= 0;
         var bIsAssigned = assignedTechnicianIds.indexOf(bIdStr) >= 0;
         if (aIsAssigned && !bIsAssigned) return 1;
         if (!aIsAssigned && bIsAssigned) return -1;
-        var aOnline = !!(a.clock_in && !a.clock_out);
-        var bOnline = !!(b.clock_in && !b.clock_out);
-        if (aOnline && !bOnline) return -1;
-        if (!aOnline && bOnline) return 1;
-        var aServices = typeof a.services === 'number' ? a.services : 0;
-        var bServices = typeof b.services === 'number' ? b.services : 0;
-        var diff = aServices - bServices;
-        if (diff !== 0) return diff;
-        var aTime = a.clock_in ? new Date(a.clock_in).getTime() : Infinity;
-        var bTime = b.clock_in ? new Date(b.clock_in).getTime() : Infinity;
-        return aTime - bTime;
+
+        // Turn tracker technicians first, in exact turn tracker order; non-tracker last
+        var aInTracker = turnTrackerUserIds.has(a.id);
+        var bInTracker = turnTrackerUserIds.has(b.id);
+        if (aInTracker && !bInTracker) return -1;
+        if (!aInTracker && bInTracker) return 1;
+        if (aInTracker && bInTracker) {
+            return (turnTrackerPositions.get(a.id) || 0) - (turnTrackerPositions.get(b.id) || 0);
+        }
+        return 0;
     });
     var badgeStyle = 'bottom: -5px; right: -5px;';
     container.innerHTML = list.map(function(tech) {

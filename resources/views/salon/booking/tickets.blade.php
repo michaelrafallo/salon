@@ -97,6 +97,8 @@
 .select-svc-slick-carousel .slick-next:before { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%234b5563'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M9 5l7 7-7 7'/%3E%3C/svg%3E"); }
 .select-svc-slick-carousel .slick-prev:hover, .select-svc-slick-carousel .slick-next:hover { background: #f9fafb; }
 .select-svc-slick-carousel .slick-disabled { opacity: 0.3; cursor: default; }
+@keyframes rotate-clock { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.rotating-clock { animation: rotate-clock 2s linear infinite; display: inline-block; }
 </style>
 @endpush
 @push('scripts')
@@ -129,6 +131,7 @@ var technicianSearchTerm = '';
 var assignedTechnicianSearchTerm = '';
 var resizeHandlerForTechnicians = null;
 var currentEventModalElement = null;
+var turnTrackerOrder = 'lowest', turnTrackerUserIds = new Set(), turnTrackerPositions = new Map();
 // Select services state
 var selectServicesData = [], selectServicesCategoriesMap = {}, selectServicesCategory = null, selectServicesCart = [];
 var selectServicesAppointmentId = null, selectServicesTechnicianId = null, selectServicesTechnicianName = '';
@@ -414,7 +417,7 @@ function renderList() {
         var rowNum = (PAGE_SIZE === 'all' || PAGE_SIZE === Infinity) ? index + 1 : (currentPage - 1) * PAGE_SIZE + index + 1;
         var customerStatus = (customer.status || '').toLowerCase();
         var startTimeCell = customerStatus === 'unpaid' || customerStatus === 'waiting' || customerStatus === 'in-progress'
-            ? '<div class="flex flex-col gap-1"><div class="text-sm text-gray-900">' + getTimeStarted(customer) + '</div><div class="text-base font-bold text-[#003047] duration-counter" data-start-time="' + (customer.appointment_datetime || '').toString() + '" data-customer-id="' + (customer.id || customer.appointmentId || '') + '">' + calculateDuration(customer.appointment_datetime) + '</div></div>'
+            ? '<div class="flex flex-col gap-1"><div class="text-sm text-gray-900">' + getTimeStarted(customer) + '</div><div class="flex items-center gap-1"><svg style="width:12px;height:12px;color:#008106;" class="rotating-clock" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg><span class="text-base font-bold text-[#003047] duration-counter" data-start-time="' + (customer.appointment_datetime || '').toString() + '" data-customer-id="' + (customer.id || customer.appointmentId || '') + '">' + calculateDuration(customer.appointment_datetime) + '</span></div></div>'
             : '<div class="text-sm text-gray-900">' + getTimeStarted(customer) + '</div>';
         var paymentCell = isUnpaid ? '' : '<td class="px-6 py-4 whitespace-nowrap">' + getPaymentDetails(customer) + '</td>';
         return '<tr class="customer-row hover:bg-gray-50 transition"><td class="px-3 py-4 whitespace-nowrap text-center"><div class="text-sm text-gray-600">' + rowNum + '</div></td><td class="px-6 py-4 whitespace-nowrap"><div class="flex items-center"><div class="w-10 h-10 ' + color.bg + ' rounded-full flex items-center justify-center flex-shrink-0 mr-3"><span class="text-sm font-bold ' + color.text + '">' + initials + '</span></div><div><div class="text-base font-normal text-gray-900">' + fullName + '</div></div></div></td><td class="px-6 py-4 whitespace-nowrap">' + startTimeCell + '</td><td class="px-6 py-4">' + renderTechniciansList(customer.assigned_technician) + '</td><td class="px-6 py-4 whitespace-nowrap"><span class="inline-block px-3 py-1 ' + statusClass + ' text-xs font-medium rounded-full">' + appointmentType + '</span></td>' + paymentCell + '<td class="px-6 py-4 whitespace-nowrap text-right"><div class="flex items-center justify-end gap-2">' + getActionButtons(customer, fullName) + '</div></td></tr>';
@@ -957,10 +960,32 @@ window.salonTicketsCloseAssignModal = function() {
     technicianSearchTerm = '';
     closeNestedModal();
 };
+function fetchTurnTrackerOrder() {
+    var turnTrackerUrl = base.replace(/\/data\/?$/, '') + '/turn-tracker';
+    return fetch(turnTrackerUrl, { credentials: 'same-origin' }).then(function(r) { return r.json(); }).then(function(data) {
+        turnTrackerOrder = data.turn_tracker_order === 'highest' ? 'highest' : 'lowest';
+        var entries = (data.entries || []).map(function(e) {
+            return { user_id: e.user_id, services: typeof e.services === 'number' ? e.services : parseFloat(e.services) || 0, clock_in: e.clock_in || null };
+        });
+        entries.sort(function(a, b) {
+            var diff = a.services - b.services;
+            if (turnTrackerOrder === 'highest') diff = -diff;
+            if (diff !== 0) return diff;
+            var aTime = a.clock_in ? new Date(a.clock_in).getTime() : 0;
+            var bTime = b.clock_in ? new Date(b.clock_in).getTime() : 0;
+            return aTime - bTime;
+        });
+        turnTrackerUserIds = new Set(entries.map(function(e) { return e.user_id; }));
+        turnTrackerPositions = new Map();
+        entries.forEach(function(e, i) { turnTrackerPositions.set(e.user_id, i); });
+    }).catch(function(err) { console.error('Error fetching turn tracker order:', err); });
+}
 window.salonTicketsLoadTechnicians = function() {
     fetch(base + '/users').then(function(r) { return r.json(); }).then(function(data) {
         availableTechnicians = (data.users || []).filter(function(u) { return u.role === 'technician' || u.userlevel === 'technician'; });
         originalTechnicianOrder = availableTechnicians.map(function(t) { return t.id; });
+        return fetchTurnTrackerOrder();
+    }).then(function() {
         salonTicketsRenderAvailableTechnicians();
         salonTicketsRenderAssignedTechnicians();
         salonTicketsUpdateCounts();
@@ -1019,23 +1044,22 @@ window.salonTicketsRenderAvailableTechnicians = function() {
         return;
     }
     filtered.sort(function(a, b) {
-        var aIdStr = a.id.toString();
-        var bIdStr = b.id.toString();
+        // Assigned technicians go last
+        var aIdStr = a.id.toString(), bIdStr = b.id.toString();
         var aIsAssigned = assignedTechnicianIds.indexOf(aIdStr) >= 0;
         var bIsAssigned = assignedTechnicianIds.indexOf(bIdStr) >= 0;
         if (aIsAssigned && !bIsAssigned) return 1;
         if (!aIsAssigned && bIsAssigned) return -1;
-        var aOnline = !!(a.clock_in && !a.clock_out);
-        var bOnline = !!(b.clock_in && !b.clock_out);
-        if (aOnline && !bOnline) return -1;
-        if (!aOnline && bOnline) return 1;
-        var aServices = typeof a.services === 'number' ? a.services : 0;
-        var bServices = typeof b.services === 'number' ? b.services : 0;
-        var diff = aServices - bServices;
-        if (diff !== 0) return diff;
-        var aTime = a.clock_in ? new Date(a.clock_in).getTime() : Infinity;
-        var bTime = b.clock_in ? new Date(b.clock_in).getTime() : Infinity;
-        return aTime - bTime;
+
+        // Turn tracker technicians first, in exact turn tracker order; non-tracker last
+        var aInTracker = turnTrackerUserIds.has(a.id);
+        var bInTracker = turnTrackerUserIds.has(b.id);
+        if (aInTracker && !bInTracker) return -1;
+        if (!aInTracker && bInTracker) return 1;
+        if (aInTracker && bInTracker) {
+            return (turnTrackerPositions.get(a.id) || 0) - (turnTrackerPositions.get(b.id) || 0);
+        }
+        return 0;
     });
     var badgeStyle = 'bottom: -5px; right: -5px;';
     var html = '';

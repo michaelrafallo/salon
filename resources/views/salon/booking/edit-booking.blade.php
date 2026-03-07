@@ -210,6 +210,7 @@ let currentCalendarYear = new Date().getFullYear();
 let availableTechnicians = [];
 let assignedTechnicianIds = [];
 let technicianSearchTerm = '';
+let turnTrackerOrder = 'lowest', turnTrackerUserIds = new Set(), turnTrackerPositions = new Map();
 
 // Get booking ID from URL
 function getBookingIdFromURL() {
@@ -833,10 +834,33 @@ function selectAppointmentTime(time) {
 }
 
 // Technician functions
+async function fetchTurnTrackerOrder() {
+    try {
+        var turnTrackerUrl = base.replace(/\/data\/?$/, '') + '/turn-tracker';
+        const response = await fetch(turnTrackerUrl, { credentials: 'same-origin' });
+        const data = await response.json();
+        turnTrackerOrder = data.turn_tracker_order === 'highest' ? 'highest' : 'lowest';
+        var entries = (data.entries || []).map(function(e) {
+            return { user_id: e.user_id, services: typeof e.services === 'number' ? e.services : parseFloat(e.services) || 0, clock_in: e.clock_in || null };
+        });
+        entries.sort(function(a, b) {
+            var diff = a.services - b.services;
+            if (turnTrackerOrder === 'highest') diff = -diff;
+            if (diff !== 0) return diff;
+            var aTime = a.clock_in ? new Date(a.clock_in).getTime() : 0;
+            var bTime = b.clock_in ? new Date(b.clock_in).getTime() : 0;
+            return aTime - bTime;
+        });
+        turnTrackerUserIds = new Set(entries.map(function(e) { return e.user_id; }));
+        turnTrackerPositions = new Map();
+        entries.forEach(function(e, i) { turnTrackerPositions.set(e.user_id, i); });
+    } catch (err) { console.error('Error fetching turn tracker order:', err); }
+}
 async function fetchTechnicians() {
     if (bootstrap && Array.isArray(bootstrap.users)) {
         const users = bootstrap.users || [];
         availableTechnicians = users.filter(user => (user.role === 'technician' || user.userlevel === 'technician') && (user.status === 'active' || !user.status));
+        await fetchTurnTrackerOrder();
         renderAvailableTechnicians();
         renderAssignedTechnicians();
         updateCounts();
@@ -848,6 +872,7 @@ async function fetchTechnicians() {
         const data = await response.json();
         const users = data.users || [];
         availableTechnicians = users.filter(user => (user.role === 'technician' || user.userlevel === 'technician') && (user.status === 'active' || !user.status));
+        await fetchTurnTrackerOrder();
         renderAvailableTechnicians();
         renderAssignedTechnicians();
         updateCounts();
@@ -928,17 +953,15 @@ function renderAvailableTechnicians() {
         const bIsAssigned = assignedTechnicianIds.includes(bIdStr);
         if (aIsAssigned && !bIsAssigned) return 1;
         if (!aIsAssigned && bIsAssigned) return -1;
-        const aOnline = !!(a.clock_in && !a.clock_out);
-        const bOnline = !!(b.clock_in && !b.clock_out);
-        if (aOnline && !bOnline) return -1;
-        if (!aOnline && bOnline) return 1;
-        const aServices = typeof a.services === 'number' ? a.services : 0;
-        const bServices = typeof b.services === 'number' ? b.services : 0;
-        const diff = aServices - bServices;
-        if (diff !== 0) return diff;
-        const aTime = a.clock_in ? new Date(a.clock_in).getTime() : Infinity;
-        const bTime = b.clock_in ? new Date(b.clock_in).getTime() : Infinity;
-        return aTime - bTime;
+        // Turn tracker technicians first, in exact turn tracker order; non-tracker last
+        const aInTracker = turnTrackerUserIds.has(a.id);
+        const bInTracker = turnTrackerUserIds.has(b.id);
+        if (aInTracker && !bInTracker) return -1;
+        if (!aInTracker && bInTracker) return 1;
+        if (aInTracker && bInTracker) {
+            return (turnTrackerPositions.get(a.id) || 0) - (turnTrackerPositions.get(b.id) || 0);
+        }
+        return 0;
     });
     
     const badgeStyle = 'bottom: -5px; right: -5px;';

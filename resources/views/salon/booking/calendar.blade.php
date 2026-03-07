@@ -37,11 +37,11 @@
                         </div>
                     </div>
                     <div class="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
-                        <button id="gridViewBtn" onclick="salonCalendarToggleView('grid')" class="px-4 py-2 rounded-md transition-all flex items-center gap-2 view-toggle-btn active">
-                            <svg class="w-5 h-5 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                        <button id="gridViewBtn" onclick="salonCalendarToggleView('grid')" class="px-4 py-2 rounded-md transition-all flex items-center gap-2 view-toggle-btn">
+                            <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
                         </button>
-                        <button id="listViewBtn" onclick="salonCalendarToggleView('list')" class="px-4 py-2 rounded-md transition-all flex items-center gap-2 view-toggle-btn">
-                            <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                        <button id="listViewBtn" onclick="salonCalendarToggleView('list')" class="px-4 py-2 rounded-md transition-all flex items-center gap-2 view-toggle-btn active">
+                            <svg class="w-5 h-5 text-gray-900" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
                         </button>
                     </div>
                     <a href="{{ $bookingUrl }}" class="px-4 py-2 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium text-sm sm:text-base flex items-center gap-2 active:scale-95">
@@ -67,10 +67,10 @@
             </div>
         </div>
 
-        <div id="calendarContainer" class="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
+        <div id="calendarContainer" class="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden hidden">
             <div id="calendar" class="w-full p-4 sm:p-6"></div>
         </div>
-        <div id="listViewContainer" class="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden hidden mt-6">
+        <div id="listViewContainer" class="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden mt-6">
             <div class="w-full">
                 <div id="technicianListView" class="w-full">
                     <!-- List view will be rendered here -->
@@ -121,6 +121,7 @@ let currentEventModalElement = null; // Reference to the technician display elem
 let activeAppointmentFilter = 'all'; // Track active appointment type filter (all, booked, walkin)
 let turnTrackerOrder = 'lowest'; // Turn tracker sort order from settings
 let turnTrackerUserIds = new Set(); // User IDs listed in the turn tracker
+let turnTrackerPositions = new Map(); // user_id → sorted position index from turn tracker
 
 // --- Date helpers (avoid UTC date shifting for YYYY-MM-DD inputs) ---
 function formatYmdLocal(date) {
@@ -202,7 +203,21 @@ async function fetchTurnTrackerOrder() {
         const response = await fetch(settingsUrl, { credentials: 'same-origin' });
         const data = await response.json();
         turnTrackerOrder = data.turn_tracker_order === 'highest' ? 'highest' : 'lowest';
-        turnTrackerUserIds = new Set((data.entries || []).map(function(e) { return e.user_id; }));
+        const entries = (data.entries || []).map(function(e) {
+            return { user_id: e.user_id, services: typeof e.services === 'number' ? e.services : parseFloat(e.services) || 0, clock_in: e.clock_in || null };
+        });
+        // Sort entries the same way the turn tracker page does
+        entries.sort(function(a, b) {
+            let diff = a.services - b.services;
+            if (turnTrackerOrder === 'highest') diff = -diff;
+            if (diff !== 0) return diff;
+            var aTime = a.clock_in ? new Date(a.clock_in).getTime() : 0;
+            var bTime = b.clock_in ? new Date(b.clock_in).getTime() : 0;
+            return aTime - bTime;
+        });
+        turnTrackerUserIds = new Set(entries.map(function(e) { return e.user_id; }));
+        turnTrackerPositions = new Map();
+        entries.forEach(function(e, i) { turnTrackerPositions.set(e.user_id, i); });
     } catch (error) {
         console.error('Error fetching turn tracker order:', error);
     }
@@ -330,6 +345,19 @@ function convertAppointmentsToEvents(appointments) {
             classNames.push('event-no-show');
         }
         
+        // Determine event color from the first service color
+        let firstServiceColor = null;
+        if (appointment.services && Array.isArray(appointment.services) && appointment.services.length > 0) {
+            for (let si = 0; si < appointment.services.length; si++) {
+                let sColor = appointment.services[si].service_color;
+                if (!sColor && appointment.services[si].service_id && typeof selectServicesData !== 'undefined' && selectServicesData.length > 0) {
+                    const svcInfo = selectServicesData.find(d => d.id === appointment.services[si].service_id);
+                    if (svcInfo && svcInfo.color) sColor = svcInfo.color;
+                }
+                if (sColor) { firstServiceColor = sColor; break; }
+            }
+        }
+
         // Apply event colors based on state — no-show always wins (CSS handles it)
         let eventBgColor, eventBorderColor, eventTextColor;
 
@@ -337,6 +365,11 @@ function convertAppointmentsToEvents(appointments) {
             eventBgColor = '';
             eventBorderColor = '';
             eventTextColor = '';
+        } else if (firstServiceColor) {
+            eventBgColor = firstServiceColor;
+            eventBorderColor = firstServiceColor;
+            eventTextColor = '#ffffff';
+            classNames.push('event-custom-color');
         } else if (appointment.color) {
             eventBgColor = appointment.color;
             eventBorderColor = appointment.color;
@@ -435,16 +468,18 @@ document.addEventListener('DOMContentLoaded', async function() {
     // Fetch bookings initially to populate bookingsData
     await fetchBookings();
 
-    if (viewParam === 'list') {
+    if (viewParam && viewParam !== 'list') {
+        // Grid/calendar view (month, week, day, grid)
+        if (calendarContainer) calendarContainer.classList.remove('hidden');
+        if (listViewContainer) listViewContainer.classList.add('hidden');
+        updateViewButtons('grid');
+    } else {
+        // Default to list view
         if (calendarContainer) calendarContainer.classList.add('hidden');
         if (listViewContainer) listViewContainer.classList.remove('hidden');
         updateViewButtons('list');
         // Render list view after data is loaded
         renderTechnicianListView();
-    } else {
-        if (calendarContainer) calendarContainer.classList.remove('hidden');
-        if (listViewContainer) listViewContainer.classList.add('hidden');
-        updateViewButtons('grid');
     }
 
     var calendar = new FullCalendar.Calendar(calendarEl, {
@@ -725,8 +760,8 @@ document.addEventListener('DOMContentLoaded', async function() {
                 window.history.pushState({}, '', url);
             }
             
-            // Update button states based on current view (only for calendar views)
-            if (view.view.type === 'dayGridMonth') {
+            // Update button states based on current view (only for calendar views, and only if calendar is visible)
+            if (view.view.type === 'dayGridMonth' && calendarContainer && !calendarContainer.classList.contains('hidden')) {
                 updateViewButtons('grid');
             }
             
@@ -842,14 +877,20 @@ function salonCalendarToggleView(viewType) {
 function updateViewButtons(activeView) {
     const gridBtn = document.getElementById('gridViewBtn');
     const listBtn = document.getElementById('listViewBtn');
-    
+
     if (gridBtn && listBtn) {
+        const gridSvg = gridBtn.querySelector('svg');
+        const listSvg = listBtn.querySelector('svg');
         if (activeView === 'grid') {
             gridBtn.classList.add('active');
             listBtn.classList.remove('active');
+            if (gridSvg) { gridSvg.classList.remove('text-gray-500'); gridSvg.classList.add('text-gray-900'); }
+            if (listSvg) { listSvg.classList.remove('text-gray-900'); listSvg.classList.add('text-gray-500'); }
         } else {
             listBtn.classList.add('active');
             gridBtn.classList.remove('active');
+            if (listSvg) { listSvg.classList.remove('text-gray-500'); listSvg.classList.add('text-gray-900'); }
+            if (gridSvg) { gridSvg.classList.remove('text-gray-900'); gridSvg.classList.add('text-gray-500'); }
         }
     }
 }
@@ -867,24 +908,17 @@ function renderTechnicianListView() {
     // Apply appointment type filter
     const filteredBookings = getFilteredAppointments(bookingsData);
 
-    // Match the turn tracker page ordering: technicians listed in the turn tracker first,
-    // sorted by service count (respecting turn_tracker_order setting), then by clock-in time.
-    // Technicians not in the turn tracker go last.
+    // Match the turn tracker page ordering exactly: technicians in the turn tracker first
+    // (in the same sorted order as the turn tracker page), then non-tracker technicians last.
     const orderedTechnicians = [...techniciansData].sort((a, b) => {
         const aInTracker = turnTrackerUserIds.has(a.id);
         const bInTracker = turnTrackerUserIds.has(b.id);
         if (aInTracker && !bInTracker) return -1;
         if (!aInTracker && bInTracker) return 1;
-
-        const aServices = typeof a.services === 'number' ? a.services : parseFloat(a.services) || 0;
-        const bServices = typeof b.services === 'number' ? b.services : parseFloat(b.services) || 0;
-        let diff = aServices - bServices;
-        if (turnTrackerOrder === 'highest') diff = -diff;
-        if (diff !== 0) return diff;
-
-        const aTime = a.clock_in ? new Date(a.clock_in).getTime() : Infinity;
-        const bTime = b.clock_in ? new Date(b.clock_in).getTime() : Infinity;
-        return aTime - bTime;
+        if (aInTracker && bInTracker) {
+            return (turnTrackerPositions.get(a.id) || 0) - (turnTrackerPositions.get(b.id) || 0);
+        }
+        return 0;
     });
     
     // Use selected date for filtering appointments
@@ -1077,14 +1111,30 @@ function renderTechnicianListView() {
                 // Check if appointment is unpaid
                 const isUnpaid = apt.status === 'unpaid';
 
-                // Apply color coding based on no show or custom color
+                // Determine event color from the first service color of the first assigned technician
+                let salonEventColor = null;
+                if (apt.services && Array.isArray(apt.services) && apt.services.length > 0) {
+                    for (let si = 0; si < apt.services.length; si++) {
+                        let sColor = apt.services[si].service_color;
+                        if (!sColor && apt.services[si].service_id && typeof selectServicesData !== 'undefined' && selectServicesData.length > 0) {
+                            const svcInfo = selectServicesData.find(d => d.id === apt.services[si].service_id);
+                            if (svcInfo && svcInfo.color) sColor = svcInfo.color;
+                        }
+                        if (sColor) { salonEventColor = sColor; break; }
+                    }
+                }
+
+                // Apply color coding based on first service color, no show, or custom color
                 let colorClass = '';
                 let inlineStyle = '';
-                if (apt.color && !isNoShow) {
+                if (isNoShow) {
+                    colorClass = 'bg-[#9ca3af] text-[#003047] border-[#6b7280] opacity-70';
+                } else if (salonEventColor) {
+                    colorClass = 'text-white';
+                    inlineStyle = 'background-color:' + salonEventColor + ' !important;border-color:' + salonEventColor + ' !important;color:#fff !important;';
+                } else if (apt.color) {
                     colorClass = 'text-white';
                     inlineStyle = 'background-color:' + apt.color + ' !important;border-color:' + apt.color + ' !important;color:#fff !important;';
-                } else if (isNoShow) {
-                    colorClass = 'bg-[#9ca3af] text-[#003047] border-[#6b7280] opacity-70';
                 } else {
                     // White background with blue border for salon appointments
                     colorClass = 'bg-white text-[#003047] border-[#003047]';
@@ -1222,15 +1272,30 @@ function renderTechnicianListView() {
                     // Check if technician is assigned
                     const hasTechnician = apt.assigned_technician && Array.isArray(apt.assigned_technician) && apt.assigned_technician.length > 0;
 
-                    // Apply color coding based on custom color, no show, and technician assignment
+                    // Determine the color for this technician's event card
+                    // Use the first service color assigned to this specific technician
+                    let techEventColor = null;
+                    if (apt.services && Array.isArray(apt.services)) {
+                        const techServices = apt.services.filter(s => s.technician_id && s.technician_id.toString() === technicianId);
+                        for (let si = 0; si < techServices.length; si++) {
+                            let sColor = techServices[si].service_color;
+                            if (!sColor && techServices[si].service_id && typeof selectServicesData !== 'undefined' && selectServicesData.length > 0) {
+                                const svcInfo = selectServicesData.find(d => d.id === techServices[si].service_id);
+                                if (svcInfo && svcInfo.color) sColor = svcInfo.color;
+                            }
+                            if (sColor) { techEventColor = sColor; break; }
+                        }
+                    }
+
+                    // Apply color coding based on technician's first service color, no show, and technician assignment
                     let colorClass = '';
                     let inlineStyle = '';
-                    if (apt.color && !isNoShow) {
-                        colorClass = 'text-white';
-                        inlineStyle = 'background-color:' + apt.color + ' !important;border-color:' + apt.color + ' !important;color:#fff !important;';
-                    } else if (isNoShow) {
+                    if (isNoShow) {
                         // Gray background for no show
                         colorClass = 'bg-[#9ca3af] text-[#003047] border-[#6b7280] opacity-70';
+                    } else if (techEventColor) {
+                        colorClass = 'text-white';
+                        inlineStyle = 'background-color:' + techEventColor + ' !important;border-color:' + techEventColor + ' !important;color:#fff !important;';
                     } else if (hasTechnician) {
                         // Blue background with blue border for assigned technician
                         colorClass = 'bg-[#003047] text-white border-[#003047]';
@@ -2109,11 +2174,7 @@ function showAppointmentModal(appointmentData) {
                     ` : ''}
                 </div>
                 ${!isTechnician ? `
-                <div id="eventColorSection_${appointmentId}" class="p-4 bg-gray-50 rounded-xl ${(function() {
-                    const apt = bookingsData.find(a => a.id.toString() === appointmentId.toString());
-                    const hasAssigned = apt && Array.isArray(apt.assigned_technician) && apt.assigned_technician.length > 0;
-                    return hasAssigned ? '' : 'hidden';
-                })()}" style="min-width:340px">
+                <div id="eventColorSection_${appointmentId}" class="p-4 bg-gray-50 rounded-xl hidden" style="min-width:340px">
                     <div class="flex items-center gap-4">
                         <div id="eventColorPreview_${appointmentId}" class="flex-shrink-0" style="width:48px;height:48px;position:relative">
                             ${eventColor
@@ -2223,6 +2284,8 @@ function showAppointmentModal(appointmentData) {
         // Store reference to the technician display element
         setTimeout(() => {
             currentEventModalElement = document.getElementById(`technicianDisplay_${appointmentId}`);
+            // Update technician display and show/hide event color section based on current view
+            updateEventModalTechnicianDisplay();
         }, 100);
     }
 }
@@ -2280,7 +2343,7 @@ function editBooking(eventId) {
     window.location.href = '{{ $editBookingUrl }}?id=' + eventId;
 }
 
-function setEventColor(appointmentId, color) {
+function setEventColor(appointmentId, color, skipModalRefresh) {
     const apiUrl = window.salonCalendarAppointmentsApiUrl;
     salonApi.put(apiUrl + '/' + appointmentId, { color: color }).then(function() {
         // Update bookingsData
@@ -2356,11 +2419,13 @@ function setEventColor(appointmentId, color) {
             renderTechnicianListView();
         }
 
-        // Re-render modal to update selected state
-        if (typeof closeModal === 'function') closeModal();
-        const updatedAppointment = bookingsData.find(a => a.id.toString() === appointmentId.toString());
-        if (updatedAppointment) {
-            viewAppointment(appointmentId);
+        // Re-render modal to update selected state (skip when called from service save flow)
+        if (!skipModalRefresh) {
+            if (typeof closeModal === 'function') closeModal();
+            const updatedAppointment = bookingsData.find(a => a.id.toString() === appointmentId.toString());
+            if (updatedAppointment) {
+                viewAppointment(appointmentId);
+            }
         }
     }).catch(function(err) {
         console.error('Failed to save event color:', err);
@@ -2409,6 +2474,34 @@ function deleteAppointment(appointmentId, customerName) {
 
             const apiUrl = window.salonCalendarAppointmentsApiUrl;
             salonApi.delete(apiUrl + '/' + appointmentId).then(function() {
+                // Update turn tracker service counts for all assigned technicians
+                if (appointment && Array.isArray(appointment.services) && appointment.services.length > 0) {
+                    var deletedCountByTech = {};
+                    appointment.services.forEach(function(s) {
+                        if (!s.technician_id) return;
+                        var tid = s.technician_id.toString();
+                        var svcData = typeof selectServicesData !== 'undefined' && selectServicesData.length > 0
+                            ? selectServicesData.find(function(d) { return d.id === s.service_id; }) : null;
+                        var sc = svcData && typeof svcData.service_count === 'number' ? svcData.service_count : 0;
+                        if (!deletedCountByTech[tid]) deletedCountByTech[tid] = 0;
+                        deletedCountByTech[tid] += sc * (s.quantity || 1);
+                    });
+                    var turnTrackerEntries = [];
+                    Object.keys(deletedCountByTech).forEach(function(tid) {
+                        var tech = techniciansData.find(function(t) { return t.id.toString() === tid; });
+                        var currentServices = tech && typeof tech.services === 'number' ? tech.services : 0;
+                        var newTotal = Math.max(0, currentServices - deletedCountByTech[tid]);
+                        turnTrackerEntries.push({ user_id: parseInt(tid), services: newTotal });
+                        if (tech) tech.services = newTotal;
+                    });
+                    if (turnTrackerEntries.length > 0) {
+                        var turnTrackerUrl = base.replace(/\/data\/?$/, '') + '/turn-tracker';
+                        salonApi.put(turnTrackerUrl, { entries: turnTrackerEntries }).catch(function(err) {
+                            console.error('Turn tracker update failed on appointment delete:', err);
+                        });
+                    }
+                }
+
                 // Close modal
                 if (typeof closeModal === 'function') closeModal();
 
@@ -3154,24 +3247,23 @@ function renderAvailableTechnicians() {
     }
     
     filteredTechnicians = [...filteredTechnicians].sort((a, b) => {
+        // Assigned technicians go last
         const aIdStr = a.id.toString();
         const bIdStr = b.id.toString();
         const aIsAssigned = selectedTechnicianIds.includes(aIdStr);
         const bIsAssigned = selectedTechnicianIds.includes(bIdStr);
         if (aIsAssigned && !bIsAssigned) return 1;
         if (!aIsAssigned && bIsAssigned) return -1;
-        const aOnline = !!(a.clock_in && !a.clock_out);
-        const bOnline = !!(b.clock_in && !b.clock_out);
-        if (aOnline && !bOnline) return -1;
-        if (!aOnline && bOnline) return 1;
-        const aServices = typeof a.services === 'number' ? a.services : parseFloat(a.services) || 0;
-        const bServices = typeof b.services === 'number' ? b.services : parseFloat(b.services) || 0;
-        let diff = aServices - bServices;
-        if (turnTrackerOrder === 'highest') diff = -diff;
-        if (diff !== 0) return diff;
-        const aTime = a.clock_in ? new Date(a.clock_in).getTime() : Infinity;
-        const bTime = b.clock_in ? new Date(b.clock_in).getTime() : Infinity;
-        return aTime - bTime;
+
+        // Turn tracker technicians first, in exact turn tracker order; non-tracker last
+        const aInTracker = turnTrackerUserIds.has(a.id);
+        const bInTracker = turnTrackerUserIds.has(b.id);
+        if (aInTracker && !bInTracker) return -1;
+        if (!aInTracker && bInTracker) return 1;
+        if (aInTracker && bInTracker) {
+            return (turnTrackerPositions.get(a.id) || 0) - (turnTrackerPositions.get(b.id) || 0);
+        }
+        return 0;
     });
     
     const badgeStyle = 'bottom: -5px; right: -5px;';
@@ -3421,6 +3513,34 @@ function confirmTechnicianSelection() {
                         updateEventModalTechnicianDisplay();
                         refreshEventColorSwatches(currentAppointmentId);
                     }).catch(function(err) { console.error('Failed to clean up services:', err); });
+
+                    // Update turn tracker service count for removed technicians
+                    var turnTrackerUrl = base.replace(/\/data\/?$/, '') + '/turn-tracker';
+                    var removedServices = aptData.services.filter(function(s) {
+                        return removedTechIds.some(function(rid) { return s.technician_id && s.technician_id.toString() === rid; });
+                    });
+                    // Group removed services by technician and calculate service_count to subtract
+                    var removedCountByTech = {};
+                    removedServices.forEach(function(s) {
+                        var tid = s.technician_id.toString();
+                        var svcData = selectServicesData.length > 0 ? selectServicesData.find(function(d) { return d.id === s.service_id; }) : null;
+                        var sc = svcData && typeof svcData.service_count === 'number' ? svcData.service_count : 0;
+                        if (!removedCountByTech[tid]) removedCountByTech[tid] = 0;
+                        removedCountByTech[tid] += sc * (s.quantity || 1);
+                    });
+                    var turnTrackerEntries = [];
+                    Object.keys(removedCountByTech).forEach(function(tid) {
+                        var tech = techniciansData.find(function(t) { return t.id.toString() === tid; });
+                        var currentServices = tech && typeof tech.services === 'number' ? tech.services : 0;
+                        var newTotal = Math.max(0, currentServices - removedCountByTech[tid]);
+                        turnTrackerEntries.push({ user_id: parseInt(tid), services: newTotal });
+                        if (tech) tech.services = newTotal;
+                    });
+                    if (turnTrackerEntries.length > 0) {
+                        salonApi.put(turnTrackerUrl, { entries: turnTrackerEntries }).then(function() {
+                            renderTechnicianListView();
+                        }).catch(function(err) { console.error('Turn tracker update failed for removed technicians:', err); });
+                    }
                 }
                 doUpdateUI();
             })
@@ -3483,9 +3603,15 @@ function updateEventModalTechnicianDisplay() {
         }
         return;
     }
-    // Show event color section when technicians are assigned
+    // Show event color section only in calendar/grid view, hide in list view
     if (colorSection) {
-        colorSection.classList.remove('hidden');
+        var calendarContainer = document.getElementById('calendarContainer');
+        var isCalendarView = calendarContainer && !calendarContainer.classList.contains('hidden');
+        if (isCalendarView) {
+            colorSection.classList.remove('hidden');
+        } else {
+            colorSection.classList.add('hidden');
+        }
     }
 
     var allSvcs = appointment && Array.isArray(appointment.services) ? appointment.services : [];
@@ -3563,16 +3689,30 @@ function updateCalendarEventDisplay() {
     // Update event extended props
     currentEvent.setExtendedProp('technician', techniciansText);
     
+    // Determine the first service color
+    let firstServiceColor = null;
+    if (appointment.services && Array.isArray(appointment.services) && appointment.services.length > 0) {
+        for (let si = 0; si < appointment.services.length; si++) {
+            let sColor = appointment.services[si].service_color;
+            if (!sColor && appointment.services[si].service_id && typeof selectServicesData !== 'undefined' && selectServicesData.length > 0) {
+                const svcInfo = selectServicesData.find(d => d.id === appointment.services[si].service_id);
+                if (svcInfo && svcInfo.color) sColor = svcInfo.color;
+            }
+            if (sColor) { firstServiceColor = sColor; break; }
+        }
+    }
+
     // Update event styling — no-show: no inline styles, CSS handles it
     const isNoShow = noShowStatus[appointment.id] === true;
+    const effectiveColor = firstServiceColor || appointment.color;
 
     if (isNoShow) {
         currentEvent.setProp('backgroundColor', '');
         currentEvent.setProp('borderColor', '');
         currentEvent.setProp('textColor', '');
-    } else if (appointment.color) {
-        currentEvent.setProp('backgroundColor', appointment.color);
-        currentEvent.setProp('borderColor', appointment.color);
+    } else if (effectiveColor) {
+        currentEvent.setProp('backgroundColor', effectiveColor);
+        currentEvent.setProp('borderColor', effectiveColor);
         currentEvent.setProp('textColor', '#ffffff');
     } else {
         currentEvent.setProp('backgroundColor', hasTechnician ? '#003047' : 'transparent');
@@ -3585,7 +3725,7 @@ function updateCalendarEventDisplay() {
     const statusClass = existingClassNames.find(cn => cn.startsWith('event-status-') || ['event-booked', 'event-in-booking', 'event-completed', 'event-in-progress'].includes(cn));
     const classNames = [];
     if (statusClass) classNames.push(statusClass);
-    if (!isNoShow && appointment.color) {
+    if (!isNoShow && effectiveColor) {
         classNames.push('event-custom-color');
     }
     if (hasTechnician) {
@@ -3950,14 +4090,14 @@ window.refreshEventColorSwatches = function(appointmentId) {
     // 1) No services at all → clear color
     if (serviceColors.length === 0) {
         if (currentColor) {
-            setEventColor(appointmentId, null);
+            setEventColor(appointmentId, null, true);
             currentColor = null;
         }
     // 2) Current color not in available service colors → auto-select best
     } else if (!currentColor || !colorInServices) {
         var best = serviceColors.reduce(function(a, b) { return b.service_count > a.service_count ? b : a; }, serviceColors[0]);
         if (best && best.hex) {
-            setEventColor(appointmentId, best.hex);
+            setEventColor(appointmentId, best.hex, true);
             currentColor = best.hex;
         }
     }
@@ -4065,6 +4205,13 @@ window.saveSelectServicesCart = function() {
             updateEventModalTechnicianDisplay();
             // Refresh color swatches with updated service colors
             refreshEventColorSwatches(selectServicesAppointmentId);
+            // Re-render list view to update event card colors
+            var listViewContainer = document.getElementById('listViewContainer');
+            if (listViewContainer && !listViewContainer.classList.contains('hidden')) {
+                renderTechnicianListView();
+            }
+            // Update calendar event colors in grid view
+            updateCalendarEventDisplay();
         }).catch(function(err) {
             resetSaveBtn();
             if (typeof showErrorMessage === 'function') showErrorMessage(err && err.message ? err.message : 'Failed to save services.');
