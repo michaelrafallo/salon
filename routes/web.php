@@ -44,6 +44,7 @@ Route::middleware(['web', 'salon.auth'])->prefix('api/salon')->name('api.salon.'
     Route::post('settings/webhook', [SalonSettingsController::class, 'sendWebhook'])->name('settings.webhook');
     Route::post('settings/clickaio/refresh', [SalonSettingsController::class, 'clickaioRefreshToken'])->name('settings.clickaio.refresh');
     Route::post('settings/clickaio/test-api', [SalonSettingsController::class, 'clickaioTestApi'])->name('settings.clickaio.test-api');
+    Route::post('settings/clickaio/bulk-action', [SalonSettingsController::class, 'clickaioBulkAction'])->name('settings.clickaio.bulk-action');
     Route::get('coupons', [SalonCouponController::class, 'index'])->name('coupons.index');
     Route::post('coupons', [SalonCouponController::class, 'store'])->name('coupons.store');
     Route::put('coupons/{coupon}', [SalonCouponController::class, 'update'])->name('coupons.update');

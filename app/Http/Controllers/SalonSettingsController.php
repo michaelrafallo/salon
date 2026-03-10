@@ -302,6 +302,97 @@ class SalonSettingsController extends Controller
         }
     }
 
+    /**
+     * Bulk action on customers for GHL sync: sync_from, sync_to, delete.
+     */
+    public function clickaioBulkAction(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'action' => ['required', 'string', 'in:sync_from,sync_to,delete'],
+            'customer_ids' => ['required', 'array', 'min:1'],
+            'customer_ids.*' => ['integer', 'exists:customers,id'],
+        ]);
+
+        $action = $validated['action'];
+        $customers = \App\Models\Customer::whereIn('id', $validated['customer_ids'])->get();
+
+        $token = static::getClickaioToken();
+        $locationId = \App\Models\Setting::query()->where('option_key', 'clickaio_location_id')->value('option_value');
+
+        if ($action !== 'delete' && (! $token || ! $locationId)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'GHL not connected. Please authorize and set Location ID first.',
+            ], 422);
+        }
+
+        $results = ['synced' => 0, 'skipped' => 0, 'failed' => 0, 'deleted' => 0];
+
+        foreach ($customers as $customer) {
+            try {
+                if ($action === 'sync_from') {
+                    if ($customer->ghl_contact_id) {
+                        $results['skipped']++;
+
+                        continue;
+                    }
+                    $contactId = \App\Services\GoHighLevelService::findGhlContact($token, $locationId, $customer);
+                    if ($contactId) {
+                        $results['synced']++;
+                    } else {
+                        $results['failed']++;
+                    }
+                } elseif ($action === 'sync_to') {
+                    $contactId = $customer->ghl_contact_id;
+                    if (! $contactId) {
+                        $contactId = \App\Services\GoHighLevelService::findGhlContact($token, $locationId, $customer);
+                    }
+                    if (! $contactId) {
+                        $contactId = \App\Services\GoHighLevelService::createGhlContact($token, $locationId, $customer);
+                    }
+                    if ($contactId) {
+                        $results['synced']++;
+                    } else {
+                        $results['failed']++;
+                    }
+                } elseif ($action === 'delete') {
+                    $customer->updateQuietly(['ghl_contact_id' => null]);
+                    $results['deleted']++;
+                }
+            } catch (\Exception $e) {
+                Log::warning("GHL bulk {$action} failed for customer #{$customer->id}: ".$e->getMessage());
+                $results['failed']++;
+            }
+        }
+
+        $messages = [];
+        if ($results['synced'] > 0) {
+            $messages[] = $results['synced'].' synced';
+        }
+        if ($results['skipped'] > 0) {
+            $messages[] = $results['skipped'].' skipped';
+        }
+        if ($results['failed'] > 0) {
+            $messages[] = $results['failed'].' failed';
+        }
+        if ($results['deleted'] > 0) {
+            $messages[] = $results['deleted'].' cleared';
+        }
+
+        // Refresh customers to return updated ghl_contact_id values
+        $updatedCustomers = [];
+        foreach ($customers->fresh() as $c) {
+            $updatedCustomers[$c->id] = $c->ghl_contact_id;
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => implode(', ', $messages).'.',
+            'data' => $results,
+            'customers' => $updatedCustomers,
+        ]);
+    }
+
     public function sendWebhook(Request $request): JsonResponse
     {
         $validated = $request->validate([

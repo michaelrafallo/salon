@@ -27,12 +27,24 @@
                 <input type="text" id="customerSearchInput" placeholder="Search customers by name, phone, or email..." oninput="salonCustomersSearch(this.value)" class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent text-base">
             </div>
         </div>
+        <div id="customersBulkBar" class="mb-4 flex flex-wrap items-center gap-3" data-bulk-action-url="{{ route('api.salon.settings.clickaio.bulk-action') }}">
+            <input type="checkbox" id="customersSelectAll" class="w-4 h-4 text-[#003047] border-gray-300 rounded focus:ring-[#003047]">
+            <select id="customersBulkAction" class="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent bg-white text-sm">
+                <option value="">Select Action</option>
+                <option value="sync_from">Sync from Clickaio</option>
+                <option value="sync_to">Sync to Clickaio</option>
+                <option value="delete">Delete</option>
+            </select>
+            <button type="button" id="customersBulkGoBtn" disabled class="px-5 py-2 bg-[#003047] text-white text-sm rounded-lg hover:bg-[#002535] transition font-medium active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100">Go</button>
+            <span id="customersBulkCount" class="text-xs text-gray-500"></span>
+        </div>
         <div id="gridView" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6"></div>
         <div id="listView" class="hidden">
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
                 <table class="w-full">
                     <thead class="bg-gray-50 border-b border-gray-200">
                         <tr>
+                            <th class="px-3 py-3 w-10"></th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Contact</th>
                             <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Visits</th>
@@ -133,17 +145,17 @@ function renderGrid() {
     if (list.length === 0) { el.innerHTML = '<div class="col-span-full text-center py-12"><p class="text-gray-500 text-sm">No customers found</p></div>'; return; }
     el.innerHTML = list.map(function(c, i) {
         var color = colorClasses[i % colorClasses.length], initials = getInitials(c), name = c.firstName + ' ' + c.lastName, visits = getTotalVisits(c), last = getLastVisit(c);
-        return '<div class="customer-card bg-white rounded-lg shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow relative group flex flex-col"><div onclick="window.location.href=\'' + viewUrl + '?id=' + c.id + '\'" class="cursor-pointer flex-1"><div class="flex items-center gap-4 mb-4"><div class="w-16 h-16 ' + color.bg + ' rounded-full flex items-center justify-center flex-shrink-0"><span class="text-2xl font-bold ' + color.text + '">' + initials + '</span></div><div class="flex-1 min-w-0"><h3 class="font-semibold text-gray-900 text-lg truncate">' + name + '</h3><p class="text-sm text-gray-500 truncate">' + (c.email || '') + '</p>' + (c.ghlContactId ? '<p class="text-xs text-gray-400 truncate font-mono">' + c.ghlContactId + '</p>' : '') + '<p class="text-sm text-gray-500">' + (c.phone || '') + '</p></div></div><div class="grid grid-cols-2 gap-3 pt-4 border-t border-gray-200"><div><p class="text-xs text-gray-500">Total Visits</p><p class="text-lg font-bold text-gray-900">' + visits + '</p></div><div><p class="text-xs text-gray-500">Last Visit</p><p class="text-sm font-medium text-gray-900">' + last + '</p></div></div></div><div class="flex gap-2 pt-4 mt-4 border-t border-gray-100" onclick="event.stopPropagation()"><button type="button" onclick="salonCustomersOpenEditModal(' + c.id + ')" class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium text-sm active:scale-95"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>Quick Edit</button><button type="button" onclick="salonCustomersDelete(' + c.id + ', \'' + name.replace(/'/g, "\\'") + '\')" class="inline-flex items-center justify-center px-4 py-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition font-medium text-sm active:scale-95"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button></div></div>';
+        return '<div class="customer-card bg-white rounded-lg shadow-sm border border-gray-200 p-5 hover:shadow-md transition-shadow relative group flex flex-col"><div class="absolute top-3 right-3 z-10" onclick="event.stopPropagation()"><input type="checkbox" class="cust-row-cb w-4 h-4 text-[#003047] border-gray-300 rounded focus:ring-[#003047]" data-id="' + c.id + '"></div><div onclick="window.location.href=\'' + viewUrl + '?id=' + c.id + '\'" class="cursor-pointer flex-1"><div class="flex items-center gap-4 mb-4"><div class="w-16 h-16 ' + color.bg + ' rounded-full flex items-center justify-center flex-shrink-0"><span class="text-2xl font-bold ' + color.text + '">' + initials + '</span></div><div class="flex-1 min-w-0"><h3 class="font-semibold text-gray-900 text-lg truncate">' + name + '</h3><p class="text-sm text-gray-500 truncate">' + (c.email || '') + '</p>' + (c.ghlContactId ? '<p class="text-xs text-green-600 truncate font-mono flex items-center gap-1"><svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>' + c.ghlContactId + '</p>' : '') + '<p class="text-sm text-gray-500">' + (c.phone || '') + '</p></div></div><div class="grid grid-cols-2 gap-3 pt-4 border-t border-gray-200"><div><p class="text-xs text-gray-500">Total Visits</p><p class="text-lg font-bold text-gray-900">' + visits + '</p></div><div><p class="text-xs text-gray-500">Last Visit</p><p class="text-sm font-medium text-gray-900">' + last + '</p></div></div></div><div class="flex gap-2 pt-4 mt-4 border-t border-gray-100" onclick="event.stopPropagation()"><button type="button" onclick="salonCustomersOpenEditModal(' + c.id + ')" class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-2 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium text-sm active:scale-95"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>Quick Edit</button><button type="button" onclick="salonCustomersDelete(' + c.id + ', \'' + name.replace(/'/g, "\\'") + '\')" class="inline-flex items-center justify-center px-4 py-2 text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition font-medium text-sm active:scale-95"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button></div></div>';
     }).join('');
 }
 function renderList() {
     var tbody = document.getElementById('listViewBody');
     if (!tbody) return;
     var list = getPaginated();
-    if (list.length === 0) { tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-12 text-center"><p class="text-gray-500 text-sm">No customers found</p></td></tr>'; return; }
+    if (list.length === 0) { tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-12 text-center"><p class="text-gray-500 text-sm">No customers found</p></td></tr>'; return; }
     tbody.innerHTML = list.map(function(c, i) {
         var color = colorClasses[i % colorClasses.length], initials = getInitials(c), name = c.firstName + ' ' + c.lastName, visits = getTotalVisits(c), last = getLastVisit(c);
-        return '<tr class="hover:bg-gray-50 transition"><td class="px-6 py-4 whitespace-nowrap"><div class="flex items-center"><div onclick="window.location.href=\'' + viewUrl + '?id=' + c.id + '\'" class="w-10 h-10 ' + color.bg + ' rounded-full flex items-center justify-center flex-shrink-0 mr-3 cursor-pointer"><span class="text-sm font-bold ' + color.text + '">' + initials + '</span></div><div onclick="window.location.href=\'' + viewUrl + '?id=' + c.id + '\'" class="cursor-pointer"><div class="text-sm font-medium text-gray-900">' + name + '</div><div class="text-sm text-gray-500">' + (c.email || '') + '</div>' + (c.ghlContactId ? '<div class="text-xs text-gray-400 font-mono">' + c.ghlContactId + '</div>' : '') + '</div></div></td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">' + (c.phone || '') + '</td><td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">' + visits + '</td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">' + last + '</td><td class="px-6 py-4 whitespace-nowrap text-sm text-right"><div class="flex items-center justify-end gap-2"><button type="button" onclick="event.stopPropagation(); salonCustomersOpenEditModal(' + c.id + ')" class="inline-flex items-center justify-center w-8 h-8 cursor-pointer bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition active:scale-95" title="Quick Edit"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg></button><button type="button" onclick="event.stopPropagation(); salonCustomersDelete(' + c.id + ', \'' + name.replace(/'/g, "\\'") + '\')" class="inline-flex items-center justify-center w-8 h-8 cursor-pointer text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition active:scale-95" title="Delete"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button></div></td></tr>';
+        return '<tr class="hover:bg-gray-50 transition"><td class="px-3 py-4" onclick="event.stopPropagation()"><input type="checkbox" class="cust-row-cb w-4 h-4 text-[#003047] border-gray-300 rounded focus:ring-[#003047]" data-id="' + c.id + '"></td><td class="px-6 py-4 whitespace-nowrap"><div class="flex items-center"><div onclick="window.location.href=\'' + viewUrl + '?id=' + c.id + '\'" class="w-10 h-10 ' + color.bg + ' rounded-full flex items-center justify-center flex-shrink-0 mr-3 cursor-pointer"><span class="text-sm font-bold ' + color.text + '">' + initials + '</span></div><div onclick="window.location.href=\'' + viewUrl + '?id=' + c.id + '\'" class="cursor-pointer"><div class="text-sm font-medium text-gray-900">' + name + '</div><div class="text-sm text-gray-500">' + (c.email || '') + '</div>' + (c.ghlContactId ? '<div class="text-xs text-green-600 font-mono flex items-center gap-1"><svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>' + c.ghlContactId + '</div>' : '') + '</div></div></td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">' + (c.phone || '') + '</td><td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">' + visits + '</td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">' + last + '</td><td class="px-6 py-4 whitespace-nowrap text-sm text-right"><div class="flex items-center justify-end gap-2"><button type="button" onclick="event.stopPropagation(); salonCustomersOpenEditModal(' + c.id + ')" class="inline-flex items-center justify-center w-8 h-8 cursor-pointer bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition active:scale-95" title="Quick Edit"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg></button><button type="button" onclick="event.stopPropagation(); salonCustomersDelete(' + c.id + ', \'' + name.replace(/'/g, "\\'") + '\')" class="inline-flex items-center justify-center w-8 h-8 cursor-pointer text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition active:scale-95" title="Delete"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button></div></td></tr>';
     }).join('');
 }
 function salonCustomersRender() {
@@ -284,6 +296,232 @@ window.salonCustomersDelete = function(id, name) {
         }
     });
 };
+// Bulk actions
+var bulkBar = document.getElementById('customersBulkBar');
+var bulkSelectAll = document.getElementById('customersSelectAll');
+var bulkAction = document.getElementById('customersBulkAction');
+var bulkGoBtn = document.getElementById('customersBulkGoBtn');
+var bulkCountEl = document.getElementById('customersBulkCount');
+var bulkActionUrl = bulkBar ? bulkBar.getAttribute('data-bulk-action-url') : '';
+
+function escHtml(s) { return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function bulkUpdateGoState() {
+    var hasAction = bulkAction && bulkAction.value !== '';
+    var checked = document.querySelectorAll('.cust-row-cb:checked');
+    bulkGoBtn.disabled = !(hasAction && checked.length > 0);
+    bulkCountEl.textContent = checked.length > 0 ? checked.length + ' selected' : '';
+}
+
+function bulkBindCheckboxes() {
+    document.querySelectorAll('.cust-row-cb').forEach(function(cb) {
+        cb.addEventListener('change', function() {
+            var allCbs = document.querySelectorAll('.cust-row-cb');
+            var checkedCbs = document.querySelectorAll('.cust-row-cb:checked');
+            bulkSelectAll.checked = allCbs.length > 0 && allCbs.length === checkedCbs.length;
+            bulkSelectAll.indeterminate = checkedCbs.length > 0 && checkedCbs.length < allCbs.length;
+            bulkUpdateGoState();
+        });
+    });
+}
+
+// Hook into render to rebind checkboxes
+var origRender = salonCustomersRender;
+salonCustomersRender = function() {
+    origRender();
+    bulkSelectAll.checked = false;
+    bulkSelectAll.indeterminate = false;
+    bulkBindCheckboxes();
+    bulkUpdateGoState();
+};
+
+bulkSelectAll.addEventListener('change', function() {
+    var checked = this.checked;
+    document.querySelectorAll('.cust-row-cb').forEach(function(cb) { cb.checked = checked; });
+    this.indeterminate = false;
+    bulkUpdateGoState();
+});
+
+bulkAction.addEventListener('change', bulkUpdateGoState);
+
+bulkGoBtn.addEventListener('click', function() {
+    var action = bulkAction.value;
+    if (!action) return;
+    var ids = [];
+    document.querySelectorAll('.cust-row-cb:checked').forEach(function(cb) {
+        ids.push(parseInt(cb.getAttribute('data-id'), 10));
+    });
+    if (ids.length === 0) return;
+
+    var actionLabels = { sync_from: 'Sync from Clickaio', sync_to: 'Sync to Clickaio', 'delete': 'Delete Customers' };
+    var actionLabel = actionLabels[action] || action;
+    var iconColor = action === 'delete' ? 'bg-red-100' : 'bg-blue-100';
+    var iconSvgColor = action === 'delete' ? 'text-red-600' : 'text-blue-600';
+    var confirmBtnClass = action === 'delete' ? 'bg-red-500 hover:bg-red-600' : 'bg-[#003047] hover:bg-[#002535]';
+    var iconSvg = action === 'delete'
+        ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>'
+        : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>';
+    var modalMessage = action === 'delete'
+        ? 'Are you sure you want to delete <strong>' + ids.length + '</strong> selected customer' + (ids.length > 1 ? 's' : '') + '? This action cannot be undone.'
+        : 'Are you sure you want to run <strong>' + escHtml(actionLabel) + '</strong> on <strong>' + ids.length + '</strong> customer' + (ids.length > 1 ? 's' : '') + '?';
+
+    var modalContent = '<div class="p-6">'
+        + '<div class="flex items-center gap-4 mb-4">'
+        + '<style>@keyframes cust-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}.cust-spinning{animation:cust-spin 1s linear infinite}</style>'
+        + '<div class="w-12 h-12 ' + iconColor + ' rounded-full flex items-center justify-center flex-shrink-0">'
+        + '<svg id="cust-bulk-icon" class="w-6 h-6 ' + iconSvgColor + '" fill="none" stroke="currentColor" viewBox="0 0 24 24">' + iconSvg + '</svg>'
+        + '</div>'
+        + '<div class="flex-1"><h3 class="text-xl font-bold text-gray-900">' + escHtml(actionLabel) + '</h3></div>'
+        + '</div>'
+        + '<p id="cust-bulk-message" class="text-gray-700 mb-6 ml-16">' + modalMessage + '</p>'
+        + '<div id="cust-bulk-progress" class="hidden mb-4 ml-16">'
+        + '<div class="flex items-center justify-between mb-1"><span id="cust-bulk-progress-label" class="text-sm font-medium text-gray-700">Processing...</span><span id="cust-bulk-progress-count" class="text-sm font-semibold text-gray-900">0/' + ids.length + '</span></div>'
+        + '<div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden"><div id="cust-bulk-progress-bar" class="h-3 rounded-full transition-all duration-300 ease-out" style="width: 0%; background-color: ' + (action === 'delete' ? '#ef4444' : '#003047') + '"></div></div>'
+        + '<div class="flex items-center justify-between mt-1"><p id="cust-bulk-progress-detail" class="text-xs text-gray-500"></p><span id="cust-bulk-progress-pct" class="text-xs font-semibold text-gray-700">0%</span></div>'
+        + '</div>'
+        + '<div id="cust-bulk-buttons" class="flex justify-end gap-3 pt-4 border-t border-gray-200">'
+        + '<button onclick="closeModal()" class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium active:scale-95">Cancel</button>'
+        + '<button type="button" id="cust-bulk-confirm-btn" class="px-6 py-3 text-white ' + confirmBtnClass + ' rounded-lg transition font-medium active:scale-95">' + (action === 'delete' ? 'Yes, Delete' : 'Yes, Proceed') + '</button>'
+        + '</div></div>';
+
+    if (typeof openModal === 'function') {
+        openModal(modalContent);
+        var confirmBtn = document.getElementById('cust-bulk-confirm-btn');
+        if (confirmBtn) {
+            confirmBtn.addEventListener('click', function() {
+                // Show progress UI
+                var progressSection = document.getElementById('cust-bulk-progress');
+                var progressBar = document.getElementById('cust-bulk-progress-bar');
+                var progressPct = document.getElementById('cust-bulk-progress-pct');
+                var progressLabel = document.getElementById('cust-bulk-progress-label');
+                var progressDetail = document.getElementById('cust-bulk-progress-detail');
+                var buttonsSection = document.getElementById('cust-bulk-buttons');
+                var messageEl = document.getElementById('cust-bulk-message');
+
+                messageEl.classList.add('hidden');
+                progressSection.classList.remove('hidden');
+                buttonsSection.innerHTML = '<button onclick="closeModal()" class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium active:scale-95 opacity-50 cursor-not-allowed" disabled>Please wait...</button>';
+                var bulkIcon = document.getElementById('cust-bulk-icon');
+                if (bulkIcon && action !== 'delete') bulkIcon.classList.add('cust-spinning');
+
+                // Prevent page reload/navigation while processing
+                function bulkBeforeUnload(e) { e.preventDefault(); e.returnValue = ''; }
+                window.addEventListener('beforeunload', bulkBeforeUnload);
+
+                var progressCount = document.getElementById('cust-bulk-progress-count');
+                function updateProgress(done, total, statusText) {
+                    var pct = Math.round((done / total) * 100);
+                    progressBar.style.width = pct + '%';
+                    progressCount.textContent = done + '/' + total;
+                    progressPct.textContent = pct + '%';
+                    progressDetail.textContent = statusText || '';
+                }
+
+                if (action === 'delete') {
+                    progressLabel.textContent = 'Deleting customers...';
+                    var completed = 0, successCount = 0, failCount = 0;
+                    var deletedIds = [];
+
+                    // Process sequentially for visible progress
+                    function deleteNext(index) {
+                        if (index >= ids.length) {
+                            // Done
+                            window.removeEventListener('beforeunload', bulkBeforeUnload);
+                            allCustomers = allCustomers.filter(function(c) { return deletedIds.indexOf(c.id) === -1; });
+                            customersData = customersData.filter(function(c) { return deletedIds.indexOf(c.id) === -1; });
+                            progressLabel.textContent = 'Complete!';
+                            updateProgress(ids.length, ids.length, successCount + ' deleted' + (failCount > 0 ? ', ' + failCount + ' failed' : ''));
+                            progressBar.style.backgroundColor = '#22c55e';
+                            buttonsSection.innerHTML = '<button onclick="closeModal()" class="px-6 py-3 text-white bg-green-500 rounded-lg hover:bg-green-600 transition font-medium active:scale-95">Done</button>';
+                            bulkSelectAll.checked = false;
+                            bulkSelectAll.indeterminate = false;
+                            bulkAction.value = '';
+                            bulkUpdateGoState();
+                            salonCustomersRender();
+                            if (failCount > 0) {
+                                showSuccessMessage(successCount + ' deleted, ' + failCount + ' failed.');
+                            } else {
+                                showSuccessMessage(successCount + ' customer' + (successCount !== 1 ? 's' : '') + ' deleted.');
+                            }
+                            return;
+                        }
+                        var id = ids[index];
+                        var cust = allCustomers.find(function(c) { return c.id === id; });
+                        var custName = cust ? (cust.firstName + ' ' + cust.lastName).trim() : '#' + id;
+                        updateProgress(index, ids.length, 'Deleting ' + custName);
+                        salonApi.delete(apiCustomersUrl + '/' + id)
+                            .then(function() { successCount++; deletedIds.push(id); })
+                            .catch(function() { failCount++; })
+                            .finally(function() {
+                                completed++;
+                                deleteNext(index + 1);
+                            });
+                    }
+                    deleteNext(0);
+                } else {
+                    // Sync: process one customer at a time for real-time progress
+                    var syncLabel = action === 'sync_from' ? 'Syncing from Clickaio...' : 'Syncing to Clickaio...';
+                    progressLabel.textContent = syncLabel;
+                    var syncCompleted = 0, syncSynced = 0, syncSkipped = 0, syncFailed = 0;
+
+                    function syncNext(index) {
+                        if (index >= ids.length) {
+                            window.removeEventListener('beforeunload', bulkBeforeUnload);
+                            if (bulkIcon) bulkIcon.classList.remove('cust-spinning');
+                            progressLabel.textContent = 'Complete!';
+                            var details = [];
+                            if (syncSynced > 0) details.push(syncSynced + ' synced');
+                            if (syncSkipped > 0) details.push(syncSkipped + ' skipped');
+                            if (syncFailed > 0) details.push(syncFailed + ' failed');
+                            updateProgress(ids.length, ids.length, details.join(', '));
+                            progressBar.style.backgroundColor = '#22c55e';
+                            buttonsSection.innerHTML = '<button onclick="closeModal()" class="px-6 py-3 text-white bg-green-500 rounded-lg hover:bg-green-600 transition font-medium active:scale-95">Done</button>';
+                            bulkSelectAll.checked = false;
+                            bulkSelectAll.indeterminate = false;
+                            bulkAction.value = '';
+                            bulkUpdateGoState();
+                            salonCustomersRender();
+                            if (typeof showSuccessMessage === 'function') showSuccessMessage(details.join(', ') + '.');
+                            return;
+                        }
+                        var id = ids[index];
+                        var cust = allCustomers.find(function(c) { return c.id === id; });
+                        var custName = cust ? (cust.firstName + ' ' + cust.lastName).trim() : '#' + id;
+                        updateProgress(index, ids.length, 'Processing ' + custName + '...');
+
+                        salonApi.post(bulkActionUrl, { action: action, customer_ids: [id] })
+                            .then(function(res) {
+                                var d = res && res.data ? res.data : {};
+                                if (d.synced > 0) {
+                                    syncSynced++;
+                                    var updatedMap = res && res.customers ? res.customers : {};
+                                    allCustomers.forEach(function(c, i) { if (updatedMap.hasOwnProperty(c.id)) allCustomers[i].ghlContactId = updatedMap[c.id]; });
+                                    customersData.forEach(function(c, i) { if (updatedMap.hasOwnProperty(c.id)) customersData[i].ghlContactId = updatedMap[c.id]; });
+                                    updateProgress(index + 1, ids.length, custName + ' — found!');
+                                } else if (d.skipped > 0) {
+                                    syncSkipped++;
+                                    updateProgress(index + 1, ids.length, custName + ' — already synced');
+                                } else {
+                                    syncFailed++;
+                                    updateProgress(index + 1, ids.length, custName + ' — not found');
+                                }
+                            })
+                            .catch(function() {
+                                syncFailed++;
+                                updateProgress(index + 1, ids.length, custName + ' — error');
+                            })
+                            .finally(function() {
+                                syncCompleted++;
+                                syncNext(index + 1);
+                            });
+                    }
+                    syncNext(0);
+                }
+            });
+        }
+    }
+});
+
 if (window.salonCustomersBootstrap && window.salonCustomersBootstrap.customers) {
     allCustomers = window.salonCustomersBootstrap.customers || [];
     var saved = localStorage.getItem('customersPerPage');
