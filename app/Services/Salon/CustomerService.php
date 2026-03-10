@@ -29,12 +29,18 @@ class CustomerService
     public function update(Customer $customer, array $data): Customer
     {
         return DB::transaction(function () use ($customer, $data) {
-            $customer->update([
+            $updates = [
                 'first_name' => $data['first_name'],
                 'last_name' => $data['last_name'],
                 'email' => $data['email'] ?? null,
                 'phone' => $data['phone'] ?? null,
-            ]);
+            ];
+
+            if (array_key_exists('ghl_contact_id', $data)) {
+                $updates['ghl_contact_id'] = $data['ghl_contact_id'] ?: null;
+            }
+
+            $customer->update($updates);
 
             return $customer->fresh();
         });

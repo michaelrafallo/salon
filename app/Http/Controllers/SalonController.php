@@ -841,6 +841,7 @@ class SalonController extends Controller
                     'lastVisitDate' => $lastVisitAt?->format('Y-m-d'),
                     'lastVisit' => $lastVisitAt ? $lastVisitAt->diffForHumans() : null,
                     'creditBalance' => (float) $c->credit_balance,
+                    'ghlContactId' => $c->ghl_contact_id,
                     'profilePhoto' => $c->profile_photo ? Storage::disk('public')->url($c->profile_photo) : null,
                 ];
             })

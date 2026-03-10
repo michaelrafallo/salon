@@ -14,6 +14,7 @@ class Customer extends Model
         'phone',
         'email',
         'credit_balance',
+        'ghl_contact_id',
     ];
 
     protected function casts(): array

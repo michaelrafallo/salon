@@ -9,9 +9,12 @@ use App\Models\Appointment;
 use App\Models\AppointmentService;
 use App\Models\Service;
 use App\Models\ServiceCategory;
+use App\Models\TurnTracker;
+use App\Services\GoHighLevelService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 
 class SalonAppointmentController extends Controller
 {
@@ -38,6 +41,14 @@ class SalonAppointmentController extends Controller
         }
 
         $appointment->load(['customer', 'technicians', 'appointmentServices.serviceCategory', 'appointmentServices.service']);
+
+        // Sync to GoHighLevel (non-blocking)
+        Log::info('Appointment created: id='.$appointment->id.' type='.$appointment->type);
+        if ($appointment->type === 'booked') {
+            GoHighLevelService::syncAppointment($appointment);
+            $appointment->refresh();
+            $appointment->load(['customer', 'technicians', 'appointmentServices.serviceCategory', 'appointmentServices.service']);
+        }
 
         return response()->json([
             'success' => true,
@@ -76,6 +87,17 @@ class SalonAppointmentController extends Controller
 
         $appointment->load(['customer', 'technicians', 'appointmentServices.serviceCategory', 'appointmentServices.service']);
 
+        // Sync to GHL when walk-in is confirmed (status changed to unpaid) and not yet synced
+        if (
+            $appointment->type === 'walk-in'
+            && ($updates['status'] ?? null) === 'unpaid'
+            && ! $appointment->ghl_appointment_id
+        ) {
+            GoHighLevelService::syncAppointment($appointment);
+            $appointment->refresh();
+            $appointment->load(['customer', 'technicians', 'appointmentServices.serviceCategory', 'appointmentServices.service']);
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Assignment saved successfully.',
@@ -88,6 +110,35 @@ class SalonAppointmentController extends Controller
         if (! $request->session()->has('salon_authenticated')) {
             return response()->json(['success' => false, 'message' => 'Unauthorized.'], 403);
         }
+
+        // Decrement turn tracker service counts for each assigned technician
+        $appointmentServices = $appointment->appointmentServices()->with('service')->get();
+        $serviceCountsByTechnician = [];
+        foreach ($appointmentServices as $aptService) {
+            $userId = $aptService->user_id;
+            if (! $userId) {
+                continue;
+            }
+            $serviceCount = $aptService->service?->service_count ?? 0;
+            $quantity = $aptService->quantity ?? 1;
+            $serviceCountsByTechnician[$userId] = ($serviceCountsByTechnician[$userId] ?? 0) + ($serviceCount * $quantity);
+        }
+        foreach ($serviceCountsByTechnician as $userId => $countToSubtract) {
+            $tracker = TurnTracker::query()->where('user_id', $userId)->first();
+            if ($tracker) {
+                $tracker->services = max(0, (float) $tracker->services - $countToSubtract);
+                $tracker->save();
+            }
+        }
+
+        // Delete from GoHighLevel if synced
+        if ($appointment->ghl_appointment_id) {
+            GoHighLevelService::deleteGhlAppointment($appointment->ghl_appointment_id);
+        }
+
+        // Delete related records
+        $appointment->appointmentServices()->delete();
+        $appointment->technicians()->detach();
 
         $appointment->delete();
 
@@ -108,6 +159,7 @@ class SalonAppointmentController extends Controller
             'appointment' => $appointment->type,
             'status' => $appointment->status,
             'color' => $appointment->color,
+            'ghl_appointment_id' => $appointment->ghl_appointment_id,
             'created_at' => $appointment->created_at?->toIso8601String(),
             'appointment_datetime' => $appointment->appointment_datetime?->format('Y-m-d\TH:i:s'),
             'assigned_technician' => $appointment->technicians->pluck('id')->values()->all(),

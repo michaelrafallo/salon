@@ -47,8 +47,20 @@ class Setting extends Model
             'discounts_enabled',
             'gift_cards_enabled',
             'timezone',
-            'ghl_webhook_book_appointment',
             'ghl_webhook_no_show_sms',
+            'clickaio_client_id',
+            'clickaio_client_secret',
+            'clickaio_version',
+            'clickaio_scopes',
+            'clickaio_location_id',
+            'clickaio_calendar_id',
+            'clickaio_endpoint_find_contact',
+            'clickaio_endpoint_create_contact',
+            'clickaio_endpoint_book_appointment',
+            'clickaio_endpoint_delete_appointment',
+            'clickaio_access_token',
+            'clickaio_refresh_token',
+            'clickaio_token_expires_at',
         ];
     }
 

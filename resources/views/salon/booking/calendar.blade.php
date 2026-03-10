@@ -109,6 +109,8 @@ let bookingsData = [];
 let customersData = [];
 let techniciansData = [];
 let selectedListViewDate = new Date(); // Default to today
+let showOnlyBusyTechnicians = localStorage.getItem('showOnlyBusyTechnicians') === 'true'; // Toggle to show only technicians with bookings/events
+let showOnlyBusyTimeSlots = localStorage.getItem('showOnlyBusyTimeSlots') === 'true'; // Toggle to show only time slots with events
 let noShowStatus = {}; // Track no show status for appointments { appointmentId: true/false }
 let statusBeforeNoShow = {}; // When marking no-show, remember previous status for uncheck
 let selectedTechnicianIds = []; // Selected technician IDs for appointment
@@ -924,7 +926,39 @@ function renderTechnicianListView() {
     // Use selected date for filtering appointments
     const selectedDate = new Date(selectedListViewDate);
     selectedDate.setHours(0, 0, 0, 0);
-    
+
+    // Filter to only show technicians with bookings/events on this day if toggle is on
+    if (showOnlyBusyTechnicians) {
+        const busyTechIds = new Set();
+        filteredBookings.forEach(apt => {
+            // Parse appointment date
+            let aptDate = null;
+            if (apt.appointment_date) {
+                const dateParts = apt.appointment_date.split('-');
+                aptDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+            } else if (apt.appointment_datetime) {
+                aptDate = parseIsoDatetimeLocal(apt.appointment_datetime) || new Date(apt.appointment_datetime);
+            } else if (apt.created_at) {
+                aptDate = parseIsoDatetimeLocal(apt.created_at) || new Date(apt.created_at);
+            }
+            if (!aptDate || isNaN(aptDate.getTime())) return;
+            const aptDateOnly = new Date(aptDate);
+            aptDateOnly.setHours(0, 0, 0, 0);
+            if (aptDateOnly.getTime() !== selectedDate.getTime()) return;
+
+            // Mark assigned technicians as busy
+            if (apt.assigned_technician && Array.isArray(apt.assigned_technician)) {
+                apt.assigned_technician.forEach(id => busyTechIds.add(id.toString()));
+            }
+        });
+        // Remove technicians with no bookings on this day
+        for (let i = orderedTechnicians.length - 1; i >= 0; i--) {
+            if (!busyTechIds.has(orderedTechnicians[i].id.toString())) {
+                orderedTechnicians.splice(i, 1);
+            }
+        }
+    }
+
     // Format date for date picker (YYYY-MM-DD)
     const datePickerValue = formatYmdLocal(selectedDate) || selectedDate.toISOString().split('T')[0];
     
@@ -940,9 +974,10 @@ function renderTechnicianListView() {
     // Build HTML
     let html = '<div class="overflow-x-auto">';
     html += '<table class="w-full border-collapse">';
+    html += '<colgroup><col style="width: 155px; min-width: 155px; max-width: 155px;"></colgroup>';
     html += '<thead>';
     html += '<tr>';
-    html += '<th valign="bottom" class="sticky left-0 z-10 bg-white border-r border-b border-gray-300 pl-3 pt-3 pb-3 pr-1 text-left font-semibold text-gray-700 min-w-[155px]">';
+    html += '<th valign="bottom" class="sticky left-0 z-10 bg-white border-r border-b border-gray-300 pl-3 pt-3 pb-3 pr-1 text-left font-semibold text-gray-700" style="width: 155px; min-width: 155px; max-width: 155px;">';
     html += '<div class="flex flex-col gap-2">';
     html += '<label class="text-xs text-gray-500 font-medium">Date & Time</label>';
     html += '<div class="relative">';
@@ -950,8 +985,12 @@ function renderTechnicianListView() {
     html += `<button type="button" onclick="document.getElementById('listViewDatePicker').showPicker ? document.getElementById('listViewDatePicker').showPicker() : document.getElementById('listViewDatePicker').click()" class="px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-900 cursor-pointer hover:bg-gray-50 transition-colors text-left" style="width: 130px;">${selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</button>`;
     html += '</div>';
     html += '</div>';
+    html += `<button type="button" onclick="toggleBusyTimeSlots()" class="mt-2 w-full border border-[#003047] rounded px-1.5 py-0.5 flex flex-col items-center leading-tight cursor-pointer transition-colors ${showOnlyBusyTimeSlots ? 'bg-[#003047] text-white border-[#003047]' : 'bg-white text-gray-900 hover:bg-gray-50'}" title="${showOnlyBusyTimeSlots ? 'Show all time slots' : 'Show only time slots with events'}">
+        <span class="text-[7px] text-${showOnlyBusyTimeSlots ? 'gray-300' : 'gray-400'} uppercase text-xs">Filter</span>
+        <span class="font-bold">${showOnlyBusyTimeSlots ? 'On' : 'Off'}</span>
+    </button>`;
     html += '</th>';
-    
+
     // Add Salon Appointment column header (first column after Date & Time)
     html += `<th valign="top"  class="border-r border-b border-gray-300 p-3 text-center font-semibold text-gray-700 min-w-[150px] bg-[#e6f0f3]">
         <div class="flex flex-col items-center gap-2">
@@ -962,6 +1001,10 @@ function renderTechnicianListView() {
             </div>
             <span class="text-xs font-medium text-gray-900">Salon Appointment</span>
         </div>
+        <button type="button" onclick="event.stopPropagation(); toggleBusyTechnicians()" class="mt-2 w-full border border-[#003047] rounded px-1.5 py-0.5 flex flex-col items-center leading-tight cursor-pointer transition-colors ${showOnlyBusyTechnicians ? 'bg-[#003047] text-white border-[#003047]' : 'bg-white text-gray-900 hover:bg-gray-50'}" title="${showOnlyBusyTechnicians ? 'Show all technicians' : 'Show only technicians with bookings'}">
+            <span class="text-[7px] text-${showOnlyBusyTechnicians ? 'gray-300' : 'gray-400'} uppercase text-xs">Filter</span>
+            <span class="font-bold">${showOnlyBusyTechnicians ? 'On' : 'Off'}</span>
+        </button>
     </th>`;
     
     // Add technician headers (ordered like Waiting List modal)
@@ -1000,10 +1043,52 @@ function renderTechnicianListView() {
     html += '</thead>';
     html += '<tbody>';
     
+    // Filter time slots to only show those with events if toggle is on
+    let displayTimeSlots = timeSlots;
+    if (showOnlyBusyTimeSlots) {
+        displayTimeSlots = timeSlots.filter(timeSlot => {
+            const [hours, minutes] = timeSlot.value.split(':').map(Number);
+            const slotStart = new Date(selectedDate);
+            slotStart.setHours(hours, minutes, 0, 0);
+            const slotEnd = new Date(slotStart);
+            slotEnd.setHours(hours + 1, 0, 0, 0);
+
+            return filteredBookings.some(apt => {
+                let aptDate = null;
+                if (apt.appointment_date) {
+                    const dateParts = apt.appointment_date.split('-');
+                    aptDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+                } else if (apt.appointment_datetime) {
+                    aptDate = parseIsoDatetimeLocal(apt.appointment_datetime) || new Date(apt.appointment_datetime);
+                } else if (apt.created_at) {
+                    aptDate = parseIsoDatetimeLocal(apt.created_at) || new Date(apt.created_at);
+                }
+                if (!aptDate || isNaN(aptDate.getTime())) return false;
+                const aptDateOnly = new Date(aptDate);
+                aptDateOnly.setHours(0, 0, 0, 0);
+                if (aptDateOnly.getTime() !== selectedDate.getTime()) return false;
+
+                let aptStart = null;
+                if (apt.appointment_date && apt.appointment_time) {
+                    const dateParts = apt.appointment_date.split('-');
+                    aptStart = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+                    const [h, m] = apt.appointment_time.split(':').map(Number);
+                    aptStart.setHours(h, m || 0, 0, 0);
+                } else if (apt.appointment_datetime) {
+                    aptStart = parseIsoDatetimeLocal(apt.appointment_datetime) || new Date(apt.appointment_datetime);
+                } else if (apt.created_at) {
+                    aptStart = parseIsoDatetimeLocal(apt.created_at) || new Date(apt.created_at);
+                }
+                if (!aptStart || isNaN(aptStart.getTime())) return false;
+                return (aptStart >= slotStart && aptStart < slotEnd);
+            });
+        });
+    }
+
     // Time slot rows
-    timeSlots.forEach(timeSlot => {
+    displayTimeSlots.forEach(timeSlot => {
         html += '<tr class="hover:bg-gray-50">';
-        html += `<td class="sticky left-0 z-10 bg-white border-r border-b border-gray-300 p-3 font-medium text-gray-700 text-sm">${timeSlot.display}</td>`;
+        html += `<td class="sticky left-0 z-10 bg-white border-r border-b border-gray-300 p-3 font-medium text-gray-700 text-sm" style="width: 155px; min-width: 155px; max-width: 155px;">${timeSlot.display}</td>`;
         
         // Salon Appointment column cell (for appointments without assigned technician)
         const [salonHours, salonMinutes] = timeSlot.value.split(':').map(Number);
@@ -1342,6 +1427,20 @@ function changeListViewDate(dateString) {
     url.searchParams.set('date', dateString);
     window.history.pushState({}, '', url);
     
+    renderTechnicianListView();
+}
+
+// Toggle showing only technicians with bookings/events
+function toggleBusyTechnicians() {
+    showOnlyBusyTechnicians = !showOnlyBusyTechnicians;
+    localStorage.setItem('showOnlyBusyTechnicians', showOnlyBusyTechnicians);
+    renderTechnicianListView();
+}
+
+// Toggle showing only time slots with events
+function toggleBusyTimeSlots() {
+    showOnlyBusyTimeSlots = !showOnlyBusyTimeSlots;
+    localStorage.setItem('showOnlyBusyTimeSlots', showOnlyBusyTimeSlots);
     renderTechnicianListView();
 }
 
@@ -2474,7 +2573,7 @@ function deleteAppointment(appointmentId, customerName) {
 
             const apiUrl = window.salonCalendarAppointmentsApiUrl;
             salonApi.delete(apiUrl + '/' + appointmentId).then(function() {
-                // Update turn tracker service counts for all assigned technicians
+                // Update local techniciansData service counts (backend already updated the turn tracker DB)
                 if (appointment && Array.isArray(appointment.services) && appointment.services.length > 0) {
                     var deletedCountByTech = {};
                     appointment.services.forEach(function(s) {
@@ -2486,20 +2585,10 @@ function deleteAppointment(appointmentId, customerName) {
                         if (!deletedCountByTech[tid]) deletedCountByTech[tid] = 0;
                         deletedCountByTech[tid] += sc * (s.quantity || 1);
                     });
-                    var turnTrackerEntries = [];
                     Object.keys(deletedCountByTech).forEach(function(tid) {
                         var tech = techniciansData.find(function(t) { return t.id.toString() === tid; });
-                        var currentServices = tech && typeof tech.services === 'number' ? tech.services : 0;
-                        var newTotal = Math.max(0, currentServices - deletedCountByTech[tid]);
-                        turnTrackerEntries.push({ user_id: parseInt(tid), services: newTotal });
-                        if (tech) tech.services = newTotal;
+                        if (tech) tech.services = Math.max(0, (tech.services || 0) - deletedCountByTech[tid]);
                     });
-                    if (turnTrackerEntries.length > 0) {
-                        var turnTrackerUrl = base.replace(/\/data\/?$/, '') + '/turn-tracker';
-                        salonApi.put(turnTrackerUrl, { entries: turnTrackerEntries }).catch(function(err) {
-                            console.error('Turn tracker update failed on appointment delete:', err);
-                        });
-                    }
                 }
 
                 // Close modal
@@ -3599,7 +3688,7 @@ function updateEventModalTechnicianDisplay() {
         // Hide event color section and clear color when no technicians
         if (colorSection) {
             colorSection.classList.add('hidden');
-            setEventColor(currentAppointmentId, null);
+            setEventColor(currentAppointmentId, null, true);
         }
         return;
     }

@@ -7,6 +7,8 @@ use App\Http\Requests\UpdateCustomerCreditRequest;
 use App\Http\Requests\UpdateCustomerRequest;
 use App\Models\Customer;
 use App\Models\User;
+use App\Models\Setting;
+use App\Services\GoHighLevelService;
 use App\Services\Salon\CustomerService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,6 +23,10 @@ class SalonCustomerController extends Controller
     {
         $customer = $this->customerService->create($request->validated());
 
+        // Sync to GoHighLevel: find or create contact (non-blocking)
+        GoHighLevelService::syncCustomerContact($customer);
+        $customer->refresh();
+
         return response()->json([
             'success' => true,
             'message' => 'Customer created successfully.',
@@ -30,6 +36,7 @@ class SalonCustomerController extends Controller
                 'lastName' => $customer->last_name,
                 'email' => $customer->email,
                 'phone' => $customer->phone,
+                'ghlContactId' => $customer->ghl_contact_id,
                 'createdAt' => $customer->created_at?->format('Y-m-d'),
             ],
         ], 201);
@@ -48,6 +55,7 @@ class SalonCustomerController extends Controller
                 'lastName' => $customer->last_name,
                 'email' => $customer->email,
                 'phone' => $customer->phone,
+                'ghlContactId' => $customer->ghl_contact_id,
             ],
         ]);
     }
@@ -86,6 +94,31 @@ class SalonCustomerController extends Controller
                 'id' => $customer->id,
                 'creditBalance' => (float) $customer->credit_balance,
             ],
+        ]);
+    }
+
+    public function ghlLookup(Request $request, Customer $customer): JsonResponse
+    {
+        $token = \App\Http\Controllers\SalonSettingsController::getClickaioToken();
+        if (! $token) {
+            return response()->json(['success' => false, 'message' => 'GHL not connected. Please authorize in Settings.'], 422);
+        }
+
+        $locationId = Setting::query()->where('option_key', 'clickaio_location_id')->value('option_value');
+        if (! $locationId) {
+            return response()->json(['success' => false, 'message' => 'Location ID not configured in Settings.'], 422);
+        }
+
+        $contactId = GoHighLevelService::findGhlContact($token, $locationId, $customer);
+
+        if (! $contactId) {
+            return response()->json(['success' => false, 'message' => 'Contact not found in GoHighLevel.'], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Contact found and linked.',
+            'data' => ['ghl_contact_id' => $contactId],
         ]);
     }
 

@@ -3,7 +3,7 @@
 @section('content')
 @php
     $settingsTab = request()->query('tab', 'general');
-    if (! in_array($settingsTab, ['general', 'tax', 'discounts', 'gift-cards'], true)) {
+    if (! in_array($settingsTab, ['general', 'clickaio', 'tax', 'discounts', 'gift-cards'], true)) {
         $settingsTab = 'general';
     }
 @endphp
@@ -16,6 +16,7 @@
         <div class="mb-6">
             <div class="flex items-center gap-2 overflow-x-auto pb-2 border-b border-gray-200">
                 <button type="button" onclick="salonSettingsShowTab('general', this)" class="tab-button px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition {{ $settingsTab === 'general' ? 'text-[#003047] border-[#003047]' : 'text-gray-500 hover:text-gray-700 border-transparent' }}">General</button>
+                <button type="button" onclick="salonSettingsShowTab('clickaio', this)" class="tab-button px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition {{ $settingsTab === 'clickaio' ? 'text-[#003047] border-[#003047]' : 'text-gray-500 hover:text-gray-700 border-transparent' }}">Clickaio API</button>
                 <button type="button" onclick="salonSettingsShowTab('tax', this)" class="tab-button px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition {{ $settingsTab === 'tax' ? 'text-[#003047] border-[#003047]' : 'text-gray-500 hover:text-gray-700 border-transparent' }}">Tax & Currency</button>
                 <button type="button" onclick="salonSettingsShowTab('discounts', this)" class="tab-button px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition {{ $settingsTab === 'discounts' ? 'text-[#003047] border-[#003047]' : 'text-gray-500 hover:text-gray-700 border-transparent' }}">Discounts & Coupons</button>
                 <button type="button" onclick="salonSettingsShowTab('gift-cards', this)" class="tab-button px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition {{ $settingsTab === 'gift-cards' ? 'text-[#003047] border-[#003047]' : 'text-gray-500 hover:text-gray-700 border-transparent' }}">Gift Cards</button>
@@ -56,6 +57,194 @@
                     </div>
                 </form>
             </div>
+        </div>
+        <div id="tab-clickaio" class="settings-tab {{ $settingsTab === 'clickaio' ? '' : 'hidden' }}">
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Settings</h2>
+                <form class="space-y-4 settings-form" data-settings-keys="clickaio_location_id,clickaio_calendar_id">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Location ID</label>
+                            <input type="text" name="clickaio_location_id" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent font-mono text-sm" placeholder="Auto-filled on authorize or enter manually">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Calendar ID</label>
+                            <input type="text" name="clickaio_calendar_id" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent font-mono text-sm" placeholder="Enter Calendar ID">
+                        </div>
+                    </div>
+                    <div class="flex justify-end">
+                        <button type="submit" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">Save Settings</button>
+                    </div>
+                </form>
+            </div>
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6" data-clickaio-authorize-url="{{ route('salon.settings.clickaio.authorize') }}" data-clickaio-refresh-url="{{ route('api.salon.settings.clickaio.refresh') }}" data-clickaio-test-url="{{ route('api.salon.settings.clickaio.test-api') }}">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Clickaio Credentials</h2>
+                <!-- Step 1: Credentials Form -->
+                <div id="clickaio-credentials-section">
+                    <form class="space-y-4 settings-form" data-settings-keys="clickaio_client_id,clickaio_client_secret,clickaio_version,clickaio_scopes" id="clickaio-credentials-form">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Client ID</label>
+                                <input type="text" name="clickaio_client_id" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="Enter Client ID">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Client Secret</label>
+                                <input type="password" name="clickaio_client_secret" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="Enter Client Secret">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Version</label>
+                                <input type="text" name="clickaio_version" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="2.0.0" value="2.0.0">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Scopes</label>
+                            <textarea name="clickaio_scopes" rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent text-sm font-mono" placeholder="contacts.readonly contacts.write locations/customFields.readonly ...">contacts.readonly contacts.write locations/customFields.readonly locations/customFields.write locations/customValues.readonly locations/customValues.write opportunities.readonly opportunities.write</textarea>
+                            <p class="text-xs text-gray-500 mt-1">Space-separated list of GoHighLevel API scopes.</p>
+                        </div>
+                        <div class="flex justify-end">
+                            <button type="submit" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95 inline-flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+                                Save Credentials
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <!-- Step 2: Authorize Button (shown after credentials saved, no token yet) -->
+                <div id="clickaio-authorize-section" class="hidden">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-3 h-3 bg-yellow-500 rounded-full"></div>
+                        <span class="text-sm font-medium text-yellow-700">Credentials saved - authorization required</span>
+                    </div>
+                    <div class="space-y-3 mb-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Client ID</label>
+                                <code id="clickaio-auth-display-id" class="block px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 font-mono break-all"></code>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Client Secret</label>
+                                <div class="flex items-center gap-2">
+                                    <code id="clickaio-auth-display-secret" class="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 font-mono break-all"></code>
+                                    <button type="button" id="clickaio-auth-toggle-secret" class="px-3 py-3 border border-gray-300 rounded-lg hover:bg-gray-100 transition active:scale-95" title="Show/Hide">
+                                        <svg class="w-5 h-5 text-gray-500 clickaio-eye-show" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                        <svg class="w-5 h-5 text-gray-500 clickaio-eye-hide hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Version</label>
+                                <code id="clickaio-auth-display-version" class="block px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 font-mono"></code>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Scopes</label>
+                            <div id="clickaio-auth-display-scopes" class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg flex flex-wrap gap-1.5"></div>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <button type="button" id="clickaio-edit-credentials-btn" class="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 transition">Edit Credentials</button>
+                        <a href="{{ route('salon.settings.clickaio.authorize') }}" id="clickaio-authorize-btn" class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium active:scale-95 inline-flex items-center gap-2 no-underline">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                            Authorize
+                        </a>
+                    </div>
+                </div>
+                <!-- Step 3: Connected with Token (shown after authorization) -->
+                <div id="clickaio-connected-section" class="hidden">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                        <span class="text-sm font-medium text-green-700">Connected & Authorized</span>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Client ID</label>
+                                <code id="clickaio-conn-display-id" class="block px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 font-mono break-all"></code>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Client Secret</label>
+                                <div class="flex items-center gap-2">
+                                    <code id="clickaio-conn-display-secret" class="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 font-mono break-all"></code>
+                                    <button type="button" class="clickaio-toggle-secret-btn px-3 py-3 border border-gray-300 rounded-lg hover:bg-gray-100 transition active:scale-95" data-target="secret" title="Show/Hide">
+                                        <svg class="w-5 h-5 text-gray-500 clickaio-eye-show" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                        <svg class="w-5 h-5 text-gray-500 clickaio-eye-hide hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path></svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Version</label>
+                                <code id="clickaio-conn-display-version" class="block px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700 font-mono"></code>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Scopes</label>
+                            <div id="clickaio-conn-display-scopes" class="px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg flex flex-wrap gap-1.5"></div>
+                        </div>
+                        <div>
+                            <div class="flex items-center justify-between mb-1">
+                                <label class="block text-sm font-medium text-gray-700">Access Token <span class="text-xs text-gray-400 font-normal">(auto-refreshes)</span></label>
+                                <span id="clickaio-conn-display-expiry" class="text-xs text-gray-500"></span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <code id="clickaio-conn-display-token" class="flex-1 px-4 py-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-800 font-mono break-all"></code>
+                                <button type="button" class="clickaio-toggle-secret-btn px-3 py-3 border border-gray-300 rounded-lg hover:bg-gray-100 transition active:scale-95" data-target="token" title="Show/Hide">
+                                    <svg class="w-5 h-5 text-gray-500 clickaio-eye-show" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                                    <svg class="w-5 h-5 text-gray-500 clickaio-eye-hide hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.542-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path></svg>
+                                </button>
+                                <button type="button" id="clickaio-copy-token-btn" class="px-3 py-3 border border-gray-300 rounded-lg hover:bg-gray-100 transition active:scale-95" title="Copy Token">
+                                    <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between mt-4">
+                        <button type="button" id="clickaio-disconnect-btn" class="px-6 py-3 text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition font-medium active:scale-95 inline-flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                            Disconnect
+                        </button>
+                        <div class="flex items-center gap-2">
+                            <button type="button" id="clickaio-refresh-token-btn" class="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium active:scale-95 inline-flex items-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                Refresh Token
+                            </button>
+                            <a href="{{ route('salon.settings.clickaio.authorize') }}" class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium active:scale-95 inline-flex items-center gap-2 no-underline">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                                Re-authorize
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">API Endpoints</h2>
+                <form class="space-y-4 settings-form" data-settings-keys="clickaio_endpoint_find_contact,clickaio_endpoint_create_contact,clickaio_endpoint_book_appointment,clickaio_endpoint_delete_appointment">
+                    <div class="space-y-3">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Find Contact</label>
+                            <input type="text" name="clickaio_endpoint_find_contact" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent text-sm font-mono" placeholder="https://services.leadconnectorhq.com/contacts/search">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Create Contact</label>
+                            <input type="text" name="clickaio_endpoint_create_contact" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent text-sm font-mono" placeholder="https://services.leadconnectorhq.com/contacts">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Book Appointment</label>
+                            <input type="text" name="clickaio_endpoint_book_appointment" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent text-sm font-mono" placeholder="https://services.leadconnectorhq.com/calendars/events/appointments">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Delete Appointment</label>
+                            <input type="text" name="clickaio_endpoint_delete_appointment" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent text-sm font-mono" placeholder="https://services.leadconnectorhq.com/calendars/events/">
+                        </div>
+                    </div>
+                    <div class="flex justify-end">
+                        <button type="submit" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">Save Endpoints</button>
+                    </div>
+                </form>
+            </div>
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
                 <h2 class="text-lg font-semibold text-gray-900 mb-4">Clickaio Webhooks</h2>
                 <div class="mb-4">
@@ -88,11 +277,7 @@
                         });
                     </script>
                 </div>
-                <form class="space-y-4 settings-form" data-settings-keys="ghl_webhook_book_appointment,ghl_webhook_no_show_sms">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Book Appointment</label>
-                        <input type="url" name="ghl_webhook_book_appointment" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="https://...">
-                    </div>
+                <form class="space-y-4 settings-form" data-settings-keys="ghl_webhook_no_show_sms">
                     <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">No Show SMS</label>
                         <input type="url" name="ghl_webhook_no_show_sms" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="https://...">
@@ -101,6 +286,56 @@
                         <button type="submit" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">Save Webhook Settings</button>
                     </div>
                 </form>
+            </div>
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    Test API Endpoint
+                </h2>
+                <div class="space-y-3">
+                    <div class="flex gap-2">
+                        <select id="clickaio-test-method" class="px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent bg-white font-mono text-sm font-semibold">
+                            <option value="GET">GET</option>
+                            <option value="POST">POST</option>
+                            <option value="PUT">PUT</option>
+                            <option value="PATCH">PATCH</option>
+                            <option value="DELETE">DELETE</option>
+                        </select>
+                        <input type="text" id="clickaio-test-url" class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent text-sm font-mono" placeholder="https://services.leadconnectorhq.com/contacts/?locationId=...">
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-sm font-medium text-gray-700">Headers <span class="text-xs text-gray-400 font-normal">(JSON - Authorization auto-added)</span></label>
+                            <button type="button" id="clickaio-test-headers-reset" class="text-xs text-blue-600 hover:text-blue-800">Reset to Default</button>
+                        </div>
+                        <textarea id="clickaio-test-headers" rows="3" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent text-sm font-mono" placeholder='{"Content-Type": "application/json"}'>{
+  "Content-Type": "application/json",
+  "Version": "2021-07-28"
+}</textarea>
+                    </div>
+                    <div id="clickaio-test-body-section">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Body <span class="text-xs text-gray-400 font-normal">(JSON)</span></label>
+                        <textarea id="clickaio-test-body" rows="5" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent text-sm font-mono" placeholder='{
+  "key": "value"
+}'></textarea>
+                    </div>
+                    <div class="flex justify-end">
+                        <button type="button" id="clickaio-test-send-btn" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95 inline-flex items-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                            Send Request
+                        </button>
+                    </div>
+                    <div id="clickaio-test-response-section" class="hidden">
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-sm font-medium text-gray-700">Response</label>
+                            <div class="flex items-center gap-3">
+                                <span id="clickaio-test-response-status" class="text-xs font-mono font-semibold"></span>
+                                <span id="clickaio-test-response-time" class="text-xs text-gray-500"></span>
+                            </div>
+                        </div>
+                        <pre id="clickaio-test-response-body" class="px-4 py-3 bg-gray-900 text-green-400 rounded-lg text-sm font-mono overflow-x-auto max-h-96 overflow-y-auto whitespace-pre-wrap"></pre>
+                    </div>
+                </div>
             </div>
         </div>
         <div id="tab-tax" class="settings-tab {{ $settingsTab === 'tax' ? '' : 'hidden' }}">
@@ -396,7 +631,7 @@ function salonSettingsCollectFormPayload(form) {
 document.addEventListener('DOMContentLoaded', function() {
     var urlParams = new URLSearchParams(window.location.search);
     var tabParam = urlParams.get('tab');
-    var validTabs = ['general', 'tax', 'discounts', 'gift-cards'];
+    var validTabs = ['general', 'clickaio', 'tax', 'discounts', 'gift-cards'];
     var tabToShow = validTabs.indexOf(tabParam) >= 0 ? tabParam : 'general';
     var tabButton = document.querySelector('button[onclick*="salonSettingsShowTab(\'' + tabToShow + '\'"]');
     if (tabButton) {
@@ -527,6 +762,7 @@ function salonSettingsLoadGiftCards() {
         });
 }
 document.querySelectorAll('form.settings-form').forEach(function(form) {
+    if (form.id === 'clickaio-credentials-form') return;
     form.addEventListener('submit', function(e) {
         e.preventDefault();
         var main = document.querySelector('main[data-settings-update-url]');
@@ -707,6 +943,460 @@ window.salonSettingsConfirmDeleteCoupon = function(id) {
         if (typeof showErrorMessage === 'function') showErrorMessage(err && err.message ? err.message : 'Failed to remove coupon.');
     });
 };
+
+// Clickaio API Settings
+(function() {
+    var credentialsSection = document.getElementById('clickaio-credentials-section');
+    var authorizeSection = document.getElementById('clickaio-authorize-section');
+    var connectedSection = document.getElementById('clickaio-connected-section');
+    var credentialsForm = document.getElementById('clickaio-credentials-form');
+    var authorizeBtn = document.getElementById('clickaio-authorize-btn');
+    var reauthorizeBtn = document.getElementById('clickaio-reauthorize-btn');
+    var disconnectBtn = document.getElementById('clickaio-disconnect-btn');
+    var editCredentialsBtn = document.getElementById('clickaio-edit-credentials-btn');
+    var copyTokenBtn = document.getElementById('clickaio-copy-token-btn');
+
+    var storedClientId = '';
+    var storedClientSecret = '';
+    var storedToken = '';
+    var storedVersion = '';
+    var storedLocationId = '';
+    var storedCalendarId = '';
+    var storedScopes = '';
+    var secretVisibility = { 'auth-secret': false, 'secret': false, 'token': false };
+
+    function maskValue(val) {
+        if (!val || val.length <= 8) return '••••••••••••••••';
+        return val.substring(0, 4) + '••••••••' + val.substring(val.length - 4);
+    }
+
+    function renderScopeBadges(container, scopesStr) {
+        container.innerHTML = '';
+        if (!scopesStr) return;
+        scopesStr.trim().split(/\s+/).forEach(function(scope) {
+            if (!scope) return;
+            var badge = document.createElement('span');
+            badge.className = 'inline-block px-2 py-0.5 bg-blue-100 text-blue-800 text-xs font-mono rounded';
+            badge.textContent = scope;
+            container.appendChild(badge);
+        });
+    }
+
+    function showSection(section) {
+        credentialsSection.classList.add('hidden');
+        authorizeSection.classList.add('hidden');
+        connectedSection.classList.add('hidden');
+        section.classList.remove('hidden');
+    }
+
+    function showCredentials() { showSection(credentialsSection); }
+
+    function showAuthorize(clientId, clientSecret, version, scopes) {
+        storedClientId = clientId;
+        storedClientSecret = clientSecret;
+        storedVersion = version || '';
+        storedScopes = scopes || '';
+        document.getElementById('clickaio-auth-display-id').textContent = clientId;
+        document.getElementById('clickaio-auth-display-secret').textContent = maskValue(clientSecret);
+        document.getElementById('clickaio-auth-display-version').textContent = version || '-';
+        renderScopeBadges(document.getElementById('clickaio-auth-display-scopes'), scopes);
+        secretVisibility['auth-secret'] = false;
+        var btn = document.getElementById('clickaio-auth-toggle-secret');
+        btn.querySelector('.clickaio-eye-show').classList.remove('hidden');
+        btn.querySelector('.clickaio-eye-hide').classList.add('hidden');
+        showSection(authorizeSection);
+    }
+
+    function formatExpiry(isoStr) {
+        if (!isoStr) return '';
+        try {
+            var d = new Date(isoStr);
+            var now = new Date();
+            if (d <= now) return 'Expired - will auto-refresh on next use';
+            var diff = Math.floor((d - now) / 60000);
+            var hours = Math.floor(diff / 60);
+            var mins = diff % 60;
+            return 'Renews in ' + (hours > 0 ? hours + 'h ' : '') + mins + 'm';
+        } catch (e) { return ''; }
+    }
+
+    function showConnected(clientId, clientSecret, token, version, scopes, expiresAt) {
+        storedClientId = clientId;
+        storedClientSecret = clientSecret;
+        storedToken = token;
+        storedVersion = version || '';
+        storedScopes = scopes || '';
+        document.getElementById('clickaio-conn-display-id').textContent = clientId;
+        document.getElementById('clickaio-conn-display-secret').textContent = maskValue(clientSecret);
+        document.getElementById('clickaio-conn-display-token').textContent = maskValue(token);
+        document.getElementById('clickaio-conn-display-version').textContent = version || '-';
+        document.getElementById('clickaio-conn-display-expiry').textContent = formatExpiry(expiresAt);
+        renderScopeBadges(document.getElementById('clickaio-conn-display-scopes'), scopes);
+        secretVisibility['secret'] = false;
+        secretVisibility['token'] = false;
+        connectedSection.querySelectorAll('.clickaio-toggle-secret-btn').forEach(function(btn) {
+            btn.querySelector('.clickaio-eye-show').classList.remove('hidden');
+            btn.querySelector('.clickaio-eye-hide').classList.add('hidden');
+        });
+        showSection(connectedSection);
+    }
+
+    // Toggle show/hide for authorize section secret
+    document.getElementById('clickaio-auth-toggle-secret').addEventListener('click', function() {
+        secretVisibility['auth-secret'] = !secretVisibility['auth-secret'];
+        var display = document.getElementById('clickaio-auth-display-secret');
+        display.textContent = secretVisibility['auth-secret'] ? storedClientSecret : maskValue(storedClientSecret);
+        this.querySelector('.clickaio-eye-show').classList.toggle('hidden', secretVisibility['auth-secret']);
+        this.querySelector('.clickaio-eye-hide').classList.toggle('hidden', !secretVisibility['auth-secret']);
+    });
+
+    // Toggle show/hide for connected section
+    connectedSection.querySelectorAll('.clickaio-toggle-secret-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var target = this.getAttribute('data-target');
+            secretVisibility[target] = !secretVisibility[target];
+            var displayEl = target === 'secret' ? document.getElementById('clickaio-conn-display-secret') : document.getElementById('clickaio-conn-display-token');
+            var rawValue = target === 'secret' ? storedClientSecret : storedToken;
+            displayEl.textContent = secretVisibility[target] ? rawValue : maskValue(rawValue);
+            this.querySelector('.clickaio-eye-show').classList.toggle('hidden', secretVisibility[target]);
+            this.querySelector('.clickaio-eye-hide').classList.toggle('hidden', !secretVisibility[target]);
+        });
+    });
+
+    // Copy token
+    if (copyTokenBtn) {
+        copyTokenBtn.addEventListener('click', function() {
+            var btn = this;
+            navigator.clipboard.writeText(storedToken).then(function() {
+                btn.innerHTML = '<svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+                btn.classList.add('border-green-400', 'bg-green-50');
+                setTimeout(function() {
+                    btn.innerHTML = '<svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>';
+                    btn.classList.remove('border-green-400', 'bg-green-50');
+                }, 1500);
+            });
+        });
+    }
+
+    // Copy buttons for locationId and calendarId
+    document.querySelectorAll('.clickaio-copy-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var copyKey = this.getAttribute('data-copy');
+            var inputId = copyKey === 'auth-location' ? 'clickaio-auth-input-location'
+                : copyKey === 'auth-calendar' ? 'clickaio-auth-input-calendar'
+                : copyKey === 'conn-location' ? 'clickaio-conn-input-location'
+                : copyKey === 'conn-calendar' ? 'clickaio-conn-input-calendar' : null;
+            if (!inputId) return;
+            var value = document.getElementById(inputId).value.trim();
+            if (!value) return;
+            var el = this;
+            navigator.clipboard.writeText(value).then(function() {
+                el.innerHTML = '<svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>';
+                el.classList.add('border-green-400', 'bg-green-50');
+                setTimeout(function() {
+                    el.innerHTML = '<svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>';
+                    el.classList.remove('border-green-400', 'bg-green-50');
+                }, 1500);
+            });
+        });
+    });
+
+    // Auto-save locationId and calendarId on blur
+    var settingsUpdateUrl = document.querySelector('[data-settings-update-url]');
+    var updateUrl = settingsUpdateUrl ? settingsUpdateUrl.getAttribute('data-settings-update-url') : null;
+    document.querySelectorAll('.clickaio-inline-edit').forEach(function(input) {
+        var lastValue = input.value;
+        input.addEventListener('blur', function() {
+            var newValue = this.value.trim();
+            if (newValue === lastValue) return;
+            lastValue = newValue;
+            var key = this.getAttribute('data-key');
+            if (!key || !updateUrl || typeof salonApi === 'undefined') return;
+            var settings = {};
+            settings[key] = newValue;
+            if (key === 'clickaio_location_id') storedLocationId = newValue;
+            if (key === 'clickaio_calendar_id') storedCalendarId = newValue;
+            // Sync all matching inputs
+            document.querySelectorAll('.clickaio-inline-edit[data-key="' + key + '"]').forEach(function(el) { el.value = newValue; });
+            document.querySelectorAll('[name="' + key + '"]').forEach(function(el) { el.value = newValue; });
+            salonApi.put(updateUrl, { settings: settings })
+                .then(function() {
+                    input.classList.add('border-green-400');
+                    setTimeout(function() { input.classList.remove('border-green-400'); }, 1500);
+                });
+        });
+    });
+
+    // Edit credentials button
+    if (editCredentialsBtn) {
+        editCredentialsBtn.addEventListener('click', function() {
+            showCredentials();
+        });
+    }
+
+    // Save credentials form
+    if (credentialsForm) {
+        credentialsForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            var main = document.querySelector('main[data-settings-update-url]');
+            if (!main || typeof salonApi === 'undefined') return;
+            var url = main.getAttribute('data-settings-update-url');
+            var payload = salonSettingsCollectFormPayload(credentialsForm);
+            if (!payload.clickaio_client_id || !payload.clickaio_client_secret) {
+                if (typeof showErrorMessage === 'function') showErrorMessage('Please enter both Client ID and Client Secret.');
+                return;
+            }
+            var button = credentialsForm.querySelector('button[type="submit"]');
+            var originalHTML = button.innerHTML;
+            button.disabled = true;
+            button.innerHTML = '<svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Saving...';
+            salonApi.put(url, { settings: payload })
+                .then(function() {
+                    if (typeof showSuccessMessage === 'function') showSuccessMessage('Credentials saved. Click Authorize to connect.');
+                    showAuthorize(payload.clickaio_client_id, payload.clickaio_client_secret, payload.clickaio_version, payload.clickaio_scopes);
+                })
+                .catch(function() {
+                    if (typeof showErrorMessage === 'function') showErrorMessage('Failed to save credentials.');
+                })
+                .finally(function() {
+                    button.innerHTML = originalHTML;
+                    button.disabled = false;
+                });
+        });
+    }
+
+    // Refresh token button
+    var refreshTokenBtn = document.getElementById('clickaio-refresh-token-btn');
+    if (refreshTokenBtn) {
+        refreshTokenBtn.addEventListener('click', function() {
+            var container = this.closest('[data-clickaio-refresh-url]');
+            if (!container || typeof salonApi === 'undefined') return;
+            var refreshUrl = container.getAttribute('data-clickaio-refresh-url');
+            var btn = this;
+            var originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Refreshing...';
+            salonApi.post(refreshUrl, {})
+                .then(function(res) {
+                    var token = res && res.data && res.data.access_token ? res.data.access_token : '';
+                    if (token) {
+                        storedToken = token;
+                        document.getElementById('clickaio-conn-display-token').textContent = maskValue(token);
+                        secretVisibility['token'] = false;
+                        var tokenToggle = connectedSection.querySelector('.clickaio-toggle-secret-btn[data-target="token"]');
+                        if (tokenToggle) {
+                            tokenToggle.querySelector('.clickaio-eye-show').classList.remove('hidden');
+                            tokenToggle.querySelector('.clickaio-eye-hide').classList.add('hidden');
+                        }
+                        if (typeof showSuccessMessage === 'function') showSuccessMessage('Token refreshed successfully!');
+                    } else {
+                        if (typeof showErrorMessage === 'function') showErrorMessage('Refresh succeeded but no token received.');
+                    }
+                })
+                .catch(function(err) {
+                    if (typeof showErrorMessage === 'function') showErrorMessage(err && err.message ? err.message : 'Failed to refresh token. Try re-authorizing.');
+                })
+                .finally(function() {
+                    btn.innerHTML = originalHTML;
+                    btn.disabled = false;
+                });
+        });
+    }
+
+    // Disconnect button
+    if (disconnectBtn) {
+        disconnectBtn.addEventListener('click', function() {
+            var main = document.querySelector('main[data-settings-update-url]');
+            if (!main || typeof salonApi === 'undefined') return;
+            var url = main.getAttribute('data-settings-update-url');
+            var btn = this;
+            btn.disabled = true;
+            salonApi.put(url, { settings: { clickaio_access_token: '', clickaio_refresh_token: '', clickaio_token_expires_at: '' } })
+                .then(function() {
+                    storedToken = '';
+                    showAuthorize(storedClientId, storedClientSecret, storedVersion, storedScopes);
+                    if (typeof showSuccessMessage === 'function') showSuccessMessage('Clickaio API disconnected.');
+                })
+                .catch(function() {
+                    if (typeof showErrorMessage === 'function') showErrorMessage('Failed to disconnect.');
+                })
+                .finally(function() { btn.disabled = false; });
+        });
+    }
+
+    // Determine initial state after settings load
+    function clickaioCheckState(data) {
+        var clientId = (data && data.clickaio_client_id) || '';
+        var clientSecret = (data && data.clickaio_client_secret) || '';
+        var token = (data && data.clickaio_access_token) || '';
+        var version = (data && data.clickaio_version) || '';
+        var locationId = (data && data.clickaio_location_id) || '';
+        var calendarId = (data && data.clickaio_calendar_id) || '';
+        var scopes = (data && data.clickaio_scopes) || '';
+        var expiresAt = (data && data.clickaio_token_expires_at) || '';
+        // Also populate form inputs
+        var idInput = document.querySelector('[name="clickaio_client_id"]');
+        var secretInput = document.querySelector('[name="clickaio_client_secret"]');
+        var versionInput = document.querySelector('[name="clickaio_version"]');
+        var locationInput = document.querySelector('[name="clickaio_location_id"]');
+        var calendarInput = document.querySelector('[name="clickaio_calendar_id"]');
+        var scopesInput = document.querySelector('[name="clickaio_scopes"]');
+        var endpointFindInput = document.querySelector('[name="clickaio_endpoint_find_contact"]');
+        var endpointBookInput = document.querySelector('[name="clickaio_endpoint_book_appointment"]');
+        var endpointDeleteInput = document.querySelector('[name="clickaio_endpoint_delete_appointment"]');
+        if (idInput && !idInput.value && clientId) idInput.value = clientId;
+        if (secretInput && !secretInput.value && clientSecret) secretInput.value = clientSecret;
+        if (versionInput && !versionInput.value && version) versionInput.value = version;
+        if (locationInput && !locationInput.value && locationId) locationInput.value = locationId;
+        if (calendarInput && !calendarInput.value && calendarId) calendarInput.value = calendarId;
+        if (scopesInput && !scopesInput.value && scopes) scopesInput.value = scopes;
+        if (endpointFindInput && !endpointFindInput.value && data.clickaio_endpoint_find_contact) endpointFindInput.value = data.clickaio_endpoint_find_contact;
+        if (endpointBookInput && !endpointBookInput.value && data.clickaio_endpoint_book_appointment) endpointBookInput.value = data.clickaio_endpoint_book_appointment;
+        if (endpointDeleteInput && !endpointDeleteInput.value && data.clickaio_endpoint_delete_appointment) endpointDeleteInput.value = data.clickaio_endpoint_delete_appointment;
+        if (clientId && clientSecret && token) {
+            showConnected(clientId, clientSecret, token, version, scopes, expiresAt);
+        } else if (clientId && clientSecret) {
+            showAuthorize(clientId, clientSecret, version, scopes);
+        } else {
+            showCredentials();
+        }
+    }
+    var origSettingsLoad = window.salonSettingsLoad;
+    window.salonSettingsLoad = function() {
+        origSettingsLoad.apply(this, arguments);
+        if (window.salonSettingsBootstrap && typeof window.salonSettingsBootstrap === 'object') {
+            setTimeout(function() { clickaioCheckState(window.salonSettingsBootstrap); }, 50);
+        } else {
+            // For API fetch path, re-fetch to get the token
+            var main = document.querySelector('main[data-settings-url]');
+            if (main) {
+                var url = main.getAttribute('data-settings-url');
+                fetch(url, { method: 'GET', headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' })
+                    .then(function(r) { return r.json(); })
+                    .then(function(res) { clickaioCheckState(res && res.data ? res.data : {}); })
+                    .catch(function() { clickaioCheckState({}); });
+            }
+        }
+    };
+    // Test API (mini Postman)
+    var testMethodEl = document.getElementById('clickaio-test-method');
+    var testUrlEl = document.getElementById('clickaio-test-url');
+    var testHeadersEl = document.getElementById('clickaio-test-headers');
+    var testBodyEl = document.getElementById('clickaio-test-body');
+    var testBodySection = document.getElementById('clickaio-test-body-section');
+    var testSendBtn = document.getElementById('clickaio-test-send-btn');
+    var testResponseSection = document.getElementById('clickaio-test-response-section');
+    var testResponseStatus = document.getElementById('clickaio-test-response-status');
+    var testResponseTime = document.getElementById('clickaio-test-response-time');
+    var testResponseBody = document.getElementById('clickaio-test-response-body');
+    var testHeadersResetBtn = document.getElementById('clickaio-test-headers-reset');
+
+    var defaultHeaders = '{\n  "Content-Type": "application/json",\n  "Version": "2021-07-28"\n}';
+
+    // Show/hide body based on method
+    if (testMethodEl) {
+        testMethodEl.addEventListener('change', function() {
+            var m = this.value;
+            if (m === 'GET' || m === 'DELETE') {
+                testBodySection.classList.add('hidden');
+            } else {
+                testBodySection.classList.remove('hidden');
+            }
+        });
+    }
+
+    // Reset headers
+    if (testHeadersResetBtn) {
+        testHeadersResetBtn.addEventListener('click', function() {
+            testHeadersEl.value = defaultHeaders;
+        });
+    }
+
+    // Send request
+    if (testSendBtn) {
+        testSendBtn.addEventListener('click', function() {
+            var container = this.closest('[data-clickaio-test-url]');
+            if (!container || typeof salonApi === 'undefined') return;
+            var apiUrl = container.getAttribute('data-clickaio-test-url');
+            var method = testMethodEl.value;
+            var url = testUrlEl.value.trim();
+
+            if (!url) {
+                if (typeof showErrorMessage === 'function') showErrorMessage('Please enter a URL.');
+                return;
+            }
+
+            // Parse headers
+            var headers = {};
+            var headersStr = testHeadersEl.value.trim();
+            if (headersStr) {
+                try { headers = JSON.parse(headersStr); }
+                catch (e) {
+                    if (typeof showErrorMessage === 'function') showErrorMessage('Invalid JSON in Headers field.');
+                    return;
+                }
+            }
+
+            // Parse body
+            var body = null;
+            if (method !== 'GET' && method !== 'DELETE') {
+                var bodyStr = testBodyEl.value.trim();
+                if (bodyStr) {
+                    try { body = JSON.parse(bodyStr); }
+                    catch (e) {
+                        if (typeof showErrorMessage === 'function') showErrorMessage('Invalid JSON in Body field.');
+                        return;
+                    }
+                }
+            }
+
+            var btn = this;
+            var originalHTML = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<svg class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Sending...';
+            testResponseSection.classList.add('hidden');
+
+            var payload = { method: method, url: url, headers: headers };
+            if (body !== null) payload.body = body;
+
+            salonApi.post(apiUrl, payload)
+                .then(function(res) {
+                    var status = res.status || 0;
+                    var timeMs = res.time_ms || 0;
+                    var responseBody = res.body;
+
+                    // Status badge
+                    testResponseStatus.textContent = status + ' ' + (status >= 200 && status < 300 ? 'OK' : status >= 400 ? 'Error' : '');
+                    testResponseStatus.className = 'text-xs font-mono font-semibold px-2 py-0.5 rounded ' +
+                        (status >= 200 && status < 300 ? 'bg-green-100 text-green-800' :
+                         status >= 400 ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800');
+
+                    testResponseTime.textContent = timeMs + 'ms';
+
+                    // Format response body
+                    if (typeof responseBody === 'object' && responseBody !== null) {
+                        testResponseBody.textContent = JSON.stringify(responseBody, null, 2);
+                    } else {
+                        testResponseBody.textContent = String(responseBody || '');
+                    }
+
+                    testResponseSection.classList.remove('hidden');
+                })
+                .catch(function(err) {
+                    testResponseStatus.textContent = 'Error';
+                    testResponseStatus.className = 'text-xs font-mono font-semibold px-2 py-0.5 rounded bg-red-100 text-red-800';
+                    testResponseTime.textContent = '';
+                    testResponseBody.textContent = err && err.message ? err.message : 'Request failed.';
+                    testResponseSection.classList.remove('hidden');
+                })
+                .finally(function() {
+                    btn.innerHTML = originalHTML;
+                    btn.disabled = false;
+                });
+        });
+    }
+})();
 </script>
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>

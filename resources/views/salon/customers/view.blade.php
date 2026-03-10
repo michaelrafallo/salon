@@ -66,6 +66,20 @@
                                 <p class="text-sm text-gray-500 mb-1">Address</p>
                                 <p class="text-base font-medium text-gray-900" id="customerAddress">{{ $customer->address ?? '—' }}</p>
                             </div>
+                            <div class="md:col-span-2">
+                                <p class="text-sm text-gray-500 mb-1">Clickaio Contact ID</p>
+                                <div class="flex items-center gap-2">
+                                    <input type="text" id="customerGhlContactId" value="{{ $customer->ghl_contact_id ?? '' }}" placeholder="Not linked" class="text-base font-medium text-gray-900 font-mono bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 flex-1 focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" data-customer-id="{{ $customer->id }}">
+                                    <button type="button" id="ghlFetchBtn" onclick="fetchGhlContactId()" class="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium active:scale-95 inline-flex items-center gap-1.5" title="Fetch from GHL">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                                        Fetch
+                                    </button>
+                                    <button type="button" id="ghlSaveBtn" onclick="saveGhlContactId()" class="px-3 py-1.5 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition text-sm font-medium active:scale-95 inline-flex items-center gap-1.5" title="Save ID">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+                                        Save
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -424,6 +438,7 @@
         'address' => $customer->address ?? null,
         'profilePhoto' => $profilePhotoUrl ?? null,
         'creditBalance' => (float) ($customer->credit_balance ?? 0),
+        'ghlContactId' => $customer->ghl_contact_id ?? null,
         'status' => 'active',
     ];
     $bookingsForJs = $bookings->map(function ($b) {
@@ -758,6 +773,65 @@ function viewCheckinAppointment(appointmentId) {
     if (typeof openModal === 'function') openModal(html);
 }
 
+// GHL Contact ID - Fetch from GoHighLevel
+function fetchGhlContactId() {
+    if (!customerData || !customerData.id) return;
+    var btn = document.getElementById('ghlFetchBtn');
+    var input = document.getElementById('customerGhlContactId');
+    var origHTML = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Fetching...';
+    salonApi.post(apiCustomersUrl + '/' + customerData.id + '/ghl-lookup', {})
+        .then(function(res) {
+            var contactId = res.data && res.data.ghl_contact_id;
+            if (contactId) {
+                input.value = contactId;
+                customerData.ghlContactId = contactId;
+                input.classList.add('border-green-400', 'bg-green-50');
+                setTimeout(function() { input.classList.remove('border-green-400', 'bg-green-50'); }, 2000);
+                if (typeof showSuccessMessage === 'function') showSuccessMessage('Contact found and linked: ' + contactId);
+            }
+        })
+        .catch(function(err) {
+            if (typeof showErrorMessage === 'function') showErrorMessage(err.message || 'Contact not found in GoHighLevel.');
+        })
+        .finally(function() {
+            btn.innerHTML = origHTML;
+            btn.disabled = false;
+        });
+}
+
+// GHL Contact ID - Save manually entered ID
+function saveGhlContactId() {
+    if (!customerData || !customerData.id) return;
+    var input = document.getElementById('customerGhlContactId');
+    var value = input.value.trim();
+    var btn = document.getElementById('ghlSaveBtn');
+    var origHTML = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Saving...';
+    salonApi.put(apiCustomersUrl + '/' + customerData.id, {
+        first_name: customerData.firstName,
+        last_name: customerData.lastName,
+        email: customerData.email,
+        phone: customerData.phone,
+        ghl_contact_id: value
+    })
+        .then(function() {
+            customerData.ghlContactId = value;
+            input.classList.add('border-green-400', 'bg-green-50');
+            setTimeout(function() { input.classList.remove('border-green-400', 'bg-green-50'); }, 2000);
+            if (typeof showSuccessMessage === 'function') showSuccessMessage(value ? 'Contact ID saved.' : 'Contact ID cleared.');
+        })
+        .catch(function(err) {
+            if (typeof showErrorMessage === 'function') showErrorMessage(err.message || 'Failed to save Contact ID.');
+        })
+        .finally(function() {
+            btn.innerHTML = origHTML;
+            btn.disabled = false;
+        });
+}
+
 // Expose to global so onclick/onsubmit in page and modal can call them (must be after all function definitions)
 window.toggleTicketDetails = toggleTicketDetails;
 window.printTicket = printTicket;
@@ -767,6 +841,8 @@ window.updateCustomer = updateCustomer;
 window.openAdjustCreditsModal = openAdjustCreditsModal;
 window.updateCustomerCredits = updateCustomerCredits;
 window.deleteCustomerFromView = deleteCustomerFromView;
+window.fetchGhlContactId = fetchGhlContactId;
+window.saveGhlContactId = saveGhlContactId;
 window.setCustomerViewTab = setCustomerViewTab;
 
 initCustomerViewTabs();

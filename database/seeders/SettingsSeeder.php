@@ -25,6 +25,19 @@ class SettingsSeeder extends Seeder
             'turn_tracker_order' => 'lowest',
             'discounts_enabled' => true,
             'gift_cards_enabled' => true,
+            'clickaio_client_id' => '',
+            'clickaio_client_secret' => '',
+            'clickaio_version' => '2.0.0',
+            'clickaio_scopes' => 'contacts.readonly contacts.write locations/customFields.readonly locations/customFields.write locations/customValues.readonly locations/customValues.write opportunities.readonly opportunities.write',
+            'clickaio_location_id' => '',
+            'clickaio_calendar_id' => '',
+            'clickaio_endpoint_find_contact' => 'https://services.leadconnectorhq.com/contacts/search',
+            'clickaio_endpoint_create_contact' => 'https://services.leadconnectorhq.com/contacts/',
+            'clickaio_endpoint_book_appointment' => 'https://services.leadconnectorhq.com/calendars/events/appointments',
+            'clickaio_endpoint_delete_appointment' => 'https://services.leadconnectorhq.com/calendars/events/',
+            'clickaio_access_token' => '',
+            'clickaio_refresh_token' => '',
+            'clickaio_token_expires_at' => '',
         ];
 
         foreach ($defaults as $key => $value) {

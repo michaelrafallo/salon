@@ -20,6 +20,7 @@ Route::middleware(['web', 'salon.auth'])->prefix('api/salon')->name('api.salon.'
     Route::post('customers', [SalonCustomerController::class, 'store'])->name('customers.store');
     Route::put('customers/{customer}', [SalonCustomerController::class, 'update'])->name('customers.update');
     Route::post('customers/{customer}/credits', [SalonCustomerController::class, 'updateCredits'])->name('customers.credits.update');
+    Route::post('customers/{customer}/ghl-lookup', [SalonCustomerController::class, 'ghlLookup'])->name('customers.ghl-lookup');
     Route::delete('customers/{customer}', [SalonCustomerController::class, 'destroy'])->name('customers.destroy');
     Route::post('users', [SalonUserController::class, 'store'])->name('users.store');
     Route::put('users/{user}', [SalonUserController::class, 'update'])->name('users.update');
@@ -41,6 +42,8 @@ Route::middleware(['web', 'salon.auth'])->prefix('api/salon')->name('api.salon.'
     Route::get('settings', [SalonSettingsController::class, 'index'])->name('settings.index');
     Route::put('settings', [SalonSettingsController::class, 'update'])->name('settings.update');
     Route::post('settings/webhook', [SalonSettingsController::class, 'sendWebhook'])->name('settings.webhook');
+    Route::post('settings/clickaio/refresh', [SalonSettingsController::class, 'clickaioRefreshToken'])->name('settings.clickaio.refresh');
+    Route::post('settings/clickaio/test-api', [SalonSettingsController::class, 'clickaioTestApi'])->name('settings.clickaio.test-api');
     Route::get('coupons', [SalonCouponController::class, 'index'])->name('coupons.index');
     Route::post('coupons', [SalonCouponController::class, 'store'])->name('coupons.store');
     Route::put('coupons/{coupon}', [SalonCouponController::class, 'update'])->name('coupons.update');
@@ -109,6 +112,8 @@ Route::name('salon.')->group(function () {
         Route::get('orders', [SalonController::class, 'ordersIndex'])->name('orders.index');
         Route::get('turn-tracker', [SalonController::class, 'turnTrackerIndex'])->name('turn-tracker.index');
         Route::get('settings', [SalonController::class, 'settingsIndex'])->name('settings.index');
+        Route::get('settings/clickaio/authorize', [SalonSettingsController::class, 'clickaioAuthorizeRedirect'])->name('settings.clickaio.authorize');
+        Route::get('settings/clickaio/callback', [SalonSettingsController::class, 'clickaioCallback'])->name('settings.clickaio.callback');
         Route::get('documentation', [SalonController::class, 'documentationIndex'])->name('documentation.index');
         Route::get('profile', [SalonController::class, 'profileIndex'])->name('profile.index');
     });
