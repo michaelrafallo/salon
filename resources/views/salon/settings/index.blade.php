@@ -24,6 +24,28 @@
         </div>
         <div id="tab-general" class="settings-tab {{ $settingsTab === 'general' ? '' : 'hidden' }}">
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Business Logo</h2>
+                <div class="flex items-center gap-6" id="logoUploadSection" data-upload-url="{{ route('api.salon.settings.upload-logo') }}" data-remove-url="{{ route('api.salon.settings.remove-logo') }}">
+                    <div id="logoPreviewContainer" class="w-24 h-24 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden bg-gray-50 flex-shrink-0">
+                        <div id="logoPlaceholder" class="text-center">
+                            <svg class="w-8 h-8 text-gray-400 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            <span class="text-xs text-gray-400 mt-1 block">No logo</span>
+                        </div>
+                        <img id="logoPreviewImg" src="" alt="Business Logo" class="w-full h-full object-contain hidden">
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-sm text-gray-600 mb-3">Upload your business logo. Recommended: square image, max 2MB. Formats: JPG, PNG, GIF, SVG, WebP.</p>
+                        <div class="flex items-center gap-3">
+                            <label class="px-4 py-2 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium text-sm cursor-pointer active:scale-95">
+                                <span id="logoUploadBtnText">Upload Logo</span>
+                                <input type="file" id="logoFileInput" accept="image/*" class="hidden">
+                            </label>
+                            <button type="button" id="logoRemoveBtn" class="px-4 py-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition font-medium text-sm hidden active:scale-95">Remove</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
                 <h2 class="text-lg font-semibold text-gray-900 mb-4">Business Information</h2>
                 <form class="space-y-4 settings-form" data-settings-keys="business_name,business_phone,business_email,business_address,timezone">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -68,8 +90,18 @@
                             <input type="text" name="clickaio_location_id" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent font-mono text-sm" placeholder="Auto-filled on authorize or enter manually">
                         </div>
                         <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-2">Calendar ID</label>
-                            <input type="text" name="clickaio_calendar_id" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent font-mono text-sm" placeholder="Enter Calendar ID">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Default Calendar</label>
+                            <div class="flex gap-2">
+                                <select name="clickaio_calendar_id" id="clickaio_calendar_select" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent text-sm">
+                                    <option value="">-- Select a calendar --</option>
+                                </select>
+                                <button type="button" id="clickaio_refresh_calendars" class="px-3 py-2 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded-lg text-gray-600 flex-shrink-0" title="Refresh calendars">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                                </button>
+                            </div>
+                            <div id="clickaio_calendar_id_display" class="mt-1 hidden">
+                                <span class="text-xs text-gray-500">ID: <code id="clickaio_calendar_id_text" class="bg-gray-100 px-1.5 py-0.5 rounded text-xs font-mono select-all cursor-pointer hover:bg-gray-200 active:scale-95 transition-all duration-150" title="Click to copy"></code></span>
+                            </div>
                         </div>
                     </div>
                     <div class="flex justify-end">
@@ -644,9 +676,111 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     salonSettingsLoad();
     salonPointsRateInit();
+    salonLogoInit();
     if (tabToShow === 'discounts') salonSettingsLoadCoupons();
     if (tabToShow === 'gift-cards') salonSettingsLoadGiftCards();
 });
+function salonLogoInit() {
+    var section = document.getElementById('logoUploadSection');
+    if (!section) return;
+    var uploadUrl = section.getAttribute('data-upload-url');
+    var removeUrl = section.getAttribute('data-remove-url');
+    var fileInput = document.getElementById('logoFileInput');
+    var previewImg = document.getElementById('logoPreviewImg');
+    var placeholder = document.getElementById('logoPlaceholder');
+    var removeBtn = document.getElementById('logoRemoveBtn');
+    var btnText = document.getElementById('logoUploadBtnText');
+    var container = document.getElementById('logoPreviewContainer');
+
+    // Load current logo from bootstrap data
+    var bootstrap = window.salonSettingsBootstrap || {};
+    if (bootstrap.business_logo) {
+        var base = document.querySelector('meta[name="asset-url"]');
+        var assetBase = base ? base.content.replace(/\/+$/, '') : '';
+        previewImg.src = assetBase + '/storage/' + bootstrap.business_logo;
+        previewImg.classList.remove('hidden');
+        placeholder.classList.add('hidden');
+        container.classList.remove('border-dashed', 'border-gray-300');
+        container.classList.add('border-solid', 'border-gray-200');
+        removeBtn.classList.remove('hidden');
+    }
+
+    fileInput.addEventListener('change', function() {
+        var file = this.files[0];
+        if (!file) return;
+        if (file.size > 2 * 1024 * 1024) {
+            alert('File size must be under 2MB.');
+            this.value = '';
+            return;
+        }
+        var formData = new FormData();
+        formData.append('logo', file);
+        btnText.textContent = 'Uploading…';
+        fileInput.disabled = true;
+        var csrfToken = document.querySelector('meta[name="csrf-token"]');
+        fetch(uploadUrl, {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': csrfToken ? csrfToken.content : '', 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+            credentials: 'same-origin',
+            body: formData
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(res) {
+            if (res.success && res.data && res.data.logo_url) {
+                previewImg.src = res.data.logo_url;
+                previewImg.classList.remove('hidden');
+                placeholder.classList.add('hidden');
+                container.classList.remove('border-dashed', 'border-gray-300');
+                container.classList.add('border-solid', 'border-gray-200');
+                removeBtn.classList.remove('hidden');
+                // Update sidebar logo
+                var sidebarLogo = document.getElementById('sidebarLogoImg');
+                var sidebarIcon = document.getElementById('sidebarLogoIcon');
+                var sidebarWrap = document.getElementById('sidebarLogoWrap');
+                if (sidebarLogo) { sidebarLogo.src = res.data.logo_url; sidebarLogo.classList.remove('hidden'); }
+                if (sidebarIcon) sidebarIcon.classList.add('hidden');
+                if (sidebarWrap) sidebarWrap.classList.remove('bg-[#003047]');
+            } else {
+                alert(res.message || 'Upload failed.');
+            }
+        })
+        .catch(function() { alert('Upload failed.'); })
+        .finally(function() {
+            btnText.textContent = 'Upload Logo';
+            fileInput.disabled = false;
+            fileInput.value = '';
+        });
+    });
+
+    removeBtn.addEventListener('click', function() {
+        if (!confirm('Remove business logo?')) return;
+        var csrfToken = document.querySelector('meta[name="csrf-token"]');
+        fetch(removeUrl, {
+            method: 'DELETE',
+            headers: { 'X-CSRF-TOKEN': csrfToken ? csrfToken.content : '', 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+            credentials: 'same-origin'
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(res) {
+            if (res.success) {
+                previewImg.src = '';
+                previewImg.classList.add('hidden');
+                placeholder.classList.remove('hidden');
+                container.classList.add('border-dashed', 'border-gray-300');
+                container.classList.remove('border-solid', 'border-gray-200');
+                removeBtn.classList.add('hidden');
+                // Reset sidebar logo
+                var sidebarLogo = document.getElementById('sidebarLogoImg');
+                var sidebarIcon = document.getElementById('sidebarLogoIcon');
+                var sidebarWrap = document.getElementById('sidebarLogoWrap');
+                if (sidebarLogo) sidebarLogo.classList.add('hidden');
+                if (sidebarIcon) sidebarIcon.classList.remove('hidden');
+                if (sidebarWrap) sidebarWrap.classList.add('bg-[#003047]');
+            }
+        })
+        .catch(function() { alert('Failed to remove logo.'); });
+    });
+}
 function salonPointsRateToggle() {
     var fixedCb = document.getElementById('points-rate-fixed-cb');
     var pctCb = document.getElementById('points-rate-percentage-cb');
@@ -779,6 +913,10 @@ document.querySelectorAll('form.settings-form').forEach(function(form) {
                 button.textContent = 'Saved!';
                 button.classList.add('bg-green-500', 'hover:bg-green-600');
                 button.classList.remove('bg-[#003047]', 'hover:bg-[#002535]');
+                if (payload.business_name !== undefined) {
+                    var sbn = document.getElementById('sidebarBusinessName');
+                    if (sbn) sbn.textContent = payload.business_name || 'Nail Salon POS';
+                }
                 setTimeout(function() {
                     button.textContent = originalText;
                     button.classList.remove('bg-green-500', 'hover:bg-green-600');
@@ -1249,7 +1387,19 @@ window.salonSettingsConfirmDeleteCoupon = function(id) {
         if (secretInput && !secretInput.value && clientSecret) secretInput.value = clientSecret;
         if (versionInput && !versionInput.value && version) versionInput.value = version;
         if (locationInput && !locationInput.value && locationId) locationInput.value = locationId;
-        if (calendarInput && !calendarInput.value && calendarId) calendarInput.value = calendarId;
+        storedCalendarId = calendarId;
+        if (calendarInput && calendarId) {
+            // If dropdown has no matching option yet, add a placeholder one
+            if (!calendarInput.querySelector('option[value="' + calendarId + '"]')) {
+                var opt = document.createElement('option');
+                opt.value = calendarId;
+                opt.textContent = calendarId + ' (saved)';
+                calendarInput.appendChild(opt);
+            }
+            calendarInput.value = calendarId;
+        }
+        // Auto-fetch calendars if we have a token and location
+        if (token && locationId) fetchGhlCalendars();
         if (scopesInput && !scopesInput.value && scopes) scopesInput.value = scopes;
         if (endpointFindInput && !endpointFindInput.value && data.clickaio_endpoint_find_contact) endpointFindInput.value = data.clickaio_endpoint_find_contact;
         if (endpointBookInput && !endpointBookInput.value && data.clickaio_endpoint_book_appointment) endpointBookInput.value = data.clickaio_endpoint_book_appointment;
@@ -1396,6 +1546,89 @@ window.salonSettingsConfirmDeleteCoupon = function(id) {
                 });
         });
     }
+    // Fetch GHL calendars and populate dropdown
+    function fetchGhlCalendars() {
+        var select = document.getElementById('clickaio_calendar_select');
+        var refreshBtn = document.getElementById('clickaio_refresh_calendars');
+        if (!select) return;
+        if (refreshBtn) {
+            refreshBtn.disabled = true;
+            refreshBtn.querySelector('svg').classList.add('animate-spin');
+        }
+        fetch('/lucky/nailsalon-app/public/api/salon/settings/clickaio/calendars', {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success && data.calendars) {
+                var currentVal = select.value || storedCalendarId;
+                select.innerHTML = '<option value="">-- Select a calendar --</option>';
+                data.calendars.forEach(function(cal) {
+                    var opt = document.createElement('option');
+                    opt.value = cal.id;
+                    opt.textContent = cal.name;
+                    if (cal.id === currentVal) opt.selected = true;
+                    select.appendChild(opt);
+                });
+                updateCalendarIdDisplay();
+            }
+        })
+        .catch(function(e) { console.error('Failed to fetch calendars:', e); })
+        .finally(function() {
+            if (refreshBtn) {
+                refreshBtn.disabled = false;
+                refreshBtn.querySelector('svg').classList.remove('animate-spin');
+            }
+        });
+    }
+
+    var refreshCalBtn = document.getElementById('clickaio_refresh_calendars');
+    if (refreshCalBtn) {
+        refreshCalBtn.addEventListener('click', function() { fetchGhlCalendars(); });
+    }
+
+    // Show/hide calendar ID below dropdown
+    function updateCalendarIdDisplay() {
+        var select = document.getElementById('clickaio_calendar_select');
+        var display = document.getElementById('clickaio_calendar_id_display');
+        var text = document.getElementById('clickaio_calendar_id_text');
+        if (!select || !display || !text) return;
+        if (select.value) {
+            text.textContent = select.value;
+            display.classList.remove('hidden');
+        } else {
+            display.classList.add('hidden');
+        }
+    }
+
+    var calSelect = document.getElementById('clickaio_calendar_select');
+    if (calSelect) {
+        calSelect.addEventListener('change', updateCalendarIdDisplay);
+    }
+
+    var calIdText = document.getElementById('clickaio_calendar_id_text');
+    if (calIdText) {
+        calIdText.addEventListener('click', function() {
+            var el = this;
+            var originalText = el.textContent;
+            navigator.clipboard.writeText(originalText).then(function() {
+                el.textContent = 'Copied!';
+                el.classList.remove('bg-gray-100');
+                el.classList.add('bg-green-100', 'text-green-700', 'ring-2', 'ring-green-400');
+                el.style.transition = 'all 0.2s ease';
+                el.style.transform = 'scale(1.1)';
+                setTimeout(function() { el.style.transform = 'scale(1)'; }, 200);
+                setTimeout(function() {
+                    el.textContent = originalText;
+                    el.classList.remove('bg-green-100', 'text-green-700', 'ring-2', 'ring-green-400');
+                    el.classList.add('bg-gray-100');
+                }, 1200);
+            });
+        });
+    }
+
+    // Initial display update
+    updateCalendarIdDisplay();
 })();
 </script>
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>

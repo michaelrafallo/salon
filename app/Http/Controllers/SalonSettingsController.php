@@ -8,6 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 
 class SalonSettingsController extends Controller
 {
@@ -44,6 +45,48 @@ class SalonSettingsController extends Controller
             'success' => true,
             'message' => 'Settings updated.',
             'data' => Setting::getAllAsKeyValue(),
+        ]);
+    }
+
+    /**
+     * Upload business logo.
+     */
+    public function uploadLogo(Request $request): JsonResponse
+    {
+        $request->validate([
+            'logo' => ['required', 'image', 'mimes:jpg,jpeg,png,gif,svg,webp', 'max:2048'],
+        ]);
+
+        // Delete old logo if exists
+        $oldLogo = Setting::query()->where('option_key', 'business_logo')->value('option_value');
+        if ($oldLogo && Storage::disk('public')->exists($oldLogo)) {
+            Storage::disk('public')->delete($oldLogo);
+        }
+
+        $path = $request->file('logo')->store('logos', 'public');
+        Setting::set('business_logo', $path);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Logo uploaded successfully.',
+            'data' => ['business_logo' => $path, 'logo_url' => asset('storage/' . $path)],
+        ]);
+    }
+
+    /**
+     * Remove business logo.
+     */
+    public function removeLogo(): JsonResponse
+    {
+        $logo = Setting::query()->where('option_key', 'business_logo')->value('option_value');
+        if ($logo && Storage::disk('public')->exists($logo)) {
+            Storage::disk('public')->delete($logo);
+        }
+        Setting::set('business_logo', '');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Logo removed.',
         ]);
     }
 
@@ -241,6 +284,49 @@ class SalonSettingsController extends Controller
 
             // Return the existing token as fallback (may still work)
             return $token;
+        }
+    }
+
+    /**
+     * Fetch service calendars from GoHighLevel.
+     */
+    public function clickaioCalendars(): JsonResponse
+    {
+        $token = static::getClickaioToken();
+        $locationId = Setting::query()->where('option_key', 'clickaio_location_id')->value('option_value');
+
+        if (! $token || ! $locationId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'GHL not connected. Please authorize and set Location ID first.',
+            ], 422);
+        }
+
+        try {
+            $response = Http::timeout(15)
+                ->withHeaders([
+                    'Authorization' => 'Bearer '.$token,
+                    'Version' => '2021-04-15',
+                ])
+                ->get('https://services.leadconnectorhq.com/calendars/', [
+                    'locationId' => $locationId,
+                ]);
+
+            $calendars = collect($response->json('calendars') ?? [])
+                ->map(fn ($cal) => [
+                    'id' => $cal['id'],
+                    'name' => $cal['name'],
+                ]);
+
+            return response()->json([
+                'success' => true,
+                'calendars' => $calendars->values(),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
         }
     }
 

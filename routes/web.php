@@ -41,10 +41,13 @@ Route::middleware(['web', 'salon.auth'])->prefix('api/salon')->name('api.salon.'
     Route::post('technicians/{user}/clock-out', [SalonTurnTrackerController::class, 'clockOut'])->name('technicians.clock-out');
     Route::get('settings', [SalonSettingsController::class, 'index'])->name('settings.index');
     Route::put('settings', [SalonSettingsController::class, 'update'])->name('settings.update');
+    Route::post('settings/upload-logo', [SalonSettingsController::class, 'uploadLogo'])->name('settings.upload-logo');
+    Route::delete('settings/remove-logo', [SalonSettingsController::class, 'removeLogo'])->name('settings.remove-logo');
     Route::post('settings/webhook', [SalonSettingsController::class, 'sendWebhook'])->name('settings.webhook');
     Route::post('settings/clickaio/refresh', [SalonSettingsController::class, 'clickaioRefreshToken'])->name('settings.clickaio.refresh');
     Route::post('settings/clickaio/test-api', [SalonSettingsController::class, 'clickaioTestApi'])->name('settings.clickaio.test-api');
     Route::post('settings/clickaio/bulk-action', [SalonSettingsController::class, 'clickaioBulkAction'])->name('settings.clickaio.bulk-action');
+    Route::get('settings/clickaio/calendars', [SalonSettingsController::class, 'clickaioCalendars'])->name('settings.clickaio.calendars');
     Route::get('coupons', [SalonCouponController::class, 'index'])->name('coupons.index');
     Route::post('coupons', [SalonCouponController::class, 'store'])->name('coupons.store');
     Route::put('coupons/{coupon}', [SalonCouponController::class, 'update'])->name('coupons.update');

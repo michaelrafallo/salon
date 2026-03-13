@@ -31,6 +31,7 @@ class Setting extends Model
             'business_phone',
             'business_email',
             'business_address',
+            'business_logo',
             'receipt_print_enabled',
             'receipt_include_business_info',
             'tax_rate',

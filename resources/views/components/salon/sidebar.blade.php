@@ -5,6 +5,9 @@
     $sidebarUserRole = ucfirst($sidebarUser->role ?? $currentRole);
     $sidebarInitials = $sidebarUser->initials ?? strtoupper(mb_substr($sidebarUserName, 0, 1) . mb_substr(strrchr($sidebarUserName . ' ', ' ') ?: 'U', 0, 1));
     $sidebarPhotoUrl = $sidebarUser?->profile_photo ? asset('storage/' . $sidebarUser->profile_photo) : null;
+    $sidebarBusinessName = \App\Models\Setting::query()->where('option_key', 'business_name')->value('option_value');
+    $sidebarBusinessLogo = \App\Models\Setting::query()->where('option_key', 'business_logo')->value('option_value');
+    $sidebarLogoUrl = $sidebarBusinessLogo ? asset('storage/' . $sidebarBusinessLogo) : null;
     $menuItems = [
         'dashboard' => ['admin', 'technician', 'receptionist'],
         'waiting_list' => ['admin', 'receptionist'],
@@ -26,14 +29,22 @@
 @endphp
 
 <aside class="w-64 bg-white border-r border-gray-200 flex flex-col fixed lg:relative h-screen lg:h-auto lg:translate-x-0 transform -translate-x-full transition-transform duration-300 z-50" id="sidebar">
-    <div class="p-6 border-b border-gray-200">
-        <div class="flex items-center gap-2 mb-4">
-            <div class="w-10 h-10 bg-[#003047] rounded-lg flex items-center justify-center">
-                <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
-                </svg>
+    <div class="p-4 border-b border-gray-200">
+        <div class="flex flex-col items-center gap-2" id="sidebarBrandBlock">
+            <div class="w-16 h-16 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0 {{ $sidebarLogoUrl ? '' : 'bg-[#003047]' }}" id="sidebarLogoWrap">
+                @if($sidebarLogoUrl)
+                    <img id="sidebarLogoImg" src="{{ $sidebarLogoUrl }}" alt="Logo" class="w-full h-full object-contain">
+                    <svg id="sidebarLogoIcon" class="w-8 h-8 text-white hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                    </svg>
+                @else
+                    <img id="sidebarLogoImg" src="" alt="Logo" class="w-full h-full object-contain hidden">
+                    <svg id="sidebarLogoIcon" class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                    </svg>
+                @endif
             </div>
-            <span class="text-gray-900 font-bold text-xl">Nail Salon POS</span>
+            <span class="text-gray-900 font-bold text-base text-center leading-tight" id="sidebarBusinessName">{{ $sidebarBusinessName ?: 'Nail Salon POS' }}</span>
         </div>
     </div>
 
