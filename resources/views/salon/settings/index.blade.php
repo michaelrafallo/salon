@@ -1561,7 +1561,7 @@ window.salonSettingsConfirmDeleteCoupon = function(id) {
             refreshBtn.disabled = true;
             refreshBtn.querySelector('svg').classList.add('animate-spin');
         }
-        fetch('/lucky/nailsalon-app/public/api/salon/settings/clickaio/calendars', {
+        fetch('{{ url("api/salon/settings/clickaio/calendars") }}', {
             headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
         })
         .then(function(r) { return r.json(); })
