@@ -112,7 +112,9 @@ class SalonCustomerController extends Controller
             return response()->json(['success' => false, 'message' => 'Location ID not configured in Settings.'], 422);
         }
 
-        $contactId = GoHighLevelService::findGhlContact($token, $locationId, $customer);
+        $searchByPhone = $request->boolean('search_by_phone', true);
+        $searchByEmail = $request->boolean('search_by_email', true);
+        $contactId = GoHighLevelService::findGhlContact($token, $locationId, $customer, $searchByPhone, $searchByEmail);
 
         if (! $contactId) {
             return response()->json(['success' => false, 'message' => 'Contact not found in GoHighLevel.'], 404);

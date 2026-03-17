@@ -72,9 +72,14 @@ class GoHighLevelService
     /**
      * Search for a customer in GHL by phone (priority) or email, save ghl_contact_id if found.
      */
-    public static function findGhlContact(string $token, string $locationId, Customer $customer): ?string
+    public static function findGhlContact(string $token, string $locationId, Customer $customer, bool $searchByPhone = true, bool $searchByEmail = true): ?string
     {
-        $query = $customer->phone ?: $customer->email;
+        $query = null;
+        if ($searchByPhone && $customer->phone) {
+            $query = $customer->phone;
+        } elseif ($searchByEmail && $customer->email) {
+            $query = $customer->email;
+        }
         if (! $query) {
             return null;
         }

@@ -70,6 +70,16 @@
                                 <p class="text-sm text-gray-500 mb-1">Clickaio Contact ID</p>
                                 <div class="flex items-center gap-2">
                                     <input type="text" id="customerGhlContactId" value="{{ $customer->ghl_contact_id ?? '' }}" placeholder="Not linked" class="text-base font-medium text-gray-900 font-mono bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 flex-1 focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" data-customer-id="{{ $customer->id }}">
+                                </div>
+                                <div class="flex items-center justify-end gap-2 mt-2">
+                                    <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
+                                        <input type="checkbox" id="ghlSearchPhone" checked class="w-4 h-4 rounded border-gray-300 text-[#003047] focus:ring-[#003047]">
+                                        <span class="text-sm text-gray-700">Phone</span>
+                                    </label>
+                                    <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
+                                        <input type="checkbox" id="ghlSearchEmail" checked class="w-4 h-4 rounded border-gray-300 text-[#003047] focus:ring-[#003047]">
+                                        <span class="text-sm text-gray-700">Email</span>
+                                    </label>
                                     <button type="button" id="ghlFetchBtn" onclick="fetchGhlContactId()" class="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium active:scale-95 inline-flex items-center gap-1.5" title="Fetch from GHL">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                                         Fetch
@@ -781,7 +791,15 @@ function fetchGhlContactId() {
     var origHTML = btn.innerHTML;
     btn.disabled = true;
     btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Fetching...';
-    salonApi.post(apiCustomersUrl + '/' + customerData.id + '/ghl-lookup', {})
+    var searchByPhone = document.getElementById('ghlSearchPhone').checked;
+    var searchByEmail = document.getElementById('ghlSearchEmail').checked;
+    if (!searchByPhone && !searchByEmail) {
+        if (typeof showErrorMessage === 'function') showErrorMessage('Please select at least Phone or Email to search by.');
+        btn.innerHTML = origHTML;
+        btn.disabled = false;
+        return;
+    }
+    salonApi.post(apiCustomersUrl + '/' + customerData.id + '/ghl-lookup', { search_by_phone: searchByPhone, search_by_email: searchByEmail })
         .then(function(res) {
             var contactId = res.data && res.data.ghl_contact_id;
             if (contactId) {
