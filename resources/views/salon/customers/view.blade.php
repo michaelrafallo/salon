@@ -66,7 +66,7 @@
                                 <p class="text-sm text-gray-500 mb-1">Address</p>
                                 <p class="text-base font-medium text-gray-900" id="customerAddress">{{ $customer->address ?? '—' }}</p>
                             </div>
-                            <div class="md:col-span-2">
+                            <div class="md:col-span-4">
                                 <p class="text-sm text-gray-500 mb-1">Clickaio Contact ID</p>
                                 <div class="flex items-center gap-2">
                                     <input type="text" id="customerGhlContactId" value="{{ $customer->ghl_contact_id ?? '' }}" placeholder="Not linked" class="text-base font-medium text-gray-900 font-mono bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 flex-1 focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" data-customer-id="{{ $customer->id }}">
