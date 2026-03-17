@@ -2,7 +2,7 @@
 
 @section('content')
 @php
-    $isAdmin = in_array(session('salon_role', 'admin'), ['admin'], true);
+    $isAdmin = in_array(session('salon_role', 'admin'), ['superadmin', 'admin'], true);
     $servicesTab = request()->query('status', 'all');
     if (! in_array($servicesTab, ['all', 'active', 'inactive'], true)) {
         $servicesTab = 'all';

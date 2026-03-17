@@ -9,19 +9,19 @@
     $sidebarBusinessLogo = \App\Models\Setting::query()->where('option_key', 'business_logo')->value('option_value');
     $sidebarLogoUrl = $sidebarBusinessLogo ? asset('storage/' . $sidebarBusinessLogo) : null;
     $menuItems = [
-        'dashboard' => ['admin', 'technician', 'receptionist'],
-        'waiting_list' => ['admin', 'receptionist'],
-        'booking' => ['admin', 'receptionist'],
-        'calendar' => ['admin', 'technician', 'receptionist'],
-        'services' => ['admin', 'receptionist'],
-        'customers' => ['admin', 'receptionist'],
-        'technicians' => ['admin', 'receptionist'],
-        'turn_tracker' => ['admin', 'receptionist'],
-        'users' => ['admin'],
-        'payments' => ['admin', 'receptionist'],
-        'payout' => ['admin', 'technician', 'receptionist'],
-        'settings' => ['admin'],
-        'documentation' => ['admin', 'technician', 'receptionist'],
+        'dashboard' => ['superadmin', 'admin', 'technician', 'receptionist'],
+        'waiting_list' => ['superadmin', 'admin', 'receptionist'],
+        'booking' => ['superadmin', 'admin', 'receptionist'],
+        'calendar' => ['superadmin', 'admin', 'technician', 'receptionist'],
+        'services' => ['superadmin', 'admin', 'receptionist'],
+        'customers' => ['superadmin', 'admin', 'receptionist'],
+        'technicians' => ['superadmin', 'admin', 'receptionist'],
+        'turn_tracker' => ['superadmin', 'admin', 'receptionist'],
+        'users' => ['superadmin', 'admin'],
+        'payments' => ['superadmin', 'admin', 'receptionist'],
+        'payout' => ['superadmin', 'admin', 'technician', 'receptionist'],
+        'settings' => ['superadmin', 'admin'],
+        'documentation' => ['superadmin', 'admin', 'technician', 'receptionist'],
     ];
     $canAccess = function ($key) use ($menuItems, $currentRole) {
         return isset($menuItems[$key]) && in_array($currentRole, $menuItems[$key]);

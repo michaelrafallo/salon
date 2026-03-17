@@ -70,7 +70,7 @@ class SalonUserController extends Controller
         }
 
         $currentRole = (string) $request->session()->get('salon_role', 'admin');
-        if ($currentRole !== 'admin') {
+        if (! in_array($currentRole, ['superadmin', 'admin'], true)) {
             return response()->json(['success' => false, 'message' => 'Only admins can login as another user.'], 403);
         }
 
@@ -80,7 +80,7 @@ class SalonUserController extends Controller
         }
 
         $newRole = (string) ($user->role ?? 'admin');
-        if (! in_array($newRole, ['admin', 'receptionist', 'technician'], true)) {
+        if (! in_array($newRole, ['superadmin', 'admin', 'receptionist', 'technician'], true)) {
             $newRole = 'admin';
         }
 

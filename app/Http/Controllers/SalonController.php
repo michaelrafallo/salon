@@ -104,7 +104,7 @@ class SalonController extends Controller
         }
 
         $recentWaitingList = [];
-        if (in_array($currentRole, ['admin', 'receptionist', 'technician'], true)) {
+        if (in_array($currentRole, ['superadmin', 'admin', 'receptionist', 'technician'], true)) {
             $waitingQuery = Appointment::query()
                 ->whereRaw('LOWER(status) = ?', ['waiting'])
                 ->with([
@@ -1516,7 +1516,7 @@ class SalonController extends Controller
     public function documentationIndex(Request $request): View
     {
         $currentRole = (string) $request->session()->get('salon_role', 'admin');
-        if (! in_array($currentRole, ['admin', 'receptionist', 'technician'], true)) {
+        if (! in_array($currentRole, ['superadmin', 'admin', 'receptionist', 'technician'], true)) {
             $currentRole = 'admin';
         }
 

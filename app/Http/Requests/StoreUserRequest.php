@@ -24,7 +24,7 @@ class StoreUserRequest extends FormRequest
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'password' => ['required', 'string', Password::defaults()],
             'phone' => ['nullable', 'string', 'max:50'],
-            'role' => ['required', 'string', 'in:admin,receptionist,technician'],
+            'role' => ['required', 'string', 'in:superadmin,admin,receptionist,technician'],
             'status' => ['nullable', 'string', 'in:active,inactive'],
             'profile_photo' => ['nullable', 'image', 'max:2048'],
         ];

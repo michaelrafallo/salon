@@ -15,7 +15,7 @@ class GoHighLevelService
      * Sync a booking to GoHighLevel: resolve contact, create appointment.
      * Runs silently — failures are logged but never block the main flow.
      */
-    public static function syncAppointment(Appointment $appointment): void
+    public static function syncAppointment(Appointment $appointment, ?string $overrideCalendarId = null): void
     {
         try {
             Log::info('GHL syncAppointment started for appointment #'.$appointment->id);
@@ -27,12 +27,14 @@ class GoHighLevelService
             }
 
             $locationId = Setting::query()->where('option_key', 'clickaio_location_id')->value('option_value');
-            $calendarId = Setting::query()->where('option_key', 'clickaio_calendar_id')->value('option_value');
+            $calendarId = $overrideCalendarId ?: Setting::query()->where('option_key', 'clickaio_calendar_id')->value('option_value');
 
             if (! $locationId || ! $calendarId) {
                 Log::warning('GHL syncAppointment aborted: missing locationId='.$locationId.' calendarId='.$calendarId);
                 return;
             }
+
+            $oldGhlAppointmentId = $appointment->ghl_appointment_id;
 
             $appointment->loadMissing('customer');
             $customer = $appointment->customer;
@@ -53,10 +55,14 @@ class GoHighLevelService
                 return;
             }
 
-            // Create GHL appointment
+            // Create new GHL appointment first
             $ghlAppointmentId = static::createGhlAppointment($token, $locationId, $calendarId, $contactId, $appointment);
             if ($ghlAppointmentId) {
-                $appointment->updateQuietly(['ghl_appointment_id' => $ghlAppointmentId]);
+                // Only delete old appointment after new one is successfully created
+                if ($oldGhlAppointmentId) {
+                    static::deleteGhlAppointment($oldGhlAppointmentId);
+                }
+                $appointment->updateQuietly(['ghl_appointment_id' => $ghlAppointmentId, 'ghl_calendar_id' => $calendarId]);
             }
         } catch (\Exception $e) {
             Log::warning('GHL sync failed: '.$e->getMessage());
@@ -192,6 +198,53 @@ class GoHighLevelService
     }
 
     /**
+     * Update a GHL contact with the customer's current details.
+     */
+    public static function updateGhlContact(Customer $customer): void
+    {
+        try {
+            if (! $customer->ghl_contact_id) {
+                return;
+            }
+
+            $token = SalonSettingsController::getClickaioToken();
+            if (! $token) {
+                return;
+            }
+
+            $endpoint = Setting::query()->where('option_key', 'clickaio_endpoint_create_contact')->value('option_value')
+                ?: 'https://services.leadconnectorhq.com/contacts/';
+
+            $payload = [
+                'firstName' => $customer->first_name,
+                'lastName' => $customer->last_name,
+            ];
+
+            if ($customer->email) {
+                $payload['email'] = $customer->email;
+            }
+            if ($customer->phone) {
+                $payload['phone'] = $customer->phone;
+            }
+
+            $response = Http::timeout(15)
+                ->withHeaders([
+                    'Authorization' => 'Bearer '.$token,
+                    'Version' => '2021-07-28',
+                ])
+                ->put(rtrim($endpoint, '/').'/'.$customer->ghl_contact_id, $payload);
+
+            if ($response->failed()) {
+                Log::warning('GHL update contact failed: '.$response->body());
+            } else {
+                Log::info('GHL contact updated for customer #'.$customer->id);
+            }
+        } catch (\Exception $e) {
+            Log::warning('GHL update contact error: '.$e->getMessage());
+        }
+    }
+
+    /**
      * Create an appointment in GHL calendar.
      */
     public static function createGhlAppointment(
@@ -227,6 +280,9 @@ class GoHighLevelService
             'timezone' => $timezone,
             'status' => 'booked',
             'notes' => $customerName,
+            'selectedSlot' => $startTime,
+            'selectedTimezone' => $timezone,
+            'ignoreDateRange' => true,
         ];
 
         Log::info('GHL create appointment payload: '.json_encode($payload));

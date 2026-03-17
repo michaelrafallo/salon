@@ -3,7 +3,7 @@
 @section('content')
 @php
     $techniciansViewUrl = route('salon.technicians.view');
-    $isAdmin = in_array(session('salon_role', 'admin'), ['admin'], true);
+    $isAdmin = in_array(session('salon_role', 'admin'), ['superadmin', 'admin'], true);
     $techniciansTab = request()->query('status', 'all');
     if ($techniciansTab === 'online') {
         $techniciansTab = 'active';

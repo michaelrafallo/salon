@@ -84,7 +84,7 @@ class User extends Authenticatable
      */
     public function scopeSalonStaff(Builder $query): Builder
     {
-        return $query->whereIn('role', ['admin', 'receptionist', 'technician']);
+        return $query->whereIn('role', ['superadmin', 'admin', 'receptionist', 'technician']);
     }
 
     /**

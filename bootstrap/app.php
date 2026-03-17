@@ -17,6 +17,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
         $middleware->validateCsrfTokens(except: [
             'check-in',
+            'api/customers/update/*',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

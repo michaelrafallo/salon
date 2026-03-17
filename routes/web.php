@@ -35,6 +35,7 @@ Route::middleware(['web', 'salon.auth'])->prefix('api/salon')->name('api.salon.'
     Route::put('appointments/{appointment}', [SalonAppointmentController::class, 'update'])->name('appointments.update');
     Route::put('appointments/{appointment}/services', [SalonAppointmentController::class, 'updateServices'])->name('appointments.services.update');
     Route::delete('appointments/{appointment}', [SalonAppointmentController::class, 'destroy'])->name('appointments.destroy');
+    Route::post('appointments/{appointment}/sync-calendar', [SalonAppointmentController::class, 'syncCalendar'])->name('appointments.sync-calendar');
     Route::get('turn-tracker', [SalonTurnTrackerController::class, 'index'])->name('turn-tracker.index');
     Route::put('turn-tracker', [SalonTurnTrackerController::class, 'sync'])->name('turn-tracker.sync');
     Route::post('technicians/{user}/clock-in', [SalonTurnTrackerController::class, 'clockIn'])->name('technicians.clock-in');
@@ -71,6 +72,7 @@ Route::prefix('api/salon/data')->name('api.salon.data.')->group(function () {
 });
 
 Route::post('check-in', [OnlineCheckinController::class, 'store'])->name('online-checkin.store');
+Route::post('api/customers/update/{ghl_contact_id}', [SalonCustomerController::class, 'syncFromGhl'])->name('api.customers.update-from-ghl');
 
 Route::name('salon.')->group(function () {
     Route::redirect('/', '/dashboard', 302);

@@ -46,6 +46,9 @@ class SalonCustomerController extends Controller
     {
         $customer = $this->customerService->update($customer, $request->validated());
 
+        // Sync updated details to GHL contact (non-blocking)
+        GoHighLevelService::updateGhlContact($customer);
+
         return response()->json([
             'success' => true,
             'message' => 'Customer updated successfully.',
@@ -119,6 +122,40 @@ class SalonCustomerController extends Controller
             'success' => true,
             'message' => 'Contact found and linked.',
             'data' => ['ghl_contact_id' => $contactId],
+        ]);
+    }
+
+    public function syncFromGhl(Request $request, string $ghlContactId): JsonResponse
+    {
+        $validated = $request->validate([
+            'first_name' => 'required|string|max:255',
+            'last_name'  => 'required|string|max:255',
+            'phone'      => 'nullable|string|max:50',
+            'email'      => 'nullable|string|email|max:255',
+            'updated_at' => 'nullable|date',
+        ]);
+
+        $customer = Customer::updateOrCreate(
+            ['ghl_contact_id' => $ghlContactId],
+            [
+                'first_name' => $validated['first_name'],
+                'last_name'  => $validated['last_name'],
+                'phone'      => $validated['phone'] ?? null,
+                'email'      => $validated['email'] ?? null,
+            ]
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Customer synced successfully.',
+            'data' => [
+                'id'           => $customer->id,
+                'firstName'    => $customer->first_name,
+                'lastName'     => $customer->last_name,
+                'email'        => $customer->email,
+                'phone'        => $customer->phone,
+                'ghlContactId' => $customer->ghl_contact_id,
+            ],
         ]);
     }
 

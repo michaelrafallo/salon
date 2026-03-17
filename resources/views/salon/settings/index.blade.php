@@ -2,8 +2,10 @@
 
 @section('content')
 @php
+    $isSuperAdmin = session('salon_role') === 'superadmin';
     $settingsTab = request()->query('tab', 'general');
-    if (! in_array($settingsTab, ['general', 'clickaio', 'tax', 'discounts', 'gift-cards'], true)) {
+    $allowedTabs = $isSuperAdmin ? ['general', 'clickaio', 'tax', 'discounts', 'gift-cards'] : ['general', 'tax', 'discounts', 'gift-cards'];
+    if (! in_array($settingsTab, $allowedTabs, true)) {
         $settingsTab = 'general';
     }
 @endphp
@@ -16,7 +18,9 @@
         <div class="mb-6">
             <div class="flex items-center gap-2 overflow-x-auto pb-2 border-b border-gray-200">
                 <button type="button" onclick="salonSettingsShowTab('general', this)" class="tab-button px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition {{ $settingsTab === 'general' ? 'text-[#003047] border-[#003047]' : 'text-gray-500 hover:text-gray-700 border-transparent' }}">General</button>
+                @if($isSuperAdmin)
                 <button type="button" onclick="salonSettingsShowTab('clickaio', this)" class="tab-button px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition {{ $settingsTab === 'clickaio' ? 'text-[#003047] border-[#003047]' : 'text-gray-500 hover:text-gray-700 border-transparent' }}">Clickaio API</button>
+                @endif
                 <button type="button" onclick="salonSettingsShowTab('tax', this)" class="tab-button px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition {{ $settingsTab === 'tax' ? 'text-[#003047] border-[#003047]' : 'text-gray-500 hover:text-gray-700 border-transparent' }}">Tax & Currency</button>
                 <button type="button" onclick="salonSettingsShowTab('discounts', this)" class="tab-button px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition {{ $settingsTab === 'discounts' ? 'text-[#003047] border-[#003047]' : 'text-gray-500 hover:text-gray-700 border-transparent' }}">Discounts & Coupons</button>
                 <button type="button" onclick="salonSettingsShowTab('gift-cards', this)" class="tab-button px-4 py-2 text-sm font-medium whitespace-nowrap border-b-2 transition {{ $settingsTab === 'gift-cards' ? 'text-[#003047] border-[#003047]' : 'text-gray-500 hover:text-gray-700 border-transparent' }}">Gift Cards</button>
@@ -80,6 +84,7 @@
                 </form>
             </div>
         </div>
+        @if($isSuperAdmin)
         <div id="tab-clickaio" class="settings-tab {{ $settingsTab === 'clickaio' ? '' : 'hidden' }}">
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
                 <h2 class="text-lg font-semibold text-gray-900 mb-4">Settings</h2>
@@ -370,6 +375,7 @@
                 </div>
             </div>
         </div>
+        @endif
         <div id="tab-tax" class="settings-tab {{ $settingsTab === 'tax' ? '' : 'hidden' }}">
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
                 <h2 class="text-lg font-semibold text-gray-900 mb-4">Tax Configuration</h2>

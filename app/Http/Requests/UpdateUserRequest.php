@@ -26,7 +26,7 @@ class UpdateUserRequest extends FormRequest
             'email' => ['sometimes', 'email', 'max:255', 'unique:users,email,'.$userId],
             'password' => ['nullable', 'string', Password::defaults()],
             'phone' => ['nullable', 'string', 'max:50'],
-            'role' => ['sometimes', 'string', 'in:admin,receptionist,technician'],
+            'role' => ['sometimes', 'string', 'in:superadmin,admin,receptionist,technician'],
             'status' => ['nullable', 'string', 'in:active,inactive'],
             'profile_photo' => ['nullable', 'image', 'max:2048'],
             'remove_photo' => ['nullable', 'in:0,1'],

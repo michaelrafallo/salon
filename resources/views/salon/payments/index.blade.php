@@ -14,6 +14,27 @@
                 </button>
             </div>
         </div>
+        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-6">
+            <div class="flex flex-col lg:flex-row lg:items-center gap-3">
+                <div class="flex items-center gap-3 flex-1 w-full lg:w-auto">
+                    <div class="flex items-center gap-2 bg-white border border-gray-300 rounded-lg px-3 py-2 shadow-sm hover:border-[#003047] transition-colors flex-1 lg:flex-initial">
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        <input type="date" id="paymentsDateFrom" onchange="salonPaymentsApplyDateFilter()" class="flex-1 text-sm font-medium text-gray-700 border-0 focus:outline-none focus:ring-0 bg-transparent">
+                    </div>
+                    <span class="text-gray-400 font-medium hidden sm:inline">to</span>
+                    <div class="flex items-center gap-2 bg-white border border-gray-300 rounded-lg px-3 py-2 shadow-sm hover:border-[#003047] transition-colors flex-1 lg:flex-initial">
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        <input type="date" id="paymentsDateTo" onchange="salonPaymentsApplyDateFilter()" class="flex-1 text-sm font-medium text-gray-700 border-0 focus:outline-none focus:ring-0 bg-transparent">
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 flex-wrap ml-auto">
+                    <button type="button" onclick="salonPaymentsSetDateRange('today', this)" class="payments-date-btn px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-[#003047] hover:text-white hover:border-[#003047] transition-all active:scale-95 shadow-sm">Today</button>
+                    <button type="button" onclick="salonPaymentsSetDateRange('week', this)" class="payments-date-btn px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-[#003047] hover:text-white hover:border-[#003047] transition-all active:scale-95 shadow-sm">This Week</button>
+                    <button type="button" onclick="salonPaymentsSetDateRange('month', this)" class="payments-date-btn px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-[#003047] hover:text-white hover:border-[#003047] transition-all active:scale-95 shadow-sm">This Month</button>
+                    <button type="button" onclick="salonPaymentsSetDateRange('year', this)" class="payments-date-btn px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-[#003047] hover:text-white hover:border-[#003047] transition-all active:scale-95 shadow-sm">This Year</button>
+                </div>
+            </div>
+        </div>
         <div id="listView" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <h2 class="text-lg font-semibold text-gray-900 mb-4">Recent Transactions</h2>
             <div class="overflow-x-auto">
@@ -117,11 +138,17 @@ window.salonPaymentsBootstrap = window.salonPaymentsBootstrap || @json($payments
 var apiPaymentsUrl = '{{ url("api/salon/payments") }}';
 var allPayments = [], paymentsData = [], PAGE_SIZE = 15, currentPage = 1, totalPages = 1;
 var currentView = localStorage.getItem('paymentsView') || 'list';
+var paymentsDateFrom = null, paymentsDateTo = null;
 function formatDate(str) {
     if (!str) return '';
-    var d = new Date(str + 'T00:00:00');
+    var datePart = str.substring(0, 10);
+    var timePart = str.length > 10 ? str.substring(11).trim() : '';
+    var d = new Date(datePart + 'T00:00:00');
+    if (isNaN(d.getTime())) return str;
     var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    return months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+    var formatted = months[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+    if (timePart) formatted += ' ' + timePart;
+    return formatted;
 }
 function formatMoney(val) {
     return window.salonFormatMoney(val || 0);
@@ -468,6 +495,109 @@ window.salonPaymentsRefundPayment = function(transactionId) {
         if (typeof showErrorMessage === 'function') showErrorMessage(err.message || 'Failed to refund transaction');
     });
 };
+function salonPaymentsFormatYmd(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+function salonPaymentsInitDateFilter() {
+    var urlParams = new URLSearchParams(window.location.search);
+    var urlFrom = urlParams.get('from');
+    var urlTo = urlParams.get('to');
+    var urlPreset = urlParams.get('preset');
+    if (urlFrom && urlTo) {
+        paymentsDateFrom = urlFrom;
+        paymentsDateTo = urlTo;
+    } else {
+        var today = new Date();
+        paymentsDateFrom = salonPaymentsFormatYmd(today);
+        paymentsDateTo = salonPaymentsFormatYmd(today);
+        urlPreset = 'today';
+    }
+    var fromEl = document.getElementById('paymentsDateFrom');
+    var toEl = document.getElementById('paymentsDateTo');
+    if (fromEl) fromEl.value = paymentsDateFrom;
+    if (toEl) toEl.value = paymentsDateTo;
+    if (urlPreset) {
+        salonPaymentsSetActivePreset(urlPreset);
+    }
+}
+function salonPaymentsFilterByDate() {
+    if (!paymentsDateFrom && !paymentsDateTo) {
+        paymentsData = allPayments;
+        return;
+    }
+    paymentsData = allPayments.filter(function(p) {
+        var raw = p.rawDate || p.date || '';
+        var paymentDate = raw.substring(0, 10);
+        if (paymentsDateFrom && paymentDate < paymentsDateFrom) return false;
+        if (paymentsDateTo && paymentDate > paymentsDateTo) return false;
+        return true;
+    });
+    currentPage = 1;
+}
+window.salonPaymentsApplyDateFilter = function() {
+    var fromEl = document.getElementById('paymentsDateFrom');
+    var toEl = document.getElementById('paymentsDateTo');
+    if (!fromEl || !toEl) return;
+    paymentsDateFrom = fromEl.value;
+    paymentsDateTo = toEl.value;
+    salonPaymentsSetActivePreset(null);
+    salonPaymentsFilterByDate();
+    salonPaymentsRender();
+    salonPaymentsUpdateURL(paymentsDateFrom, paymentsDateTo, null);
+};
+window.salonPaymentsSetDateRange = function(range, btn) {
+    var today = new Date(), fromDate, toDate;
+    switch (range) {
+        case 'today': fromDate = new Date(today); toDate = new Date(today); break;
+        case 'week':
+            var dayOfWeek = today.getDay(), diff = today.getDate() - dayOfWeek;
+            fromDate = new Date(today.getFullYear(), today.getMonth(), diff);
+            toDate = new Date(today.getFullYear(), today.getMonth(), diff + 6);
+            break;
+        case 'month':
+            fromDate = new Date(today.getFullYear(), today.getMonth(), 1);
+            toDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+            break;
+        case 'year':
+            fromDate = new Date(today.getFullYear(), 0, 1);
+            toDate = new Date(today.getFullYear(), 11, 31);
+            break;
+        default: return;
+    }
+    paymentsDateFrom = salonPaymentsFormatYmd(fromDate);
+    paymentsDateTo = salonPaymentsFormatYmd(toDate);
+    var fromEl = document.getElementById('paymentsDateFrom');
+    var toEl = document.getElementById('paymentsDateTo');
+    if (fromEl) fromEl.value = paymentsDateFrom;
+    if (toEl) toEl.value = paymentsDateTo;
+    salonPaymentsSetActivePreset(range);
+    salonPaymentsFilterByDate();
+    salonPaymentsRender();
+    salonPaymentsUpdateURL(paymentsDateFrom, paymentsDateTo, range);
+};
+function salonPaymentsSetActivePreset(range) {
+    document.querySelectorAll('.payments-date-btn').forEach(function(b) {
+        b.classList.remove('bg-[#003047]', 'text-white', 'border-[#003047]');
+        b.classList.add('bg-white', 'text-gray-700', 'border-gray-300');
+    });
+    if (!range) return;
+    var labels = { today: 'Today', week: 'This Week', month: 'This Month', year: 'This Year' };
+    var label = labels[range];
+    if (!label) return;
+    document.querySelectorAll('.payments-date-btn').forEach(function(b) {
+        if (b.textContent.trim() === label) {
+            b.classList.add('bg-[#003047]', 'text-white', 'border-[#003047]');
+            b.classList.remove('bg-white', 'text-gray-700', 'border-gray-300');
+        }
+    });
+}
+function salonPaymentsUpdateURL(from, to, preset) {
+    var url = new URL(window.location.href);
+    if (from) url.searchParams.set('from', from); else url.searchParams.delete('from');
+    if (to) url.searchParams.set('to', to); else url.searchParams.delete('to');
+    if (preset) url.searchParams.set('preset', preset); else url.searchParams.delete('preset');
+    window.history.replaceState({}, '', url.toString());
+}
 document.addEventListener('DOMContentLoaded', function() {
     var savedPerPage = localStorage.getItem('paymentsPerPage');
     if (savedPerPage) {
@@ -480,16 +610,18 @@ document.addEventListener('DOMContentLoaded', function() {
     setViewUI(currentView);
     if (window.salonPaymentsBootstrap && window.salonPaymentsBootstrap.payments) {
         allPayments = (window.salonPaymentsBootstrap.payments || []).map(function(p) {
-            return Object.assign({}, p, { date: formatDate(p.date) || p.date });
+            return Object.assign({}, p, { rawDate: p.date, date: formatDate(p.date) || p.date });
         });
-        paymentsData = allPayments;
+        salonPaymentsInitDateFilter();
+        salonPaymentsFilterByDate();
         salonPaymentsRender();
         salonPaymentsToggleView(currentView);
         return;
     }
     fetch(base + '/payments').then(function(r) { return r.json(); }).then(function(data) {
-        allPayments = (data.payments || []).map(function(p) { return Object.assign({}, p, { date: formatDate(p.date) || p.date }); });
-        paymentsData = allPayments;
+        allPayments = (data.payments || []).map(function(p) { return Object.assign({}, p, { rawDate: p.date, date: formatDate(p.date) || p.date }); });
+        salonPaymentsInitDateFilter();
+        salonPaymentsFilterByDate();
         salonPaymentsRender();
         salonPaymentsToggleView(currentView);
     }).catch(function(err) {

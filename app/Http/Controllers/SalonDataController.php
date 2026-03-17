@@ -48,6 +48,8 @@ class SalonDataController extends Controller
                 'appointment' => $apt->type,
                 'status' => $apt->status,
                 'color' => $apt->color,
+                'ghl_appointment_id' => $apt->ghl_appointment_id,
+                'ghl_calendar_id' => $apt->ghl_calendar_id,
                 'created_at' => $apt->created_at?->toIso8601String(),
                 'appointment_datetime' => $apt->appointment_datetime?->format('Y-m-d\TH:i:s'),
                 'assigned_technician' => $apt->technicians->pluck('id')->values()->all(),

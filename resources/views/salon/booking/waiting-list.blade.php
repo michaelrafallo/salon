@@ -1058,7 +1058,7 @@ window.confirmAssignmentToTicket = function() {
     if (!currentAppointmentId) { showErrorMessage('Appointment not found.'); return; }
     var appointment = allAppointments.find(function(a) { return a.id.toString() === currentAppointmentId.toString(); });
     var techIds = (appointment && Array.isArray(appointment.assigned_technician)) ? appointment.assigned_technician : assignedTechnicianIds;
-    if (!techIds.length) { alert('Please assign at least one technician first.'); return; }
+    if (!techIds.length) { showErrorMessage('Please assign at least one technician first.'); return; }
     var now = new Date();
     var appointmentDatetime = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0') + 'T' + String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0') + ':' + String(now.getSeconds()).padStart(2, '0');
     var payload = {

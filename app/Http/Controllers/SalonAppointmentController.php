@@ -87,10 +87,9 @@ class SalonAppointmentController extends Controller
 
         $appointment->load(['customer', 'technicians', 'appointmentServices.serviceCategory', 'appointmentServices.service']);
 
-        // Sync to GHL when walk-in is confirmed (status changed to unpaid) and not yet synced
+        // Sync to GHL when assignment is confirmed (status changed to unpaid) and not yet synced
         if (
-            $appointment->type === 'walk-in'
-            && ($updates['status'] ?? null) === 'unpaid'
+            ($updates['status'] ?? null) === 'unpaid'
             && ! $appointment->ghl_appointment_id
         ) {
             GoHighLevelService::syncAppointment($appointment);
@@ -160,6 +159,7 @@ class SalonAppointmentController extends Controller
             'status' => $appointment->status,
             'color' => $appointment->color,
             'ghl_appointment_id' => $appointment->ghl_appointment_id,
+            'ghl_calendar_id' => $appointment->ghl_calendar_id,
             'created_at' => $appointment->created_at?->toIso8601String(),
             'appointment_datetime' => $appointment->appointment_datetime?->format('Y-m-d\TH:i:s'),
             'assigned_technician' => $appointment->technicians->pluck('id')->values()->all(),
@@ -233,5 +233,26 @@ class SalonAppointmentController extends Controller
             'message' => 'Cart saved successfully.',
             'data' => $this->appointmentToApiShape($appointment),
         ]);
+    }
+
+    public function syncCalendar(Request $request, Appointment $appointment): JsonResponse
+    {
+        $calendarId = $request->input('calendar_id');
+        if (! $calendarId) {
+            return response()->json(['success' => false, 'message' => 'Calendar ID is required.'], 422);
+        }
+
+        $oldGhlId = $appointment->ghl_appointment_id;
+        GoHighLevelService::syncAppointment($appointment, $calendarId);
+        $appointment->refresh();
+        $appointment->load(['customer', 'technicians', 'appointmentServices.serviceCategory', 'appointmentServices.service']);
+
+        $synced = $appointment->ghl_appointment_id && $appointment->ghl_appointment_id !== $oldGhlId;
+
+        return response()->json([
+            'success' => $synced,
+            'message' => $synced ? 'Appointment synced to calendar.' : 'Failed to sync appointment to calendar.',
+            'data' => $this->appointmentToApiShape($appointment),
+        ], $synced ? 200 : 422);
     }
 }

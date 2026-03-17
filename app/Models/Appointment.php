@@ -17,6 +17,7 @@ class Appointment extends Model
         'color',
         'appointment_datetime',
         'ghl_appointment_id',
+        'ghl_calendar_id',
     ];
 
     protected function casts(): array
