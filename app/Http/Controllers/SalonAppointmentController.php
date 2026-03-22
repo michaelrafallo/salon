@@ -87,11 +87,13 @@ class SalonAppointmentController extends Controller
 
         $appointment->load(['customer', 'technicians', 'appointmentServices.serviceCategory', 'appointmentServices.service']);
 
-        // Sync to GHL when assignment is confirmed (status changed to unpaid) and not yet synced
-        if (
-            ($updates['status'] ?? null) === 'unpaid'
-            && ! $appointment->ghl_appointment_id
-        ) {
+        // Sync to GHL when:
+        // 1. Assignment is confirmed (status changed to unpaid) and not yet synced
+        // 2. Appointment datetime changed on an already-synced appointment (e.g. drag-drop on calendar)
+        $shouldSync = (($updates['status'] ?? null) === 'unpaid' && ! $appointment->ghl_appointment_id)
+            || (isset($updates['appointment_datetime']) && $appointment->ghl_appointment_id);
+
+        if ($shouldSync) {
             GoHighLevelService::syncAppointment($appointment);
             $appointment->refresh();
             $appointment->load(['customer', 'technicians', 'appointmentServices.serviceCategory', 'appointmentServices.service']);

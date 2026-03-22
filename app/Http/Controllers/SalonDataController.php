@@ -132,6 +132,8 @@ class SalonDataController extends Controller
                 'createdAt' => $u->created_at?->format('Y-m-d'),
                 'last_login_at' => $u->last_login_at?->toIso8601String(),
                 'lastLogin' => $u->last_login_at?->format('M j, Y g:i A'),
+                'ghlStaffId' => $u->ghl_staff_id,
+                'ghlCalendarId' => $u->ghl_calendar_id,
             ];
             if ($u->role === 'technician') {
                 $earnings = Payment::query()

@@ -24,6 +24,7 @@
                         <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path></svg>
                     </button>
                 </div>
+                <button type="button" onclick="salonUsersOpenSyncModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium text-sm sm:text-base active:scale-95 inline-flex items-center gap-2"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>Sync</button>
                 <button type="button" onclick="salonUsersOpenNewUserModal()" class="px-4 py-2 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium text-sm sm:text-base active:scale-95">+ New User</button>
             </div>
         </div>
@@ -176,7 +177,8 @@ function renderGrid() {
     el.innerHTML = list.map(function(u) {
         var colors = getRoleColors(u.role || u.userlevel), inits = getInitials(u), name = u.firstName + ' ' + u.lastName, roleDisplay = getRoleDisplayName(u.role || u.userlevel);
         var statusText = u.active ? 'Active' : 'Inactive', statusColor = u.active ? 'text-green-600' : 'text-gray-500';
-        var technicianStatus = (u.role === 'technician' || u.userlevel === 'technician') && u.status ? u.status : statusText;
+        var rawStatus = u.status ? u.status.charAt(0).toUpperCase() + u.status.slice(1).toLowerCase() : statusText;
+        var technicianStatus = (u.role === 'technician' || u.userlevel === 'technician') && u.status ? rawStatus : statusText;
         var technicianStatusColor = (u.role === 'technician' || u.userlevel === 'technician') && u.status === 'Available' ? 'text-green-600' : (u.role === 'technician' || u.userlevel === 'technician') && u.status === 'Busy' ? 'text-[#003047]' : statusColor;
         var lastLogin = getLastLogin(u);
         var statsHTML = '<div class="grid grid-cols-2 gap-3 pt-4 border-t border-gray-200"><div><p class="text-xs text-gray-500">Status</p><p class="text-sm font-medium ' + ((u.role === 'technician' || u.userlevel === 'technician') ? technicianStatusColor : statusColor) + '">' + ((u.role === 'technician' || u.userlevel === 'technician') ? technicianStatus : statusText) + '</p></div><div><p class="text-xs text-gray-500">Last Login</p><p class="text-sm font-medium text-gray-900">' + lastLogin + '</p></div></div>';
@@ -195,7 +197,8 @@ function renderList() {
     tbody.innerHTML = list.map(function(u) {
         var colors = getRoleColors(u.role || u.userlevel), inits = getInitials(u), name = u.firstName + ' ' + u.lastName, roleDisplay = getRoleDisplayName(u.role || u.userlevel);
         var statusText = u.active ? 'Active' : 'Inactive', statusColor = u.active ? 'text-green-600' : 'text-gray-500';
-        var technicianStatus = (u.role === 'technician' || u.userlevel === 'technician') && u.status ? u.status : statusText;
+        var rawStatus = u.status ? u.status.charAt(0).toUpperCase() + u.status.slice(1).toLowerCase() : statusText;
+        var technicianStatus = (u.role === 'technician' || u.userlevel === 'technician') && u.status ? rawStatus : statusText;
         var technicianStatusColor = (u.role === 'technician' || u.userlevel === 'technician') && u.status === 'Available' ? 'text-green-600' : (u.role === 'technician' || u.userlevel === 'technician') && u.status === 'Busy' ? 'text-[#003047]' : statusColor;
         var safeName = (name || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
         return '<tr data-role="' + roleDisplay + '" class="staff-row hover:bg-gray-50 transition"><td onclick="window.location.href=\'' + viewUrl + '?id=' + u.id + '\'" class="px-6 py-4 whitespace-nowrap cursor-pointer"><div class="flex items-center">' + getUserAvatar(u, 'w-10 h-10', 'text-sm') + '<div class="ml-4"><div class="text-sm font-medium text-gray-900">' + name + '</div><div class="text-sm text-gray-500">' + (u.email || '') + '</div></div></div></td><td class="px-6 py-4 whitespace-nowrap"><span class="text-xs ' + colors.badgeText + ' font-medium px-2 py-1 ' + colors.badge + ' rounded">' + roleDisplay + '</span></td><td class="px-6 py-4 whitespace-nowrap"><span class="text-sm font-medium ' + technicianStatusColor + '">' + technicianStatus + '</span></td><td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">' + getLastLogin(u) + '</td><td class="px-6 py-4 whitespace-nowrap text-sm text-right"><div class="flex items-center justify-end gap-2"><button type="button" onclick="event.stopPropagation(); salonUsersLoginAs(' + u.id + ', \'' + safeName + '\')" class="inline-flex items-center justify-center w-8 h-8 cursor-pointer bg-green-600 text-white rounded-lg hover:bg-green-700 transition active:scale-95" title="Login as"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg></button><button type="button" onclick="event.stopPropagation(); salonUsersOpenEditModal(' + u.id + ')" class="inline-flex items-center justify-center w-8 h-8 cursor-pointer bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition active:scale-95" title="Quick Edit"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg></button><button type="button" onclick="event.stopPropagation(); salonUsersDelete(' + u.id + ', \'' + safeName + '\')" class="inline-flex items-center justify-center w-8 h-8 cursor-pointer text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition active:scale-95" title="Delete"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button></div></td></tr>';
@@ -337,7 +340,11 @@ window.salonUsersSaveUser = function(e) {
     salonApi.postFormData(apiUsersUrl, fd).then(function(res) {
         showSuccessMessage(res.message || 'User added successfully!');
         closeModal();
-        allUsers.unshift(res.data);
+        var newUser = res.data;
+        if (newUser && typeof newUser.active === 'undefined') {
+            newUser.active = (newUser.status || 'active').toString().toLowerCase() === 'active';
+        }
+        allUsers.unshift(newUser);
         applyFilters();
         salonUsersRender();
     }).catch(function(err) {
@@ -382,8 +389,12 @@ window.salonUsersUpdateUser = function(e, id) {
     salonApi.postFormData(apiUsersUrl + '/' + id, fd).then(function(res) {
         showSuccessMessage(res.message || 'User updated.');
         closeModal();
+        var updated = res.data;
+        if (updated && typeof updated.active === 'undefined') {
+            updated.active = (updated.status || 'active').toString().toLowerCase() === 'active';
+        }
         var idx = allUsers.findIndex(function(x) { return x.id === parseInt(id, 10); });
-        if (idx >= 0) allUsers[idx] = res.data;
+        if (idx >= 0) allUsers[idx] = updated;
         applyFilters();
         salonUsersRender();
     }).catch(function(err) {
@@ -419,6 +430,141 @@ window.salonUsersDelete = function(id, name) {
                 showErrorMessage(err.message || 'Failed to delete user.');
             });
         }
+    });
+};
+function escHtml(str) {
+    var d = document.createElement('div'); d.textContent = str || ''; return d.innerHTML;
+}
+window.salonUsersOpenSyncModal = function() {
+    var modalContent = '<div class="p-6">'
+        + '<style>@keyframes usr-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}.usr-spinning{animation:usr-spin 1s linear infinite}</style>'
+        + '<div class="flex items-center gap-4 mb-4">'
+        + '<div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">'
+        + '<svg id="usr-sync-icon" class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>'
+        + '</div>'
+        + '<div class="flex-1"><h3 class="text-xl font-bold text-gray-900">Sync Staff from Clickaio</h3></div>'
+        + '<button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button>'
+        + '</div>'
+        + '<p id="usr-sync-message" class="text-gray-700 mb-6 ml-16">This will fetch all staff from Clickaio and create or update local users. Existing users matched by email will be linked.</p>'
+        + '<div id="usr-sync-progress" class="hidden mb-4 ml-16">'
+        + '<div class="flex items-center justify-between mb-1"><span id="usr-sync-progress-label" class="text-sm font-medium text-gray-700">Processing...</span><span id="usr-sync-progress-count" class="text-sm font-semibold text-gray-900"></span></div>'
+        + '<div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden"><div id="usr-sync-progress-bar" class="h-3 rounded-full transition-all duration-300 ease-out bg-blue-600" style="width: 0%"></div></div>'
+        + '<div class="flex items-center justify-between mt-1"><p id="usr-sync-progress-detail" class="text-xs text-gray-500"></p><span id="usr-sync-progress-pct" class="text-xs font-semibold text-gray-700">0%</span></div>'
+        + '</div>'
+        + '<div id="usr-sync-buttons" class="flex justify-end gap-3 pt-4 border-t border-gray-200">'
+        + '<button onclick="closeModal()" class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium active:scale-95">Cancel</button>'
+        + '<button type="button" id="usr-sync-confirm-btn" class="px-6 py-3 text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition font-medium active:scale-95">Yes, Proceed</button>'
+        + '</div></div>';
+
+    if (typeof openModal !== 'function') return;
+    openModal(modalContent);
+
+    var confirmBtn = document.getElementById('usr-sync-confirm-btn');
+    if (!confirmBtn) return;
+
+    confirmBtn.addEventListener('click', function() {
+        var messageEl = document.getElementById('usr-sync-message');
+        var progressSection = document.getElementById('usr-sync-progress');
+        var progressBar = document.getElementById('usr-sync-progress-bar');
+        var progressPct = document.getElementById('usr-sync-progress-pct');
+        var progressLabel = document.getElementById('usr-sync-progress-label');
+        var progressDetail = document.getElementById('usr-sync-progress-detail');
+        var progressCount = document.getElementById('usr-sync-progress-count');
+        var buttonsSection = document.getElementById('usr-sync-buttons');
+        var syncIcon = document.getElementById('usr-sync-icon');
+
+        messageEl.classList.add('hidden');
+        progressSection.classList.remove('hidden');
+        buttonsSection.innerHTML = '<button onclick="closeModal()" class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium active:scale-95 opacity-50 cursor-not-allowed" disabled>Please wait...</button>';
+        if (syncIcon) syncIcon.classList.add('usr-spinning');
+
+        function bulkBeforeUnload(e) { e.preventDefault(); e.returnValue = ''; }
+        window.addEventListener('beforeunload', bulkBeforeUnload);
+
+        function updateProgress(done, total, text) {
+            var pct = total > 0 ? Math.round((done / total) * 100) : 0;
+            progressBar.style.width = pct + '%';
+            progressCount.textContent = done + '/' + total;
+            progressPct.textContent = pct + '%';
+            progressDetail.textContent = text || '';
+        }
+
+        function syncComplete(details) {
+            window.removeEventListener('beforeunload', bulkBeforeUnload);
+            if (syncIcon) syncIcon.classList.remove('usr-spinning');
+            progressLabel.textContent = 'Complete!';
+            progressBar.style.backgroundColor = '#22c55e';
+            buttonsSection.innerHTML = '<button onclick="closeModal()" class="px-6 py-3 text-white bg-green-500 rounded-lg hover:bg-green-600 transition font-medium active:scale-95">Done</button>';
+            fetch(base + '/users').then(function(r) { return r.json(); }).then(function(data) {
+                allUsers = normalizeUsers(data.users || []);
+                applyFilters();
+                salonUsersRender();
+            });
+            if (typeof showSuccessMessage === 'function') showSuccessMessage(details + '.');
+        }
+
+        function syncError(msg) {
+            window.removeEventListener('beforeunload', bulkBeforeUnload);
+            if (syncIcon) syncIcon.classList.remove('usr-spinning');
+            progressLabel.textContent = 'Error';
+            progressDetail.textContent = msg;
+            progressBar.style.backgroundColor = '#ef4444';
+            progressBar.style.width = '100%';
+            buttonsSection.innerHTML = '<button onclick="closeModal()" class="px-6 py-3 text-white bg-red-500 rounded-lg hover:bg-red-600 transition font-medium active:scale-95">Close</button>';
+        }
+
+        progressLabel.textContent = 'Fetching staff from Clickaio...';
+        salonApi.post(apiUsersUrl + '/sync-ghl-fetch', {}).then(function(res) {
+            var ghlUsers = res.users || [];
+            var total = ghlUsers.length;
+            if (total === 0) {
+                syncError('No users were returned from Clickaio.');
+                return;
+            }
+            progressLabel.textContent = 'Syncing from Clickaio...';
+            var syncCreated = 0, syncUpdated = 0, syncLinked = 0, syncFailed = 0;
+
+            function syncNext(index) {
+                if (index >= ghlUsers.length) {
+                    var parts = [];
+                    if (syncCreated > 0) parts.push(syncCreated + ' created');
+                    if (syncUpdated > 0) parts.push(syncUpdated + ' updated');
+                    if (syncLinked > 0) parts.push(syncLinked + ' linked');
+                    if (syncFailed > 0) parts.push(syncFailed + ' failed');
+                    updateProgress(total, total, parts.join(', '));
+                    syncComplete(parts.join(', '));
+                    return;
+                }
+                var gUser = ghlUsers[index];
+                var gName = ((gUser.firstName || '') + ' ' + (gUser.lastName || '')).trim() || gUser.name || '#' + gUser.id;
+                updateProgress(index, total, 'Processing ' + gName + '...');
+
+                var roleType = '';
+                if (gUser.roles && typeof gUser.roles === 'object') {
+                    roleType = gUser.roles.type || gUser.roles.role || '';
+                }
+                salonApi.post(apiUsersUrl + '/sync-ghl-upsert', {
+                    ghl_id: gUser.id,
+                    firstName: gUser.firstName || gUser.first_name || '',
+                    lastName: gUser.lastName || gUser.last_name || '',
+                    email: gUser.email || '',
+                    phone: gUser.phone || '',
+                    role_type: roleType,
+                    calendar_id: gUser.calendarId || ''
+                }).then(function(res) {
+                    var st = res.status || 'updated';
+                    if (st === 'created') { syncCreated++; updateProgress(index + 1, total, gName + ' — created!'); }
+                    else if (st === 'linked') { syncLinked++; updateProgress(index + 1, total, gName + ' — linked!'); }
+                    else { syncUpdated++; updateProgress(index + 1, total, gName + ' — updated!'); }
+                }).catch(function() {
+                    syncFailed++;
+                    updateProgress(index + 1, total, gName + ' — error');
+                }).finally(function() { syncNext(index + 1); });
+            }
+            syncNext(0);
+        }).catch(function(err) {
+            syncError((err && err.message) ? err.message : 'Failed to fetch staff from Clickaio.');
+        });
     });
 };
 document.addEventListener('DOMContentLoaded', function() {

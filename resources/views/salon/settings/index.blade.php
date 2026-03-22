@@ -88,7 +88,7 @@
         <div id="tab-clickaio" class="settings-tab {{ $settingsTab === 'clickaio' ? '' : 'hidden' }}">
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
                 <h2 class="text-lg font-semibold text-gray-900 mb-4">Settings</h2>
-                <form class="space-y-4 settings-form" data-settings-keys="clickaio_location_id,clickaio_calendar_id">
+                <form class="space-y-4 settings-form" data-settings-keys="clickaio_location_id,clickaio_calendar_id,timezone">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-gray-700 mb-2">Location ID</label>
@@ -107,6 +107,17 @@
                             <div id="clickaio_calendar_id_display" class="mt-1 hidden">
                                 <span class="text-xs text-gray-500">ID: <code id="clickaio_calendar_id_text" class="bg-gray-100 px-1.5 py-0.5 rounded text-xs font-mono select-all cursor-pointer hover:bg-gray-200 active:scale-95 transition-all duration-150" title="Click to copy"></code></span>
                             </div>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="flex items-center justify-between text-sm font-medium text-gray-700 mb-2"><span>Timezone</span><span id="clickaioTimezoneCurrentTime" class="text-xs text-gray-500 font-normal"></span></label>
+                            <select name="timezone" id="clickaioTimezoneSelect" class="w-full">
+                                @foreach(timezone_identifiers_list() as $tz)
+                                    <option value="{{ $tz }}">{{ $tz }}</option>
+                                @endforeach
+                            </select>
+                            <p class="mt-1 text-xs text-gray-500">Must match your GHL location timezone.</p>
                         </div>
                     </div>
                     <div class="flex justify-end">
@@ -622,7 +633,10 @@ function salonSettingsLoad() {
             }
         });
         salonPointsRateToggle();
-        if (typeof $ !== 'undefined' && $.fn.select2) $('#timezoneSelect').trigger('change.select2');
+        if (typeof $ !== 'undefined' && $.fn.select2) {
+            $('#timezoneSelect').trigger('change.select2');
+            $('#clickaioTimezoneSelect').val(data['timezone'] || '').trigger('change.select2');
+        }
         return;
     }
 
@@ -641,7 +655,10 @@ function salonSettingsLoad() {
                 }
             });
             salonPointsRateToggle();
-            if (typeof $ !== 'undefined' && $.fn.select2) $('#timezoneSelect').trigger('change.select2');
+            if (typeof $ !== 'undefined' && $.fn.select2) {
+                $('#timezoneSelect').trigger('change.select2');
+                $('#clickaioTimezoneSelect').val(data['timezone'] || '').trigger('change.select2');
+            }
         })
         .catch(function() {});
 }
@@ -1642,6 +1659,7 @@ window.salonSettingsConfirmDeleteCoupon = function(id) {
 <script>
 $(document).ready(function() {
     $('#timezoneSelect').select2({ placeholder: 'Select timezone', width: '100%' });
+    $('#clickaioTimezoneSelect').select2({ placeholder: 'Select timezone', width: '100%' });
 
     function updateTimezoneClock() {
         var tz = $('#timezoneSelect').val();
@@ -1654,9 +1672,33 @@ $(document).ready(function() {
             $('#timezoneCurrentTime').text('');
         }
     }
-    $('#timezoneSelect').on('change', updateTimezoneClock);
+    function updateClickaioTimezoneClock() {
+        var tz = $('#clickaioTimezoneSelect').val();
+        if (tz) {
+            try {
+                var now = new Date().toLocaleString('en-US', { timeZone: tz, weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                $('#clickaioTimezoneCurrentTime').text(now);
+            } catch(e) { $('#clickaioTimezoneCurrentTime').text(''); }
+        } else {
+            $('#clickaioTimezoneCurrentTime').text('');
+        }
+    }
+
+    // Keep both timezone selects in sync
+    $('#timezoneSelect').on('change', function() {
+        updateTimezoneClock();
+        $('#clickaioTimezoneSelect').val($(this).val()).trigger('change.select2');
+        updateClickaioTimezoneClock();
+    });
+    $('#clickaioTimezoneSelect').on('change', function() {
+        updateClickaioTimezoneClock();
+        $('#timezoneSelect').val($(this).val()).trigger('change.select2');
+        updateTimezoneClock();
+    });
+
     updateTimezoneClock();
-    setInterval(updateTimezoneClock, 1000);
+    updateClickaioTimezoneClock();
+    setInterval(function() { updateTimezoneClock(); updateClickaioTimezoneClock(); }, 1000);
 });
 </script>
 @endpush

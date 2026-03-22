@@ -21,8 +21,12 @@ use Illuminate\View\View;
 
 class SalonController extends Controller
 {
-    public function showLogin(): View
+    public function showLogin(): View|RedirectResponse
     {
+        if (session('salon_authenticated')) {
+            return redirect()->route('salon.dashboard');
+        }
+
         return view('salon.auth.login');
     }
 
@@ -1217,6 +1221,8 @@ class SalonController extends Controller
                 'initials',
                 'created_at',
                 'last_login_at',
+                'ghl_staff_id',
+                'ghl_calendar_id',
             ]);
 
         $technicianIds = $rows->filter(fn (User $u) => $u->role === 'technician')->pluck('id')->all();
@@ -1256,6 +1262,8 @@ class SalonController extends Controller
                 'createdAt' => $u->created_at?->format('Y-m-d'),
                 'last_login_at' => $u->last_login_at?->toIso8601String(),
                 'lastLogin' => $u->last_login_at?->format('M j, Y g:i A'),
+                'ghlStaffId' => $u->ghl_staff_id,
+                'ghlCalendarId' => $u->ghl_calendar_id,
             ];
 
             if ($u->role === 'technician') {

@@ -287,7 +287,10 @@ function initCalendarSelect2(appointmentId) {
             dropdownParent: $('#modalOverlay')
         });
         $select.on('change', function() {
-            updateSyncCalendarBtn(appointmentId);
+            var calendarId = $(this).val();
+            if (calendarId) {
+                syncAppointmentToCalendar(appointmentId, calendarId);
+            }
         });
     }
 }
@@ -295,10 +298,11 @@ function initCalendarSelect2(appointmentId) {
 async function syncAppointmentToCalendar(appointmentId, calendarId) {
     if (!calendarId) return;
     const apiUrl = window.salonCalendarAppointmentsApiUrl;
-    const syncBtnContent = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg> Sync';
+    const statusEl = document.getElementById('calendarSyncStatus_' + appointmentId);
     try {
-        const btn = document.getElementById('syncCalendarBtn_' + appointmentId);
-        if (btn) { btn.disabled = true; btn.className = btn.className.replace(/bg-\[#003047\] text-white hover:bg-\[#002535\]/g, '') + ' bg-gray-300 text-gray-500 cursor-not-allowed'; btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Syncing...'; }
+        if (statusEl) {
+            statusEl.innerHTML = '<span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold border bg-blue-100 text-blue-700 border-blue-200"><svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Syncing...</span>';
+        }
         const res = await salonApi.post(apiUrl + '/' + appointmentId + '/sync-calendar', { calendar_id: calendarId });
         if (res.success && res.data.ghl_appointment_id) {
             const apt = bookingsData.find(a => a.id.toString() === appointmentId.toString());
@@ -306,26 +310,22 @@ async function syncAppointmentToCalendar(appointmentId, calendarId) {
                 apt.ghl_appointment_id = res.data.ghl_appointment_id;
                 apt.ghl_calendar_id = res.data.ghl_calendar_id;
             }
-            const statusEl = document.getElementById('calendarSyncStatus_' + appointmentId);
             if (statusEl) {
                 statusEl.innerHTML = '<span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold border bg-green-100 text-green-700 border-green-200"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> Synced</span>';
-            }
-            if (btn) {
-                btn.setAttribute('data-synced-calendar', res.data.ghl_calendar_id || '');
-                btn.innerHTML = syncBtnContent;
-                btn.disabled = true;
-                btn.className = btn.className.replace(/bg-\[#003047\] text-white hover:bg-\[#002535\]/g, '') + ' bg-gray-300 text-gray-500 cursor-not-allowed';
             }
             showSuccessMessage('Appointment synced to calendar successfully.');
         } else {
             showErrorMessage('Failed to sync appointment to calendar.');
-            if (btn) { btn.disabled = false; btn.innerHTML = syncBtnContent; btn.className = btn.className.replace(/bg-gray-300 text-gray-500 cursor-not-allowed/g, '') + ' bg-[#003047] text-white hover:bg-[#002535]'; }
+            if (statusEl) {
+                statusEl.innerHTML = '<span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold border bg-red-100 text-red-700 border-red-200"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg> Failed</span>';
+            }
         }
     } catch (error) {
         console.error('Error syncing to calendar:', error);
         showErrorMessage(error && error.message ? error.message : 'Failed to sync appointment to calendar.');
-        const btn = document.getElementById('syncCalendarBtn_' + appointmentId);
-        if (btn) { btn.disabled = false; btn.innerHTML = syncBtnContent; btn.className = btn.className.replace(/bg-gray-300 text-gray-500 cursor-not-allowed/g, '') + ' bg-[#003047] text-white hover:bg-[#002535]'; }
+        if (statusEl) {
+            statusEl.innerHTML = '<span class="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold border bg-red-100 text-red-700 border-red-200"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg> Failed</span>';
+        }
     }
 }
 
@@ -2351,35 +2351,23 @@ function showAppointmentModal(appointmentData) {
                             })()}
                         </div>
                     </div>
-                    <div class="calendar-select2 flex items-center gap-2">
-                        <div class="flex-1">
-                            <select id="calendarSelect_${appointmentId}" style="width:100%">
-                                ${(function() {
-                                    const apt = bookingsData.find(a => a.id.toString() === appointmentId.toString());
-                                    const currentCalId = (apt && apt.ghl_calendar_id) || ghlDefaultCalendarId;
-                                    if (ghlCalendars.length === 0) {
-                                        if (currentCalId) {
-                                            return '<option value="' + currentCalId + '">Calendar ID: ' + currentCalId.substring(0, 12) + '...</option>';
-                                        }
-                                        return '<option value="">No calendars available</option>';
+                    <div class="calendar-select2">
+                        <select id="calendarSelect_${appointmentId}" style="width:100%">
+                            ${(function() {
+                                const apt = bookingsData.find(a => a.id.toString() === appointmentId.toString());
+                                const currentCalId = (apt && apt.ghl_calendar_id) || ghlDefaultCalendarId;
+                                if (ghlCalendars.length === 0) {
+                                    if (currentCalId) {
+                                        return '<option value="' + currentCalId + '">Calendar ID: ' + currentCalId.substring(0, 12) + '...</option>';
                                     }
-                                    return ghlCalendars.map(function(cal) {
-                                        const selected = cal.id === currentCalId ? ' selected' : '';
-                                        return '<option value="' + cal.id + '"' + selected + '>' + cal.name + '</option>';
-                                    }).join('');
-                                })()}
-                            </select>
-                        </div>
-                        ${(function() {
-                            const apt = bookingsData.find(a => a.id.toString() === appointmentId.toString());
-                            const syncedCalId = apt && apt.ghl_calendar_id ? apt.ghl_calendar_id : '';
-                            const selectedCalId = (apt && apt.ghl_calendar_id) || ghlDefaultCalendarId;
-                            const isSynced = !!(apt && apt.ghl_appointment_id && syncedCalId === selectedCalId);
-                            const disabledClass = isSynced ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-[#003047] text-white hover:bg-[#002535]';
-                            return '<button id="syncCalendarBtn_' + appointmentId + '" data-synced-calendar="' + syncedCalId + '" onclick="syncAppointmentToCalendar(\'' + appointmentId + '\', $(\'#calendarSelect_' + appointmentId + '\').val())" class="px-3 ' + disabledClass + ' rounded-lg transition-all font-medium text-sm flex items-center gap-1.5 flex-shrink-0" style="height:38px"' + (isSynced ? ' disabled' : '') + '>'
-                                + '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>'
-                                + ' Sync</button>';
-                        })()}
+                                    return '<option value="">No calendars available</option>';
+                                }
+                                return ghlCalendars.map(function(cal) {
+                                    const selected = cal.id === currentCalId ? ' selected' : '';
+                                    return '<option value="' + cal.id + '"' + selected + '>' + cal.name + '</option>';
+                                }).join('');
+                            })()}
+                        </select>
                     </div>
                 </div>
                 ` : ''}

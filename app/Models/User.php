@@ -32,6 +32,8 @@ class User extends Authenticatable
         'status',
         'initials',
         'profile_photo',
+        'ghl_staff_id',
+        'ghl_calendar_id',
     ];
 
     /**

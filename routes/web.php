@@ -22,8 +22,12 @@ Route::middleware(['web', 'salon.auth'])->prefix('api/salon')->name('api.salon.'
     Route::post('customers/{customer}/credits', [SalonCustomerController::class, 'updateCredits'])->name('customers.credits.update');
     Route::post('customers/{customer}/ghl-lookup', [SalonCustomerController::class, 'ghlLookup'])->name('customers.ghl-lookup');
     Route::delete('customers/{customer}', [SalonCustomerController::class, 'destroy'])->name('customers.destroy');
+    Route::post('users/sync-ghl-fetch', [SalonUserController::class, 'syncGhlFetch'])->name('users.sync-ghl-fetch');
+    Route::post('users/sync-ghl-upsert', [SalonUserController::class, 'syncGhlUpsert'])->name('users.sync-ghl-upsert');
+    Route::post('users/sync-ghl-to', [SalonUserController::class, 'syncGhlTo'])->name('users.sync-ghl-to');
     Route::post('users', [SalonUserController::class, 'store'])->name('users.store');
     Route::put('users/{user}', [SalonUserController::class, 'update'])->name('users.update');
+    Route::put('users/{user}/calendar', [SalonUserController::class, 'updateCalendar'])->name('users.update-calendar');
     Route::delete('users/{user}', [SalonUserController::class, 'destroy'])->name('users.destroy');
     Route::post('users/{user}/login-as', [SalonUserController::class, 'loginAs'])->name('users.login-as');
     Route::post('services', [SalonServiceController::class, 'store'])->name('services.store');

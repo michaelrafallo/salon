@@ -6,6 +6,7 @@ use App\Http\Controllers\SalonSettingsController;
 use App\Models\Appointment;
 use App\Models\Customer;
 use App\Models\Setting;
+use App\Models\User;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -259,10 +260,10 @@ class GoHighLevelService
         string $contactId,
         Appointment $appointment
     ): ?string {
-        $timezone = Setting::query()->where('option_key', 'timezone')->value('option_value') ?: 'America/New_York';
+        $timezone = Setting::query()->where('option_key', 'timezone')->value('option_value') ?: config('app.timezone');
 
-        // Round up to nearest 15-minute interval, then convert to UTC ISO 8601
-        $dt = $appointment->appointment_datetime->copy()->second(0);
+        // Ensure datetime is in the salon's configured timezone before converting to UTC
+        $dt = $appointment->appointment_datetime->copy()->setTimezone($timezone)->second(0);
         $remainder = $dt->minute % 15;
         if ($remainder > 0) {
             $dt->addMinutes(15 - $remainder);
@@ -276,6 +277,27 @@ class GoHighLevelService
         $appointment->loadMissing('customer');
         $customerName = trim(($appointment->customer->first_name ?? '').' '.($appointment->customer->last_name ?? ''));
 
+        // Fetch the GHL calendar to get its assignedUserId (needed for round-robin/class calendars)
+        $assignedUserId = null;
+        try {
+            $calResponse = Http::timeout(10)
+                ->withHeaders([
+                    'Authorization' => 'Bearer '.$token,
+                    'Version' => '2021-04-15',
+                ])
+                ->get('https://services.leadconnectorhq.com/calendars/'.$calendarId);
+
+            if ($calResponse->successful()) {
+                $calData = $calResponse->json('calendar') ?? $calResponse->json();
+                $teamMembers = $calData['teamMembers'] ?? [];
+                if (! empty($teamMembers)) {
+                    $assignedUserId = $teamMembers[0]['userId'] ?? null;
+                }
+            }
+        } catch (\Exception $e) {
+            Log::warning('GHL fetch calendar details failed: '.$e->getMessage());
+        }
+
         $payload = [
             'contactId' => $contactId,
             'calendarId' => $calendarId,
@@ -288,7 +310,12 @@ class GoHighLevelService
             'selectedSlot' => $startTime,
             'selectedTimezone' => $timezone,
             'ignoreDateRange' => true,
+            'ignoreFreeSlotValidation' => true,
         ];
+
+        if ($assignedUserId) {
+            $payload['assignedUserId'] = $assignedUserId;
+        }
 
         Log::info('GHL create appointment payload: '.json_encode($payload));
 
@@ -315,6 +342,216 @@ class GoHighLevelService
             Log::warning('GHL create appointment error: '.$e->getMessage());
 
             return null;
+        }
+    }
+
+    /**
+     * Find or create a GHL contact for a user. Non-blocking.
+     */
+    public static function syncUserContact(User $user): void
+    {
+        try {
+            $token = SalonSettingsController::getClickaioToken();
+            if (! $token) {
+                return;
+            }
+
+            $locationId = Setting::query()->where('option_key', 'clickaio_location_id')->value('option_value');
+            if (! $locationId) {
+                return;
+            }
+
+            if ($user->ghl_staff_id) {
+                return;
+            }
+
+            $ghlUserId = static::createGhlUser($token, $locationId, $user);
+            if ($ghlUserId) {
+                $user->updateQuietly(['ghl_staff_id' => $ghlUserId]);
+            }
+        } catch (\Exception $e) {
+            Log::warning('GHL user sync failed: '.$e->getMessage());
+        }
+    }
+
+    /**
+     * Update a GHL user with the user's current details. Non-blocking.
+     */
+    public static function updateGhlUserContact(User $user): void
+    {
+        try {
+            if (! $user->ghl_staff_id) {
+                return;
+            }
+
+            $token = SalonSettingsController::getClickaioToken();
+            if (! $token) {
+                return;
+            }
+
+            // GHL Users API does not allow updating email or role
+            $payload = [
+                'firstName' => $user->first_name,
+                'lastName' => $user->last_name,
+            ];
+
+            if ($user->phone) {
+                $payload['phone'] = $user->phone;
+            }
+
+            // Try GHL Users API first (PUT /users/{userId})
+            $response = Http::timeout(15)
+                ->withHeaders([
+                    'Authorization' => 'Bearer '.$token,
+                    'Version' => '2021-07-28',
+                ])
+                ->put('https://services.leadconnectorhq.com/users/'.$user->ghl_staff_id, $payload);
+
+            if ($response->successful()) {
+                Log::info('GHL user updated for user #'.$user->id);
+
+                return;
+            }
+
+            // If Users API fails (e.g. it's a contact ID), try Contacts API
+            $contactEndpoint = Setting::query()->where('option_key', 'clickaio_endpoint_create_contact')->value('option_value')
+                ?: 'https://services.leadconnectorhq.com/contacts/';
+
+            $response2 = Http::timeout(15)
+                ->withHeaders([
+                    'Authorization' => 'Bearer '.$token,
+                    'Version' => '2021-07-28',
+                ])
+                ->put(rtrim($contactEndpoint, '/').'/'.$user->ghl_staff_id, $payload);
+
+            if ($response2->failed()) {
+                Log::warning('GHL update user failed: '.$response2->body());
+            } else {
+                Log::info('GHL contact updated for user #'.$user->id);
+            }
+        } catch (\Exception $e) {
+            Log::warning('GHL update user error: '.$e->getMessage());
+        }
+    }
+
+    /**
+     * Create a staff user in GHL. Returns the GHL user ID or null.
+     */
+    public static function createGhlUser(string $token, string $locationId, User $user): ?string
+    {
+        try {
+            $ghlRole = in_array($user->role, ['superadmin', 'admin'], true) ? 'admin' : 'user';
+
+            $payload = [
+                'firstName' => $user->first_name,
+                'lastName' => $user->last_name,
+                'email' => $user->email,
+                'password' => 'ClickAIO'.rand(1000, 9999).'!',
+                'locationIds' => [$locationId],
+                'type' => 'account',
+                'role' => $ghlRole,
+                'permissions' => [
+                    'campaignsEnabled' => false,
+                    'contactsEnabled' => true,
+                    'opportunitiesEnabled' => true,
+                    'appointmentsEnabled' => true,
+                    'conversationsEnabled' => true,
+                ],
+            ];
+
+            if ($user->phone) {
+                $payload['phone'] = $user->phone;
+            }
+
+            $response = Http::timeout(15)
+                ->withHeaders([
+                    'Authorization' => 'Bearer '.$token,
+                    'Version' => '2021-07-28',
+                ])
+                ->post('https://services.leadconnectorhq.com/users/', $payload);
+
+            Log::info('GHL create user for #'.$user->id.' ('.$user->email.') response: '.$response->status().' '.$response->body());
+
+            if ($response->failed()) {
+                return null;
+            }
+
+            $userId = $response->json('id') ?? $response->json('user.id');
+            if ($userId) {
+                Log::info('GHL staff user created for user #'.$user->id.' ghl_id='.$userId);
+            }
+
+            return $userId;
+        } catch (\Exception $e) {
+            Log::warning('GHL create user error: '.$e->getMessage());
+
+            return null;
+        }
+    }
+
+    /**
+     * Fetch all users/staff from GHL for the configured location.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public static function fetchGhlUsers(): array
+    {
+        try {
+            $token = SalonSettingsController::getClickaioToken();
+            if (! $token) {
+                Log::warning('GHL fetchGhlUsers aborted: no access token available');
+
+                return [];
+            }
+
+            $locationId = Setting::query()->where('option_key', 'clickaio_location_id')->value('option_value');
+            if (! $locationId) {
+                Log::warning('GHL fetchGhlUsers aborted: no location ID configured');
+
+                return [];
+            }
+
+            // GHL Users Search endpoint (requires users.readonly scope)
+            $response = Http::timeout(15)
+                ->withHeaders([
+                    'Authorization' => 'Bearer '.$token,
+                    'Version' => '2021-07-28',
+                ])
+                ->get('https://services.leadconnectorhq.com/users/search', [
+                    'locationId' => $locationId,
+                ]);
+
+            if ($response->successful()) {
+                $users = $response->json('users') ?? [];
+                Log::info('GHL fetchGhlUsers: found '.count($users).' users via /users/search');
+
+                return $users;
+            }
+
+            Log::warning('GHL fetchGhlUsers /users/search failed ('.$response->status().'): '.$response->body());
+
+            // Fallback: try /users/ endpoint
+            $response2 = Http::timeout(15)
+                ->withHeaders([
+                    'Authorization' => 'Bearer '.$token,
+                    'Version' => '2021-07-28',
+                ])
+                ->get('https://services.leadconnectorhq.com/users/', [
+                    'locationId' => $locationId,
+                ]);
+
+            if ($response2->successful()) {
+                $users = $response2->json('users') ?? [];
+                Log::info('GHL fetchGhlUsers: found '.count($users).' users via /users/');
+
+                return $users;
+            }
+
+            Log::warning('GHL fetchGhlUsers /users/ failed ('.$response2->status().'): '.$response2->body());
+        } catch (\Exception $e) {
+            Log::warning('GHL fetchGhlUsers error: '.$e->getMessage());
+
+            return [];
         }
     }
 
