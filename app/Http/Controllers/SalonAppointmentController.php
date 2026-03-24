@@ -7,8 +7,10 @@ use App\Http\Requests\UpdateAppointmentRequest;
 use App\Http\Requests\UpdateAppointmentServicesRequest;
 use App\Models\Appointment;
 use App\Models\AppointmentService;
+use App\Models\Customer;
 use App\Models\Service;
 use App\Models\ServiceCategory;
+use App\Models\Setting;
 use App\Models\TurnTracker;
 use App\Services\GoHighLevelService;
 use Illuminate\Http\JsonResponse;
@@ -235,6 +237,95 @@ class SalonAppointmentController extends Controller
             'message' => 'Cart saved successfully.',
             'data' => $this->appointmentToApiShape($appointment),
         ]);
+    }
+
+    public function webhookFromGhl(Request $request): JsonResponse
+    {
+        Log::info('GHL appointment webhook received', ['payload' => $request->all()]);
+
+        $calendar = $request->input('calendar', []);
+        $ghlAppointmentId = $calendar['appointmentId'] ?? null;
+
+        if (! $ghlAppointmentId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Missing calendar.appointmentId in payload.',
+            ], 422);
+        }
+
+        // Idempotency: skip if this GHL appointment already exists locally
+        $existing = Appointment::query()->where('ghl_appointment_id', $ghlAppointmentId)->first();
+        if ($existing) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Appointment already exists.',
+                'data' => ['id' => $existing->id, 'ghl_appointment_id' => $ghlAppointmentId],
+            ]);
+        }
+
+        // Find or create customer by GHL contact ID
+        $ghlContactId = $request->input('contact_id');
+        if (! $ghlContactId) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Missing contact_id in payload.',
+            ], 422);
+        }
+
+        $customer = Customer::updateOrCreate(
+            ['ghl_contact_id' => $ghlContactId],
+            [
+                'first_name' => $request->input('first_name', ''),
+                'last_name'  => $request->input('last_name', ''),
+                'phone'      => $request->input('phone'),
+                'email'      => $request->input('email'),
+            ]
+        );
+
+        // Parse appointment datetime from GHL calendar data
+        $startTime = $calendar['startTime'] ?? null;
+        if (! $startTime) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Missing calendar.startTime in payload.',
+            ], 422);
+        }
+
+        $selectedTimezone = $calendar['selectedTimezone'] ?? null;
+        $salonTimezone = Setting::query()->where('option_key', 'timezone')->value('option_value') ?: config('app.timezone');
+
+        // GHL sends startTime in the selectedTimezone; parse accordingly
+        $appointmentDatetime = $selectedTimezone
+            ? Carbon::parse($startTime, $selectedTimezone)->setTimezone($salonTimezone)
+            : Carbon::parse($startTime, $salonTimezone);
+
+        $appointment = Appointment::query()->create([
+            'customer_id'        => $customer->id,
+            'type'               => 'booked',
+            'status'             => 'waiting',
+            'appointment_datetime' => $appointmentDatetime,
+            'ghl_appointment_id' => $ghlAppointmentId,
+            'ghl_calendar_id'    => $calendar['id'] ?? null,
+        ]);
+
+        Log::info('GHL webhook: appointment created', [
+            'appointment_id'     => $appointment->id,
+            'customer_id'        => $customer->id,
+            'ghl_appointment_id' => $ghlAppointmentId,
+            'calendar_name'      => $calendar['calendarName'] ?? null,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Appointment created successfully.',
+            'data'    => [
+                'id'                 => $appointment->id,
+                'customer_id'        => $customer->id,
+                'appointment_datetime' => $appointment->appointment_datetime?->format('Y-m-d\TH:i:s'),
+                'ghl_appointment_id' => $appointment->ghl_appointment_id,
+                'ghl_calendar_id'    => $appointment->ghl_calendar_id,
+            ],
+        ], 201);
     }
 
     public function syncCalendar(Request $request, Appointment $appointment): JsonResponse

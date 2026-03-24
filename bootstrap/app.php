@@ -18,6 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'check-in',
             'api/customers/update/*',
+            'api/appointments/webhook/*',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

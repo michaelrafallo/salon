@@ -77,6 +77,7 @@ Route::prefix('api/salon/data')->name('api.salon.data.')->group(function () {
 
 Route::post('check-in', [OnlineCheckinController::class, 'store'])->name('online-checkin.store');
 Route::post('api/customers/update/{ghl_contact_id}', [SalonCustomerController::class, 'syncFromGhl'])->name('api.customers.update-from-ghl');
+Route::post('api/appointments/webhook/create', [SalonAppointmentController::class, 'webhookFromGhl'])->name('api.appointments.webhook-from-ghl');
 
 Route::name('salon.')->group(function () {
     Route::redirect('/', '/dashboard', 302);
