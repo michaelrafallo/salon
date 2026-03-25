@@ -8,6 +8,7 @@
     $editBookingUrl = route('salon.booking.edit-booking');
     $appointmentsApiUrl = url('api/salon/appointments');
     $defaultCalendarId = \App\Models\Setting::query()->where('option_key', 'clickaio_calendar_id')->value('option_value') ?? '';
+    $clickaioCalendars = \App\Models\Setting::query()->where('option_key', 'clickaio_calendars')->value('option_value') ?? '{}';
 @endphp
 
 <main class="flex-1 overflow-y-auto bg-gray-50 lg:ml-0 pt-16 lg:pt-0">
@@ -140,6 +141,14 @@ let turnTrackerUserIds = new Set(); // User IDs listed in the turn tracker
 let turnTrackerPositions = new Map(); // user_id → sorted position index from turn tracker
 let ghlCalendars = []; // Cached GHL calendars list
 let ghlDefaultCalendarId = '{{ $defaultCalendarId }}'; // Default calendar ID from settings
+let clickaioCalendarsConfig = @json(json_decode($clickaioCalendars, true) ?? new \stdClass()); // Calendar color/selection config from settings
+
+function getCalendarColor(calendarId) {
+    if (clickaioCalendarsConfig && clickaioCalendarsConfig[calendarId] && clickaioCalendarsConfig[calendarId].color) {
+        return clickaioCalendarsConfig[calendarId].color;
+    }
+    return null;
+}
 
 // --- Date helpers (avoid UTC date shifting for YYYY-MM-DD inputs) ---
 function formatYmdLocal(date) {
@@ -290,6 +299,45 @@ function initCalendarSelect2(appointmentId) {
             var calendarId = $(this).val();
             if (calendarId) {
                 syncAppointmentToCalendar(appointmentId, calendarId);
+                // Auto-update event color to match the new calendar's color
+                var calColor = getCalendarColor(calendarId);
+                if (calColor) {
+                    var calHex = calColor.toUpperCase();
+                    var calName = (clickaioCalendarsConfig && clickaioCalendarsConfig[calendarId] && clickaioCalendarsConfig[calendarId].name) || 'Calendar';
+                    setEventColor(appointmentId, calColor, true);
+                    // Update color preview inline
+                    var previewEl = document.getElementById('eventColorPreview_' + appointmentId);
+                    if (previewEl) {
+                        previewEl.innerHTML = '<div style="width:48px;height:48px;border-radius:9999px;border:2px solid #fff;box-shadow:0 4px 6px -1px rgba(0,0,0,.1);background:' + calColor + '"></div><button onclick="setEventColor(\'' + appointmentId + '\', null)" style="position:absolute;top:-4px;left:-4px;width:18px;height:18px;border-radius:9999px;background:#fff;border:1px solid #d1d5db;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 1px 2px rgba(0,0,0,.1)" title="Remove color"><svg style="width:10px;height:10px" fill="none" stroke="#9ca3af" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M6 18L18 6M6 6l12 12"></path></svg></button>';
+                    }
+                    // Replace the 1st swatch (calendar swatch) with the new calendar's color
+                    var swatchContainer = document.getElementById('eventColorSwatches_' + appointmentId);
+                    if (swatchContainer) {
+                        var firstSwatch = swatchContainer.querySelector('button[data-calendar-swatch]');
+                        if (firstSwatch) {
+                            firstSwatch.style.background = calHex;
+                            firstSwatch.setAttribute('title', calName);
+                            firstSwatch.setAttribute('onclick', "setEventColor('" + appointmentId + "', '" + calHex + "')");
+                        } else {
+                            // No calendar swatch yet — insert one at the beginning
+                            var newSwatch = document.createElement('button');
+                            newSwatch.setAttribute('data-calendar-swatch', 'true');
+                            newSwatch.setAttribute('onclick', "setEventColor('" + appointmentId + "', '" + calHex + "')");
+                            newSwatch.className = 'rounded-full border-2 transition-all hover:scale-110 border-gray-900 ring-2 ring-offset-1 ring-gray-900';
+                            newSwatch.style.cssText = 'width:28px;height:28px;background:' + calHex;
+                            newSwatch.title = calName;
+                            swatchContainer.insertBefore(newSwatch, swatchContainer.firstChild);
+                        }
+                        // Update selection state: select 1st swatch, deselect others
+                        swatchContainer.querySelectorAll('button.rounded-full').forEach(function(btn, idx) {
+                            if (btn.getAttribute('data-calendar-swatch') === 'true') {
+                                btn.className = 'rounded-full border-2 transition-all hover:scale-110 border-gray-900 ring-2 ring-offset-1 ring-gray-900';
+                            } else {
+                                btn.className = btn.className.replace(/border-gray-900/g, 'border-white').replace(/ring-2 ring-offset-1 ring-gray-900/g, 'shadow-sm');
+                            }
+                        });
+                    }
+                }
             }
         });
     }
@@ -2430,9 +2478,40 @@ function showAppointmentModal(appointmentData) {
                             <div id="eventColorSwatches_${appointmentId}" class="flex items-center gap-2 flex-wrap">
                                 ${(function() {
                                     const apt = bookingsData.find(a => a.id.toString() === appointmentId.toString());
+                                    const seenColors = {};
+
+                                    // Active calendar color swatch (1st position - from currently selected Service Calendar)
+                                    var activeCalId = (apt && apt.ghl_calendar_id) || ghlDefaultCalendarId;
+                                    var activeCalColor = getCalendarColor(activeCalId);
+                                    var activeCalName = (clickaioCalendarsConfig && clickaioCalendarsConfig[activeCalId] && clickaioCalendarsConfig[activeCalId].name) || 'Calendar';
+                                    var activeCalSwatchHtml = '';
+                                    if (activeCalColor) {
+                                        var hex = activeCalColor.toUpperCase();
+                                        seenColors[hex] = true;
+                                        var isSelected = eventColor && eventColor.toUpperCase() === hex;
+                                        activeCalSwatchHtml = '<button data-calendar-swatch="true" onclick="setEventColor(\'' + appointmentId + '\', \'' + hex + '\')" class="rounded-full border-2 transition-all hover:scale-110 ' + (isSelected ? 'border-gray-900 ring-2 ring-offset-1 ring-gray-900' : 'border-white shadow-sm') + '" style="width:28px;height:28px;background:' + hex + '" title="' + activeCalName + '"></button>';
+                                    }
+
+                                    // Other calendar color swatches (from settings, excluding active)
+                                    var otherCalSwatches = [];
+                                    if (typeof clickaioCalendarsConfig === 'object' && clickaioCalendarsConfig) {
+                                        Object.keys(clickaioCalendarsConfig).forEach(function(calId) {
+                                            var calConfig = clickaioCalendarsConfig[calId];
+                                            if (calConfig && calConfig.color && calConfig.selected) {
+                                                var hex = calConfig.color.toUpperCase();
+                                                if (!seenColors[hex]) {
+                                                    seenColors[hex] = true;
+                                                    var isSelected = eventColor && eventColor.toUpperCase() === hex;
+                                                    otherCalSwatches.push('<button onclick="setEventColor(\'' + appointmentId + '\', \'' + hex + '\')" class="rounded-full border-2 transition-all hover:scale-110 ' + (isSelected ? 'border-gray-900 ring-2 ring-offset-1 ring-gray-900' : 'border-white shadow-sm') + '" style="width:28px;height:28px;background:' + hex + '" title="' + (calConfig.name || 'Calendar') + '"></button>');
+                                                }
+                                            }
+                                        });
+                                    }
+                                    var calSwatchesHtml = activeCalSwatchHtml + otherCalSwatches.join('');
+
+                                    // Service color swatches (deduped against calendar colors)
                                     const svcs = apt && Array.isArray(apt.services) ? apt.services : [];
                                     const serviceColors = [];
-                                    const seenColors = {};
                                     svcs.forEach(function(s) {
                                         var c = s.service_color;
                                         if (!c && s.service_id && typeof selectServicesData !== 'undefined' && selectServicesData.length > 0) {
@@ -2448,10 +2527,15 @@ function showAppointmentModal(appointmentData) {
                                         const isSelected = eventColor && eventColor.toUpperCase() === c.hex;
                                         return '<button onclick="setEventColor(\'' + appointmentId + '\', \'' + c.hex + '\')" class="rounded-full border-2 transition-all hover:scale-110 ' + (isSelected ? 'border-gray-900 ring-2 ring-offset-1 ring-gray-900' : 'border-white shadow-sm') + '" style="width:28px;height:28px;background:' + c.hex + '" title="' + c.name + '"></button>';
                                     }).join('');
-                                    var knownHexes = serviceColors.map(function(c) { return c.hex; });
+
+                                    // Separator between calendar and service swatches
+                                    var separator = (calSwatchesHtml && serviceSwatches) ? '<div style="width:1px;height:20px;background:#d1d5db;margin:0 2px;flex-shrink:0"></div>' : '';
+
+                                    // Known hexes includes both calendar and service colors
+                                    var knownHexes = Object.keys(seenColors);
                                     var isCustom = eventColor && !knownHexes.some(function(p){ return eventColor.toUpperCase() === p; });
                                     var customBtn = '<div class="relative"><button onclick="document.getElementById(\'customColorPicker_' + appointmentId + '\').click()" class="rounded-full border-2 transition-all hover:scale-110 flex items-center justify-center ' + (isCustom ? 'border-gray-900 ring-2 ring-offset-1 ring-gray-900' : 'border-gray-300') + '" style="width:28px;height:28px;background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red)" title="Custom color"></button><input type="color" id="customColorPicker_' + appointmentId + '" value="' + (eventColor || '#003047') + '" class="absolute opacity-0 w-0 h-0" onchange="setEventColor(\'' + appointmentId + '\', this.value)"></div>';
-                                    return serviceSwatches + customBtn;
+                                    return calSwatchesHtml + separator + serviceSwatches + customBtn;
                                 })()}
                             </div>
                         </div>
@@ -2531,6 +2615,15 @@ function showAppointmentModal(appointmentData) {
             updateEventModalTechnicianDisplay();
             // Initialize Select2 on calendar dropdown
             initCalendarSelect2(appointmentId);
+            // Auto-set event color from calendar if no color is set
+            if (!eventColor) {
+                const apt = bookingsData.find(a => a.id.toString() === appointmentId.toString());
+                const currentCalId = (apt && apt.ghl_calendar_id) || ghlDefaultCalendarId;
+                const calColor = getCalendarColor(currentCalId);
+                if (calColor) {
+                    setEventColor(appointmentId, calColor);
+                }
+            }
         }, 100);
     }
 }

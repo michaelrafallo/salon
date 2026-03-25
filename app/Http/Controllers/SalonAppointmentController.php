@@ -12,6 +12,7 @@ use App\Models\Service;
 use App\Models\ServiceCategory;
 use App\Models\Setting;
 use App\Models\TurnTracker;
+use App\Models\User;
 use App\Services\GoHighLevelService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -299,31 +300,66 @@ class SalonAppointmentController extends Controller
             ? Carbon::parse($startTime, $selectedTimezone)->setTimezone($salonTimezone)
             : Carbon::parse($startTime, $salonTimezone);
 
+        // Resolve event color from clickaio_calendars setting
+        $ghlCalendarId = $calendar['id'] ?? null;
+        $eventColor = null;
+        if ($ghlCalendarId) {
+            $calendarsJson = Setting::query()->where('option_key', 'clickaio_calendars')->value('option_value');
+            $calendarsConfig = $calendarsJson ? json_decode($calendarsJson, true) : [];
+            if (is_array($calendarsConfig) && isset($calendarsConfig[$ghlCalendarId]['color'])) {
+                $eventColor = $calendarsConfig[$ghlCalendarId]['color'];
+            }
+        }
+
         $appointment = Appointment::query()->create([
-            'customer_id'        => $customer->id,
-            'type'               => 'booked',
-            'status'             => 'waiting',
+            'customer_id'          => $customer->id,
+            'type'                 => 'booked',
+            'status'               => 'waiting',
             'appointment_datetime' => $appointmentDatetime,
-            'ghl_appointment_id' => $ghlAppointmentId,
-            'ghl_calendar_id'    => $calendar['id'] ?? null,
+            'ghl_appointment_id'   => $ghlAppointmentId,
+            'ghl_calendar_id'      => $ghlCalendarId,
+            'color'                => $eventColor,
         ]);
+
+        // Assign technician by matching customData.assigned_user_email to a local user
+        $customData = $request->input('customData', []);
+        $assignedEmail = $customData['assigned_user_email'] ?? null;
+        $assignedTechnician = null;
+
+        if ($assignedEmail) {
+            $assignedTechnician = User::query()->where('email', $assignedEmail)->first();
+            if ($assignedTechnician) {
+                $appointment->technicians()->sync([$assignedTechnician->id]);
+                Log::info('GHL webhook: technician assigned', [
+                    'appointment_id' => $appointment->id,
+                    'user_id'        => $assignedTechnician->id,
+                    'email'          => $assignedEmail,
+                ]);
+            } else {
+                Log::warning('GHL webhook: no matching user for assigned_user_email', [
+                    'email' => $assignedEmail,
+                ]);
+            }
+        }
 
         Log::info('GHL webhook: appointment created', [
             'appointment_id'     => $appointment->id,
             'customer_id'        => $customer->id,
             'ghl_appointment_id' => $ghlAppointmentId,
             'calendar_name'      => $calendar['calendarName'] ?? null,
+            'assigned_user'      => $assignedTechnician?->id,
         ]);
 
         return response()->json([
             'success' => true,
             'message' => 'Appointment created successfully.',
             'data'    => [
-                'id'                 => $appointment->id,
-                'customer_id'        => $customer->id,
+                'id'                   => $appointment->id,
+                'customer_id'          => $customer->id,
                 'appointment_datetime' => $appointment->appointment_datetime?->format('Y-m-d\TH:i:s'),
-                'ghl_appointment_id' => $appointment->ghl_appointment_id,
-                'ghl_calendar_id'    => $appointment->ghl_calendar_id,
+                'ghl_appointment_id'   => $appointment->ghl_appointment_id,
+                'ghl_calendar_id'      => $appointment->ghl_calendar_id,
+                'assigned_technician'  => $assignedTechnician?->id,
             ],
         ], 201);
     }

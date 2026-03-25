@@ -261,6 +261,8 @@ class SalonUserController extends Controller
             // Only update fields that have values from GHL (don't overwrite with null)
             $updateData = array_filter($data, fn ($v) => $v !== null);
             $updateData['ghl_staff_id'] = $ghlId; // always set this
+            // Do not overwrite existing user's role or password
+            unset($updateData['role'], $updateData['password']);
             $user->update($updateData);
         } else {
             // Generate unique username

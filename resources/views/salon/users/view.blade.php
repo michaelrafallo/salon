@@ -134,9 +134,10 @@
     }
 
     var roleColors = {
-        'admin': { bg: 'bg-[#e6f0f3]', text: 'text-[#003047]' },
-        'receptionist': { bg: 'bg-purple-100', text: 'text-purple-600' },
-        'technician': { bg: 'bg-indigo-100', text: 'text-indigo-600' }
+        'superadmin': { bg: '#dbeafe', text: '#1d4ed8' },
+        'admin': { bg: '#ffedd5', text: '#c2410c' },
+        'technician': { bg: '#f3e8ff', text: '#7e22ce' },
+        'receptionist': { bg: '#dcfce7', text: '#15803d' }
     };
 
     function getRoleColors(role) {
@@ -181,12 +182,13 @@
         // Avatar
         var avatarEl = document.getElementById('userAvatar');
         if (avatarEl) {
-            avatarEl.className = 'w-full aspect-square ' + colors.bg + ' flex items-center justify-center overflow-hidden rounded-lg';
+            avatarEl.className = 'w-full aspect-square flex items-center justify-center overflow-hidden rounded-lg';
+            avatarEl.style.backgroundColor = colors.bg;
             if (userData.profilePhotoUrl) {
                 avatarEl.innerHTML = '<img src="' + userData.profilePhotoUrl + '" alt="Profile Photo" class="w-full h-full object-cover">';
                 document.getElementById('userRemovePhotoBtn').classList.remove('hidden');
             } else {
-                avatarEl.innerHTML = '<span class="text-4xl font-bold ' + colors.text + '">' + initials + '</span>';
+                avatarEl.innerHTML = '<span class="text-4xl font-bold" style="color:' + colors.text + '">' + initials + '</span>';
                 document.getElementById('userRemovePhotoBtn').classList.add('hidden');
             }
         }
@@ -318,7 +320,8 @@
                 var colors = getRoleColors(userData.role);
                 var initials = getInitials(userData);
                 if (avatar) {
-                    avatar.innerHTML = '<span class="w-full h-full flex items-center justify-center text-4xl font-bold ' + colors.text + '">' + initials + '</span>';
+                    avatar.style.backgroundColor = colors.bg;
+                    avatar.innerHTML = '<span class="w-full h-full flex items-center justify-center text-4xl font-bold" style="color:' + colors.text + '">' + initials + '</span>';
                 }
                 document.getElementById('userRemovePhotoBtn').classList.add('hidden');
                 if (typeof showSuccessMessage === 'function') showSuccessMessage('Profile photo removed.');

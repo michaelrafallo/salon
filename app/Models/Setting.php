@@ -59,6 +59,7 @@ class Setting extends Model
             'clickaio_endpoint_create_contact',
             'clickaio_endpoint_book_appointment',
             'clickaio_endpoint_delete_appointment',
+            'clickaio_calendars',
             'clickaio_access_token',
             'clickaio_refresh_token',
             'clickaio_token_expires_at',

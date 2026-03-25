@@ -125,6 +125,26 @@
                     </div>
                 </form>
             </div>
+            <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-semibold text-gray-900">Calendar</h2>
+                    <button type="button" id="clickaio_refresh_calendar_list" class="px-3 py-2 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded-lg text-gray-600 inline-flex items-center gap-2 text-sm" title="Refresh calendar list">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        Refresh
+                    </button>
+                </div>
+                <div id="clickaio_calendar_list_loading" class="hidden py-8 text-center text-gray-500">
+                    <svg class="w-6 h-6 animate-spin mx-auto mb-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                    Loading calendars...
+                </div>
+                <div id="clickaio_calendar_list_empty" class="hidden py-8 text-center text-gray-500">
+                    <p class="text-sm">No calendars found. Make sure you are connected and have a Location ID set.</p>
+                </div>
+                <div id="clickaio_calendar_list" class="space-y-2"></div>
+                <div id="clickaio_calendar_save_section" class="hidden mt-4 flex justify-end">
+                    <button type="button" id="clickaio_calendar_save_btn" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">Save Calendars</button>
+                </div>
+            </div>
             <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6" data-clickaio-authorize-url="{{ route('salon.settings.clickaio.authorize') }}" data-clickaio-refresh-url="{{ route('api.salon.settings.clickaio.refresh') }}" data-clickaio-test-url="{{ route('api.salon.settings.clickaio.test-api') }}">
                 <h2 class="text-lg font-semibold text-gray-900 mb-4">Clickaio Credentials</h2>
                 <!-- Step 1: Credentials Form -->
@@ -1652,6 +1672,176 @@ window.salonSettingsConfirmDeleteCoupon = function(id) {
 
     // Initial display update
     updateCalendarIdDisplay();
+
+    // Calendar list management
+    var calendarListContainer = document.getElementById('clickaio_calendar_list');
+    var calendarListLoading = document.getElementById('clickaio_calendar_list_loading');
+    var calendarListEmpty = document.getElementById('clickaio_calendar_list_empty');
+    var calendarSaveSection = document.getElementById('clickaio_calendar_save_section');
+    var calendarSaveBtn = document.getElementById('clickaio_calendar_save_btn');
+    var refreshCalListBtn = document.getElementById('clickaio_refresh_calendar_list');
+    var storedCalendarsConfig = {}; // { calendarId: { color, selected } }
+
+    var calendarColors = [
+        '#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6',
+        '#EC4899', '#06B6D4', '#F97316', '#6366F1', '#14B8A6',
+        '#E11D48', '#84CC16', '#0EA5E9', '#D946EF', '#78716C'
+    ];
+
+    function parseStoredCalendars(jsonStr) {
+        if (!jsonStr) return {};
+        try {
+            var parsed = JSON.parse(jsonStr);
+            if (typeof parsed === 'object' && parsed !== null) return parsed;
+        } catch(e) {}
+        return {};
+    }
+
+    function renderCalendarList(calendars) {
+        if (!calendarListContainer) return;
+        calendarListContainer.innerHTML = '';
+        calendarListLoading.classList.add('hidden');
+
+        if (!calendars || calendars.length === 0) {
+            calendarListEmpty.classList.remove('hidden');
+            calendarSaveSection.classList.add('hidden');
+            return;
+        }
+
+        calendarListEmpty.classList.add('hidden');
+        calendarSaveSection.classList.remove('hidden');
+
+        calendars.forEach(function(cal, idx) {
+            var config = storedCalendarsConfig[cal.id] || {};
+            var isSelected = config.selected !== undefined ? !!config.selected : false;
+            var color = config.color || calendarColors[idx % calendarColors.length];
+
+            var row = document.createElement('div');
+            row.className = 'flex items-center gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition';
+            row.setAttribute('data-calendar-id', cal.id);
+
+            row.innerHTML =
+                '<label class="relative inline-flex items-center cursor-pointer flex-shrink-0">' +
+                    '<input type="checkbox" class="sr-only peer calendar-list-checkbox" data-cal-id="' + cal.id + '"' + (isSelected ? ' checked' : '') + '>' +
+                    '<div class="w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#b3d1d9] rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[\'\'] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#003047]"></div>' +
+                '</label>' +
+                '<input type="color" class="w-8 h-8 rounded cursor-pointer border border-gray-300 calendar-color-input" data-cal-id="' + cal.id + '" value="' + color + '" title="Pick color">' +
+                '<div class="flex-1 min-w-0">' +
+                    '<div class="text-sm font-medium text-gray-900 truncate">' + (cal.name || 'Unnamed') + '</div>' +
+                    '<div class="text-xs text-gray-500 font-mono truncate">' + cal.id + '</div>' +
+                '</div>' +
+                '<div class="w-3 h-3 rounded-full flex-shrink-0 calendar-color-dot" style="background-color:' + color + '"></div>';
+
+            calendarListContainer.appendChild(row);
+        });
+
+        // Update color dot when color input changes
+        calendarListContainer.querySelectorAll('.calendar-color-input').forEach(function(input) {
+            input.addEventListener('input', function() {
+                var dot = this.closest('[data-calendar-id]').querySelector('.calendar-color-dot');
+                if (dot) dot.style.backgroundColor = this.value;
+            });
+        });
+    }
+
+    function collectCalendarConfig() {
+        var config = {};
+        if (!calendarListContainer) return config;
+        calendarListContainer.querySelectorAll('[data-calendar-id]').forEach(function(row) {
+            var calId = row.getAttribute('data-calendar-id');
+            var checkbox = row.querySelector('.calendar-list-checkbox');
+            var colorInput = row.querySelector('.calendar-color-input');
+            var nameEl = row.querySelector('.text-sm.font-medium');
+            config[calId] = {
+                name: nameEl ? nameEl.textContent.trim() : '',
+                color: colorInput ? colorInput.value : '#3B82F6',
+                selected: checkbox ? checkbox.checked : false
+            };
+        });
+        return config;
+    }
+
+    function saveCalendarConfig() {
+        var main = document.querySelector('main[data-settings-update-url]');
+        if (!main || typeof salonApi === 'undefined') return;
+        var url = main.getAttribute('data-settings-update-url');
+        var config = collectCalendarConfig();
+        var btn = calendarSaveBtn;
+        var originalHTML = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<svg class="w-5 h-5 animate-spin inline-block" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> Saving...';
+        salonApi.put(url, { settings: { clickaio_calendars: JSON.stringify(config) } })
+            .then(function() {
+                storedCalendarsConfig = config;
+                if (typeof showSuccessMessage === 'function') showSuccessMessage('Calendar settings saved!');
+            })
+            .catch(function(err) {
+                if (typeof showErrorMessage === 'function') showErrorMessage(err && err.message ? err.message : 'Failed to save calendar settings.');
+            })
+            .finally(function() {
+                btn.innerHTML = originalHTML;
+                btn.disabled = false;
+            });
+    }
+
+    if (calendarSaveBtn) {
+        calendarSaveBtn.addEventListener('click', saveCalendarConfig);
+    }
+
+    // Track fetched calendars for re-render
+    var fetchedCalendarsList = [];
+
+    function fetchCalendarList() {
+        if (!calendarListContainer) return;
+        calendarListLoading.classList.remove('hidden');
+        calendarListEmpty.classList.add('hidden');
+        calendarListContainer.innerHTML = '';
+        calendarSaveSection.classList.add('hidden');
+        if (refreshCalListBtn) {
+            refreshCalListBtn.disabled = true;
+            var svg = refreshCalListBtn.querySelector('svg');
+            if (svg) svg.classList.add('animate-spin');
+        }
+        fetch('{{ url("api/salon/settings/clickaio/calendars") }}', {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            if (data.success && data.calendars) {
+                fetchedCalendarsList = data.calendars;
+                renderCalendarList(data.calendars);
+            } else {
+                calendarListEmpty.classList.remove('hidden');
+            }
+        })
+        .catch(function(e) {
+            console.error('Failed to fetch calendar list:', e);
+            calendarListEmpty.classList.remove('hidden');
+        })
+        .finally(function() {
+            calendarListLoading.classList.add('hidden');
+            if (refreshCalListBtn) {
+                refreshCalListBtn.disabled = false;
+                var svg = refreshCalListBtn.querySelector('svg');
+                if (svg) svg.classList.remove('animate-spin');
+            }
+        });
+    }
+
+    if (refreshCalListBtn) {
+        refreshCalListBtn.addEventListener('click', fetchCalendarList);
+    }
+
+    // Hook into clickaioCheckState to load saved calendar config and auto-fetch list
+    var origCheckState = clickaioCheckState;
+    clickaioCheckState = function(data) {
+        storedCalendarsConfig = parseStoredCalendars(data && data.clickaio_calendars);
+        origCheckState(data);
+        // Auto-fetch calendar list if connected
+        if (data && data.clickaio_access_token && data.clickaio_location_id) {
+            fetchCalendarList();
+        }
+    };
 })();
 </script>
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
