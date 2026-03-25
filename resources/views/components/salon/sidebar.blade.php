@@ -31,14 +31,14 @@
 <aside class="w-64 bg-white border-r border-gray-200 flex flex-col fixed lg:relative h-screen lg:h-auto lg:translate-x-0 transform -translate-x-full transition-all duration-300 z-50" id="sidebar">
     <div class="p-4 border-b border-gray-200">
         <div class="flex flex-col items-center gap-2" id="sidebarBrandBlock">
-            <div class="sidebar-logo w-16 h-16 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0 transition-all duration-300 {{ $sidebarLogoUrl ? '' : 'bg-[#003047]' }}" id="sidebarLogoWrap">
+            <div class="sidebar-logo rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0 transition-all duration-300 {{ $sidebarLogoUrl ? '' : 'w-16 h-16 bg-[#003047]' }}" id="sidebarLogoWrap">
                 @if($sidebarLogoUrl)
-                    <img id="sidebarLogoImg" src="{{ $sidebarLogoUrl }}" alt="Logo" class="w-full h-full object-contain">
+                    <img id="sidebarLogoImg" src="{{ $sidebarLogoUrl }}" alt="Logo" class="w-full h-auto object-contain">
                     <svg id="sidebarLogoIcon" class="w-8 h-8 text-white hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
                     </svg>
                 @else
-                    <img id="sidebarLogoImg" src="" alt="Logo" class="w-full h-full object-contain hidden">
+                    <img id="sidebarLogoImg" src="" alt="Logo" class="w-full h-auto object-contain hidden">
                     <svg id="sidebarLogoIcon" class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
                     </svg>
@@ -167,7 +167,8 @@
     #sidebar { transition: width 0.3s ease, transform 0.3s ease; }
     #sidebar.sidebar-collapsed { width: 4rem; }
     #sidebar.sidebar-collapsed .sidebar-text { display: none; }
-    #sidebar.sidebar-collapsed .sidebar-logo { width: 2rem; height: 2rem; }
+    #sidebar.sidebar-collapsed .sidebar-logo { width: 2rem; }
+    #sidebar.sidebar-collapsed .sidebar-logo img { width: 100%; height: auto; }
     #sidebar.sidebar-collapsed #sidebarBrandBlock { gap: 0; }
     #sidebar.sidebar-collapsed nav a { justify-content: center; padding-left: 0; padding-right: 0; }
     #sidebar.sidebar-collapsed nav a svg { margin: 0; }

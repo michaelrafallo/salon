@@ -32,15 +32,24 @@ class SalonController extends Controller
 
     public function loginPost(Request $request): RedirectResponse
     {
-        $request->session()->put('salon_authenticated', true);
-        $email = (string) $request->input('email', 'admin@salon.com');
-        $request->session()->put('salon_user_email', $email);
+        $request->validate([
+            'email' => ['required', 'string', 'email'],
+            'password' => ['required', 'string'],
+        ]);
 
+        $email = (string) $request->input('email');
         $user = User::query()->where('email', $email)->first();
-        if ($user) {
-            $user->forceFill(['last_login_at' => now()])->save();
-            $request->session()->put('salon_role', $user->role ?? 'admin');
+
+        if (! $user || ! \Illuminate\Support\Facades\Hash::check((string) $request->input('password'), $user->password)) {
+            return redirect()->route('salon.login')
+                ->withInput($request->only('email'))
+                ->withErrors(['email' => 'Invalid email or password.']);
         }
+
+        $request->session()->put('salon_authenticated', true);
+        $request->session()->put('salon_user_email', $email);
+        $request->session()->put('salon_role', $user->role ?? 'admin');
+        $user->forceFill(['last_login_at' => now()])->save();
 
         return redirect()->route('salon.dashboard');
     }

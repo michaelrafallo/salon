@@ -12,7 +12,7 @@
             <div class="text-center">
                 <div class="flex justify-center mb-4">
                     @if($logoUrl)
-                        <img src="{{ $logoUrl }}" alt="{{ $businessName }}" class="h-16 w-auto object-contain">
+                        <img src="{{ $logoUrl }}" alt="{{ $businessName }}" class="h-auto object-contain" style="max-width:180px">
                     @else
                         <div class="w-16 h-16 bg-[#003047] rounded-lg flex items-center justify-center">
                             <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -21,17 +21,20 @@
                         </div>
                     @endif
                 </div>
-                <h2 class="text-3xl font-bold text-gray-900 mb-2">{{ $businessName }}</h2>
                 <p class="text-gray-600">Sign in to your account</p>
             </div>
 
             <div class="bg-white rounded-lg shadow-lg border border-gray-200 p-8">
                 <form id="loginForm" class="space-y-6" action="{{ route('salon.login.post') }}" method="POST">
                     @csrf
-                    <div id="errorMessage" class="hidden bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm"></div>
+                    @if($errors->any())
+                        <div class="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                            {{ $errors->first() }}
+                        </div>
+                    @endif
                     <div>
                         <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
-                        <input type="email" id="email" name="email" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="Enter your email">
+                        <input type="email" id="email" name="email" value="{{ old('email') }}" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="Enter your email">
                     </div>
                     <div>
                         <label for="password" class="block text-sm font-medium text-gray-700 mb-2">Password</label>
@@ -55,7 +58,11 @@
     @push('scripts')
     <script>
         document.getElementById('loginForm').addEventListener('submit', function(e) {
-            this.submit();
+            var btn = this.querySelector('button[type="submit"]');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '<svg class="w-5 h-5 animate-spin inline-block mr-2" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>Signing in...';
+            }
         });
     </script>
     @endpush
