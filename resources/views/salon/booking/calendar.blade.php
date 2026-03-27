@@ -1509,22 +1509,21 @@ function renderTechnicianListView() {
                     // Check if technician is assigned
                     const hasTechnician = apt.assigned_technician && Array.isArray(apt.assigned_technician) && apt.assigned_technician.length > 0;
 
-                    // Determine the color for this technician's event card
-                    // Use the first service color assigned to this specific technician
+                    // Determine the color for this event card
+                    // Use the first service color (same logic as calendar view)
                     let techEventColor = null;
                     if (apt.services && Array.isArray(apt.services)) {
-                        const techServices = apt.services.filter(s => s.technician_id && s.technician_id.toString() === technicianId);
-                        for (let si = 0; si < techServices.length; si++) {
-                            let sColor = techServices[si].service_color;
-                            if (!sColor && techServices[si].service_id && typeof selectServicesData !== 'undefined' && selectServicesData.length > 0) {
-                                const svcInfo = selectServicesData.find(d => d.id === techServices[si].service_id);
+                        for (let si = 0; si < apt.services.length; si++) {
+                            let sColor = apt.services[si].service_color;
+                            if (!sColor && apt.services[si].service_id && typeof selectServicesData !== 'undefined' && selectServicesData.length > 0) {
+                                const svcInfo = selectServicesData.find(d => d.id === apt.services[si].service_id);
                                 if (svcInfo && svcInfo.color) sColor = svcInfo.color;
                             }
                             if (sColor) { techEventColor = sColor; break; }
                         }
                     }
 
-                    // Apply color coding based on technician's first service color, no show, and technician assignment
+                    // Apply color coding matching calendar view: service color > appointment color > technician status
                     let colorClass = '';
                     let inlineStyle = '';
                     if (isNoShow) {
@@ -1533,6 +1532,9 @@ function renderTechnicianListView() {
                     } else if (techEventColor) {
                         colorClass = 'text-white';
                         inlineStyle = 'background-color:' + techEventColor + ' !important;border-color:' + techEventColor + ' !important;color:#fff !important;';
+                    } else if (apt.color) {
+                        colorClass = 'text-white';
+                        inlineStyle = 'background-color:' + apt.color + ' !important;border-color:' + apt.color + ' !important;color:#fff !important;';
                     } else if (hasTechnician) {
                         // Blue background with blue border for assigned technician
                         colorClass = 'bg-[#003047] text-white border-[#003047]';

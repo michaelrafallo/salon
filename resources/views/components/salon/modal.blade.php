@@ -63,6 +63,11 @@ function openModal(content, size = 'default', closeOnOutsideClick = true) {
         modalContainer.classList.add('max-w-md');
     } else {
         modalContainer.classList.add('max-w-2xl');
+        modalContainer.style.maxHeight = '90vh';
+        modalContent.style.maxHeight = '90vh';
+        modalContent.style.overflow = 'hidden';
+        modalContent.style.display = 'flex';
+        modalContent.style.flexDirection = 'column';
     }
 
     modalContent.innerHTML = content;
