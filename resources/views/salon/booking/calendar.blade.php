@@ -525,7 +525,9 @@ function convertAppointmentsToEvents(appointments) {
         }
 
         // Apply event colors based on state — no-show always wins (CSS handles it)
+        // Priority: service color > custom color > calendar color > technician status default
         let eventBgColor, eventBorderColor, eventTextColor;
+        const calColor = getCalendarColor(appointment.ghl_calendar_id || ghlDefaultCalendarId);
 
         if (isNoShow) {
             eventBgColor = '';
@@ -539,6 +541,11 @@ function convertAppointmentsToEvents(appointments) {
         } else if (appointment.color) {
             eventBgColor = appointment.color;
             eventBorderColor = appointment.color;
+            eventTextColor = '#ffffff';
+            classNames.push('event-custom-color');
+        } else if (calColor) {
+            eventBgColor = calColor;
+            eventBorderColor = calColor;
             eventTextColor = '#ffffff';
             classNames.push('event-custom-color');
         } else {
@@ -1373,9 +1380,10 @@ function renderTechnicianListView() {
                     }
                 }
 
-                // Apply color coding based on first service color, no show, or custom color
+                // Apply color coding matching calendar view: service color > custom color > calendar color > default
                 let colorClass = '';
                 let inlineStyle = '';
+                const salonCalColor = getCalendarColor(apt.ghl_calendar_id || ghlDefaultCalendarId);
                 if (isNoShow) {
                     colorClass = 'bg-[#9ca3af] text-[#003047] border-[#6b7280] opacity-70';
                 } else if (salonEventColor) {
@@ -1384,6 +1392,9 @@ function renderTechnicianListView() {
                 } else if (apt.color) {
                     colorClass = 'text-white';
                     inlineStyle = 'background-color:' + apt.color + ' !important;border-color:' + apt.color + ' !important;color:#fff !important;';
+                } else if (salonCalColor) {
+                    colorClass = 'text-white';
+                    inlineStyle = 'background-color:' + salonCalColor + ' !important;border-color:' + salonCalColor + ' !important;color:#fff !important;';
                 } else {
                     // White background with blue border for salon appointments
                     colorClass = 'bg-white text-[#003047] border-[#003047]';
@@ -1538,9 +1549,10 @@ function renderTechnicianListView() {
                         }
                     }
 
-                    // Apply color coding matching calendar view: service color > appointment color > technician status
+                    // Apply color coding matching calendar view: service color > custom color > calendar color > technician status
                     let colorClass = '';
                     let inlineStyle = '';
+                    const techCalColor = getCalendarColor(apt.ghl_calendar_id || technician.ghlCalendarId || ghlDefaultCalendarId);
                     if (isNoShow) {
                         // Gray background for no show
                         colorClass = 'bg-[#9ca3af] text-[#003047] border-[#6b7280] opacity-70';
@@ -1550,6 +1562,9 @@ function renderTechnicianListView() {
                     } else if (apt.color) {
                         colorClass = 'text-white';
                         inlineStyle = 'background-color:' + apt.color + ' !important;border-color:' + apt.color + ' !important;color:#fff !important;';
+                    } else if (techCalColor) {
+                        colorClass = 'text-white';
+                        inlineStyle = 'background-color:' + techCalColor + ' !important;border-color:' + techCalColor + ' !important;color:#fff !important;';
                     } else if (hasTechnician) {
                         // Blue background with blue border for assigned technician
                         colorClass = 'bg-[#003047] text-white border-[#003047]';
