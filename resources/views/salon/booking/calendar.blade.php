@@ -1387,8 +1387,8 @@ function renderTechnicianListView() {
                     ondragstart="handleAppointmentDragStart(event, ${apt.id})"
                     ondragend="handleAppointmentDragEnd(event)"
                     onclick="if (!event.target.classList.contains('dragging')) { event.stopPropagation(); viewAppointment(${apt.id}); }">`;
-                const salonCalId = apt.ghl_calendar_id || ghlDefaultCalendarId;
-                const salonCalName = (clickaioCalendarsConfig && clickaioCalendarsConfig[salonCalId] && clickaioCalendarsConfig[salonCalId].name) || '';
+                const salonCalId = apt.ghl_calendar_id || '';
+                const salonCalName = (salonCalId && clickaioCalendarsConfig && clickaioCalendarsConfig[salonCalId] && clickaioCalendarsConfig[salonCalId].name) || '';
 
                 html += `<div class="font-semibold">${customerName}</div>`;
                 html += `<div class="text-xs opacity-75" style="display: flex; align-items: center;">${salonCalName}</div>`;
@@ -1546,8 +1546,8 @@ function renderTechnicianListView() {
                         colorClass = 'bg-white text-[#003047] border-[#003047]';
                     }
 
-                    const techCalId = apt.ghl_calendar_id || ghlDefaultCalendarId;
-                    const techCalName = (clickaioCalendarsConfig && clickaioCalendarsConfig[techCalId] && clickaioCalendarsConfig[techCalId].name) || '';
+                    const techCalId = apt.ghl_calendar_id || technician.ghlCalendarId || '';
+                    const techCalName = (techCalId && clickaioCalendarsConfig && clickaioCalendarsConfig[techCalId] && clickaioCalendarsConfig[techCalId].name) || '';
 
                     html += `<div class="mb-1 p-2 rounded border-2 text-xs font-medium ${colorClass} cursor-move hover:opacity-80 draggable-appointment" style="${inlineStyle}"
                         draggable="true"
