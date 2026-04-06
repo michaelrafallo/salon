@@ -150,6 +150,18 @@ function getCalendarColor(calendarId) {
     return null;
 }
 
+function getCalendarName(calendarId) {
+    if (!calendarId) return '';
+    if (clickaioCalendarsConfig && clickaioCalendarsConfig[calendarId] && clickaioCalendarsConfig[calendarId].name) {
+        return clickaioCalendarsConfig[calendarId].name;
+    }
+    if (ghlCalendars && ghlCalendars.length > 0) {
+        var cal = ghlCalendars.find(function(c) { return c.id === calendarId; });
+        if (cal && cal.name) return cal.name;
+    }
+    return '';
+}
+
 // --- Date helpers (avoid UTC date shifting for YYYY-MM-DD inputs) ---
 function formatYmdLocal(date) {
     if (!date || isNaN(date.getTime())) return '';
@@ -632,8 +644,8 @@ document.addEventListener('DOMContentLoaded', async function() {
         if (calendarContainer) calendarContainer.classList.add('hidden');
         if (listViewContainer) listViewContainer.classList.remove('hidden');
         updateViewButtons('list');
-        // Render list view after data is loaded
-        renderTechnicianListView();
+        // Fetch calendars then render list view
+        fetchGhlCalendars().then(function() { renderTechnicianListView(); }).catch(function() { renderTechnicianListView(); });
     }
 
     var calendar = new FullCalendar.Calendar(calendarEl, {
@@ -1012,7 +1024,7 @@ function switchView(viewType) {
         if (calendarContainer) calendarContainer.classList.add('hidden');
         if (listViewContainer) listViewContainer.classList.remove('hidden');
         updateViewButtons('list');
-        renderTechnicianListView();
+        fetchGhlCalendars().then(function() { renderTechnicianListView(); }).catch(function() { renderTechnicianListView(); });
         // Update URL with current date
         var url = new URL(window.location);
         url.searchParams.set('view', 'list');
@@ -1388,7 +1400,7 @@ function renderTechnicianListView() {
                     ondragend="handleAppointmentDragEnd(event)"
                     onclick="if (!event.target.classList.contains('dragging')) { event.stopPropagation(); viewAppointment(${apt.id}); }">`;
                 const salonCalId = apt.ghl_calendar_id || '';
-                const salonCalName = (salonCalId && clickaioCalendarsConfig && clickaioCalendarsConfig[salonCalId] && clickaioCalendarsConfig[salonCalId].name) || '';
+                const salonCalName = getCalendarName(salonCalId);
 
                 html += `<div class="font-semibold">${customerName}</div>`;
                 html += `<div class="text-xs opacity-75" style="display: flex; align-items: center;">${salonCalName}</div>`;
@@ -1547,7 +1559,7 @@ function renderTechnicianListView() {
                     }
 
                     const techCalId = apt.ghl_calendar_id || technician.ghlCalendarId || '';
-                    const techCalName = (techCalId && clickaioCalendarsConfig && clickaioCalendarsConfig[techCalId] && clickaioCalendarsConfig[techCalId].name) || '';
+                    const techCalName = getCalendarName(techCalId);
 
                     html += `<div class="mb-1 p-2 rounded border-2 text-xs font-medium ${colorClass} cursor-move hover:opacity-80 draggable-appointment" style="${inlineStyle}"
                         draggable="true"
