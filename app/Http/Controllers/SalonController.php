@@ -33,21 +33,24 @@ class SalonController extends Controller
     public function loginPost(Request $request): RedirectResponse
     {
         $request->validate([
-            'email' => ['required', 'string', 'email'],
+            'login' => ['required', 'string'],
             'password' => ['required', 'string'],
         ]);
 
-        $email = (string) $request->input('email');
-        $user = User::query()->where('email', $email)->first();
+        $login = (string) $request->input('login');
+        $user = User::query()
+            ->where('email', $login)
+            ->orWhere('username', $login)
+            ->first();
 
         if (! $user || ! \Illuminate\Support\Facades\Hash::check((string) $request->input('password'), $user->password)) {
             return redirect()->route('salon.login')
-                ->withInput($request->only('email'))
-                ->withErrors(['email' => 'Invalid email or password.']);
+                ->withInput($request->only('login'))
+                ->withErrors(['login' => 'Invalid username/email or password.']);
         }
 
         $request->session()->put('salon_authenticated', true);
-        $request->session()->put('salon_user_email', $email);
+        $request->session()->put('salon_user_email', $user->email);
         $request->session()->put('salon_role', $user->role ?? 'admin');
         $user->forceFill(['last_login_at' => now()])->save();
 
@@ -970,6 +973,30 @@ class SalonController extends Controller
             'servicesBootstrap' => [
                 'categories' => $categories,
                 'services' => $services,
+            ],
+        ]);
+    }
+
+    public function serviceCategoriesIndex(): View
+    {
+        $categories = ServiceCategory::query()
+            ->withCount('services')
+            ->orderBy('name')
+            ->get()
+            ->map(fn (ServiceCategory $c) => [
+                'id' => $c->id,
+                'slug' => $c->slug,
+                'name' => $c->name,
+                'services_count' => (int) $c->services_count,
+                'created_at' => $c->created_at?->toISOString(),
+            ])
+            ->values()
+            ->all();
+
+        return view('salon.service-categories.index', [
+            'pageTitle' => 'Service Categories',
+            'categoriesBootstrap' => [
+                'categories' => $categories,
             ],
         ]);
     }

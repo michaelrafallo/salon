@@ -33,8 +33,8 @@
                         </div>
                     @endif
                     <div>
-                        <label for="email" class="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
-                        <input type="email" id="email" name="email" value="{{ old('email') }}" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="Enter your email">
+                        <label for="login" class="block text-sm font-medium text-gray-700 mb-2">Username or Email</label>
+                        <input type="text" id="login" name="login" value="{{ old('login') }}" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="Enter your username or email">
                     </div>
                     <div>
                         <label for="password" class="block text-sm font-medium text-gray-700 mb-2">Password</label>

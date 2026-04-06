@@ -1387,14 +1387,17 @@ function renderTechnicianListView() {
                     ondragstart="handleAppointmentDragStart(event, ${apt.id})"
                     ondragend="handleAppointmentDragEnd(event)"
                     onclick="if (!event.target.classList.contains('dragging')) { event.stopPropagation(); viewAppointment(${apt.id}); }">`;
+                const salonCalId = apt.ghl_calendar_id || ghlDefaultCalendarId;
+                const salonCalName = (clickaioCalendarsConfig && clickaioCalendarsConfig[salonCalId] && clickaioCalendarsConfig[salonCalId].name) || '';
+
                 html += `<div class="font-semibold">${customerName}</div>`;
-                html += `<div class="text-xs opacity-75" style="display: flex; align-items: center;">${timeDisplay}</div>`;
+                html += `<div class="text-xs opacity-75" style="display: flex; align-items: center;">${salonCalName}</div>`;
                 html += `</div>`;
             });
         }
-        
+
         html += '</td>';
-        
+
         orderedTechnicians.forEach(technician => {
             const technicianId = technician.id.toString();
             const [hours, minutes] = timeSlot.value.split(':').map(Number);
@@ -1543,9 +1546,8 @@ function renderTechnicianListView() {
                         colorClass = 'bg-white text-[#003047] border-[#003047]';
                     }
 
-                    // Build time display with optional clock icon
-                    const clockIcon = isUnpaid ? '<svg style="width: 12px; height: 12px; color: #008106; display: inline-block; margin-right: 4px;" class="rotating-clock" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>' : '';
-                    const timeDisplay = `${clockIcon}${startTime}`;
+                    const techCalId = apt.ghl_calendar_id || ghlDefaultCalendarId;
+                    const techCalName = (clickaioCalendarsConfig && clickaioCalendarsConfig[techCalId] && clickaioCalendarsConfig[techCalId].name) || '';
 
                     html += `<div class="mb-1 p-2 rounded border-2 text-xs font-medium ${colorClass} cursor-move hover:opacity-80 draggable-appointment" style="${inlineStyle}"
                         draggable="true"
@@ -1554,11 +1556,11 @@ function renderTechnicianListView() {
                         ondragend="handleAppointmentDragEnd(event)"
                         onclick="if (!event.target.classList.contains('dragging')) { event.stopPropagation(); viewAppointment(${apt.id}); }">`;
                     html += `<div class="font-semibold">${customerName}</div>`;
-                    html += `<div class="text-xs opacity-75" style="display: flex; align-items: center;">${timeDisplay}</div>`;
+                    html += `<div class="text-xs opacity-75" style="display: flex; align-items: center;">${techCalName}</div>`;
                     html += `</div>`;
                 });
             }
-            
+
             html += '</td>';
         });
         html += '</tr>';

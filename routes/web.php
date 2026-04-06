@@ -8,6 +8,7 @@ use App\Http\Controllers\SalonCustomerController;
 use App\Http\Controllers\SalonDataController;
 use App\Http\Controllers\SalonGiftCardController;
 use App\Http\Controllers\SalonPaymentController;
+use App\Http\Controllers\SalonServiceCategoryController;
 use App\Http\Controllers\SalonServiceController;
 use App\Http\Controllers\SalonSettingsController;
 use App\Http\Controllers\SalonTurnTrackerController;
@@ -33,6 +34,9 @@ Route::middleware(['web', 'salon.auth'])->prefix('api/salon')->name('api.salon.'
     Route::post('services', [SalonServiceController::class, 'store'])->name('services.store');
     Route::put('services/{service}', [SalonServiceController::class, 'update'])->name('services.update');
     Route::delete('services/{service}', [SalonServiceController::class, 'destroy'])->name('services.destroy');
+    Route::post('service-categories', [SalonServiceCategoryController::class, 'store'])->name('service-categories.store');
+    Route::put('service-categories/{service_category}', [SalonServiceCategoryController::class, 'update'])->name('service-categories.update');
+    Route::delete('service-categories/{service_category}', [SalonServiceCategoryController::class, 'destroy'])->name('service-categories.destroy');
     Route::post('payments', [SalonPaymentController::class, 'store'])->name('payments.store');
     Route::put('payments/{payment}', [SalonPaymentController::class, 'update'])->name('payments.update');
     Route::post('appointments', [SalonAppointmentController::class, 'store'])->name('appointments.store');
@@ -107,6 +111,7 @@ Route::name('salon.')->group(function () {
         });
 
         Route::get('services', [SalonController::class, 'servicesIndex'])->name('services.index');
+        Route::get('service-categories', [SalonController::class, 'serviceCategoriesIndex'])->name('service-categories.index');
 
         Route::prefix('technicians')->name('technicians.')->group(function () {
             Route::get('/', [SalonController::class, 'techniciansIndex'])->name('index');

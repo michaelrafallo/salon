@@ -14,6 +14,7 @@
         'booking' => ['superadmin', 'admin', 'receptionist'],
         'calendar' => ['superadmin', 'admin', 'technician', 'receptionist'],
         'services' => ['superadmin', 'admin', 'receptionist'],
+        'service_categories' => ['superadmin', 'admin'],
         'customers' => ['superadmin', 'admin', 'receptionist'],
         'technicians' => ['superadmin', 'admin', 'receptionist'],
         'turn_tracker' => ['superadmin', 'admin', 'receptionist'],
@@ -77,6 +78,12 @@
         <a href="{{ route('salon.services.index') }}" title="Services" class="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg transition {{ request()->routeIs('salon.services.*') ? 'bg-[#e6f0f3] text-[#003047]' : '' }}">
             <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
             <span class="sidebar-text font-medium">Services</span>
+        </a>
+        @endif
+        @if($canAccess('service_categories'))
+        <a href="{{ route('salon.service-categories.index') }}" title="Service Categories" class="flex items-center gap-3 px-4 py-3 text-gray-700 hover:bg-gray-50 rounded-lg transition {{ request()->routeIs('salon.service-categories.*') ? 'bg-[#e6f0f3] text-[#003047]' : '' }}">
+            <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path></svg>
+            <span class="sidebar-text font-medium">Service Categories</span>
         </a>
         @endif
         @if($canAccess('customers'))

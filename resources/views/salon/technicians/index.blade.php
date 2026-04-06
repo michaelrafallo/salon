@@ -487,14 +487,41 @@ function salonTechApplyClockState(techId, isClockIn, apiClockIn, apiClockOut) {
     salonTechRender();
 }
 window.salonTechOpenAddModal = function() {
-    var content = '<div class="p-6"><div class="flex items-center justify-between mb-4"><h3 class="text-xl font-bold text-gray-900">Add New Technician</h3><button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div><form onsubmit="salonTechSaveTechnician(event)" class="space-y-4"><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">First Name</label><input type="text" name="first_name" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Last Name</label><input type="text" name="last_name" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Email</label><input type="email" name="email" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Phone Number</label><input type="tel" name="phone" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div><div class="flex justify-end gap-3 pt-4"><button type="button" onclick="closeModal()" class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium active:scale-95">Cancel</button><button type="submit" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">Save Technician</button></div></form></div>';
+    var content = '<div class="flex flex-col max-h-[90vh]"><div class="shrink-0 px-6 py-4 border-b border-gray-200 bg-white rounded-t-2xl"><div class="flex items-center justify-between"><h3 class="text-xl font-bold text-gray-900">Add New Technician</h3><button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg></button></div></div><form onsubmit="salonTechSaveTechnician(event)" class="flex flex-col flex-1 min-h-0"><div class="flex-1 overflow-y-auto px-6 py-4 space-y-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">Username</label><input type="text" name="username" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent" placeholder="e.g. jane.doe"></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">First Name</label><input type="text" name="first_name" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Last Name</label><input type="text" name="last_name" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div></div><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="block text-sm font-medium text-gray-700 mb-2">Email</label><input type="email" name="email" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Phone</label><input type="tel" name="phone" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Password</label><input type="password" name="password" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent"></div><div><label class="block text-sm font-medium text-gray-700 mb-2">Profile Photo</label><input type="file" name="profile_photo" accept="image/*" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#003047] focus:border-transparent text-sm"><p class="mt-1 text-xs text-gray-500">Optional. Max 2 MB. JPG, PNG, GIF, WebP.</p></div></div><div class="shrink-0 px-6 py-4 border-t border-gray-200 bg-white rounded-b-2xl flex justify-end gap-3"><button type="button" onclick="closeModal()" class="px-6 py-3 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition font-medium active:scale-95">Cancel</button><button type="submit" class="px-6 py-3 bg-[#003047] text-white rounded-lg hover:bg-[#002535] transition font-medium active:scale-95">Save Technician</button></div></form></div>';
     openModal(content);
 };
 window.salonTechSaveTechnician = function(e) {
     e.preventDefault();
-    showSuccessMessage('Technician added successfully!');
-    closeModal();
-    setTimeout(function() { location.reload(); }, 1500);
+    var form = e.target;
+    var fd = new FormData();
+    fd.append('username', form.username.value.trim());
+    fd.append('first_name', form.first_name.value.trim());
+    fd.append('last_name', form.last_name.value.trim());
+    fd.append('email', form.email.value.trim());
+    fd.append('password', form.password.value);
+    fd.append('phone', form.phone.value.trim() || '');
+    fd.append('role', 'technician');
+    fd.append('status', 'active');
+    var fileEl = form.querySelector('input[name="profile_photo"]');
+    if (fileEl && fileEl.files && fileEl.files[0]) fd.append('profile_photo', fileEl.files[0]);
+    var btn = form.querySelector('button[type="submit"]');
+    if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
+    var apiUsersUrl = apiSalonUrl + '/users';
+    salonApi.postFormData(apiUsersUrl, fd).then(function(res) {
+        showSuccessMessage(res.message || 'Technician added successfully!');
+        closeModal();
+        var newTech = res.data;
+        if (newTech) {
+            allTechnicians.unshift(newTech);
+            technicianData[newTech.id] = { name: newTech.firstName + ' ' + newTech.lastName, email: newTech.email, role: 'Technician', initials: newTech.initials || (newTech.firstName || '')[0] + (newTech.lastName || '')[0] };
+            techniciansData = allTechnicians;
+            applyFilters();
+            salonTechRender();
+        }
+    }).catch(function(err) {
+        showErrorMessage(err.message || 'Failed to save technician.');
+        if (btn) { btn.disabled = false; btn.textContent = 'Save Technician'; }
+    });
 };
 window.salonTechPrintTicket = function(techId) {
     var tech = allTechnicians.find(function(t) { return t.id === techId; });
