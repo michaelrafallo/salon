@@ -1,0 +1,2004 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nail Salon App - Developer Documentation</title>
+    <style>
+        :root {
+            --primary: #003047;
+            --primary-light: #004a6e;
+            --accent: #0077b6;
+            --bg: #f8fafc;
+            --sidebar-bg: #003047;
+            --sidebar-text: #cbd5e1;
+            --sidebar-active: #ffffff;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --code-bg: #f1f5f9;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #3b82f6;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.7;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 300px;
+            background: var(--sidebar-bg);
+            color: var(--sidebar-text);
+            position: fixed;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            overflow-y: auto;
+            z-index: 100;
+            padding-bottom: 2rem;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            text-align: center;
+        }
+
+        .sidebar-header .sidebar-logo {
+            display: inline-block;
+            margin-bottom: 0;
+            background: #fff;
+            padding: 0.5rem;
+            border-radius: 10px;
+        }
+
+        .sidebar-header .sidebar-logo img {
+            max-width: 80px;
+            max-height: 80px;
+            width: auto;
+            height: auto;
+            display: block;
+            object-fit: contain;
+        }
+
+        .sidebar-header h2 {
+            color: #fff;
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-top: 0;
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .sidebar-header p {
+            font-size: 0.75rem;
+            color: var(--sidebar-text);
+            margin-top: 0.25rem;
+        }
+
+        .sidebar nav {
+            padding: 1rem 0;
+        }
+
+        .sidebar nav a {
+            display: block;
+            padding: 0.5rem 1.5rem;
+            color: var(--sidebar-text);
+            text-decoration: none;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            border-left: 3px solid transparent;
+        }
+
+        .sidebar nav a:hover,
+        .sidebar nav a.active {
+            color: var(--sidebar-active);
+            background: rgba(255,255,255,0.05);
+            border-left-color: var(--accent);
+        }
+
+        .sidebar nav .nav-section {
+            padding: 0.75rem 1.5rem 0.35rem;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: rgba(255,255,255,0.35);
+            font-weight: 700;
+            margin-top: 0.5rem;
+        }
+
+        /* Mobile toggle */
+        .sidebar-toggle {
+            display: none;
+            position: fixed;
+            top: 1rem;
+            left: 1rem;
+            z-index: 200;
+            background: var(--primary);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Main content */
+        .main {
+            margin-left: 300px;
+            flex: 1;
+            min-height: 100vh;
+        }
+
+        .content {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 2.5rem 4rem;
+        }
+
+        /* Headings */
+        h1 {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 3px solid var(--primary);
+        }
+
+        h1 .version {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            margin-left: 0.5rem;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-top: 3rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--border);
+        }
+
+        h3 {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-top: 2rem;
+            margin-bottom: 0.75rem;
+        }
+
+        h4 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text);
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        p {
+            margin-bottom: 1rem;
+            color: var(--text);
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+
+        .card h3 {
+            margin-top: 0;
+        }
+
+        /* Info boxes */
+        .info-box {
+            padding: 1rem 1.25rem;
+            border-radius: 8px;
+            margin-bottom: 1.25rem;
+            font-size: 0.9rem;
+        }
+
+        .info-box.note {
+            background: #eff6ff;
+            border-left: 4px solid var(--info);
+            color: #1e40af;
+        }
+
+        .info-box.warning {
+            background: #fffbeb;
+            border-left: 4px solid var(--warning);
+            color: #92400e;
+        }
+
+        .info-box.danger {
+            background: #fef2f2;
+            border-left: 4px solid var(--danger);
+            color: #991b1b;
+        }
+
+        .info-box.success {
+            background: #f0fdf4;
+            border-left: 4px solid var(--success);
+            color: #166534;
+        }
+
+        .info-box strong {
+            display: block;
+            margin-bottom: 0.25rem;
+        }
+
+        /* Code */
+        code {
+            background: var(--code-bg);
+            padding: 0.15em 0.4em;
+            border-radius: 4px;
+            font-size: 0.88em;
+            font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', Consolas, monospace;
+            color: #be185d;
+        }
+
+        pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 1.25rem;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin-bottom: 1.25rem;
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+
+        pre code {
+            background: none;
+            color: inherit;
+            padding: 0;
+            font-size: inherit;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+        }
+
+        th, td {
+            padding: 0.65rem 0.85rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            background: var(--code-bg);
+            font-weight: 600;
+            color: var(--primary);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        tr:hover td {
+            background: #f8fafc;
+        }
+
+        /* Lists */
+        ul, ol {
+            margin-bottom: 1rem;
+            padding-left: 1.5rem;
+        }
+
+        li {
+            margin-bottom: 0.35rem;
+        }
+
+        /* Badge */
+        .badge {
+            display: inline-block;
+            padding: 0.15em 0.55em;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .badge-get { background: #dbeafe; color: #1d4ed8; }
+        .badge-post { background: #d1fae5; color: #065f46; }
+        .badge-put { background: #fef3c7; color: #92400e; }
+        .badge-delete { background: #fee2e2; color: #991b1b; }
+        .badge-role { background: #f3e8ff; color: #6b21a8; }
+
+        /* Folder tree */
+        .tree {
+            font-family: 'SF Mono', 'Fira Code', Consolas, monospace;
+            font-size: 0.85rem;
+            line-height: 1.8;
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 1.25rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            overflow-x: auto;
+            white-space: pre;
+            tab-size: 4;
+        }
+
+        .tree .folder { color: #60a5fa; }
+        .tree .file { color: #a5b4fc; }
+        .tree .comment { color: #64748b; }
+
+        /* Flow steps */
+        .flow-steps {
+            list-style: none;
+            counter-reset: flow-step;
+            padding: 0;
+            margin: 0;
+        }
+        .flow-steps > li {
+            counter-increment: flow-step;
+            position: relative;
+            padding: 0.75rem 1rem 0.75rem 3rem;
+            margin-bottom: 0.5rem;
+            border-left: 3px solid var(--border);
+            background: #f8fafc;
+            border-radius: 0 8px 8px 0;
+        }
+        .flow-steps > li::before {
+            content: counter(flow-step);
+            position: absolute;
+            left: 0.75rem;
+            top: 0.85rem;
+            width: 1.75rem;
+            height: 1.75rem;
+            border-radius: 50%;
+            background: #2563eb;
+            color: #fff;
+            font-weight: 700;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .flow-steps > li:last-child { margin-bottom: 0; }
+        .flow-steps > li strong { display: block; color: #0f172a; margin-bottom: 0.25rem; }
+        .flow-steps > li p { margin: 0; color: #475569; font-size: 0.92rem; }
+        .flow-tag {
+            display: inline-block;
+            font-family: 'SF Mono', Consolas, monospace;
+            font-size: 0.78rem;
+            padding: 0.15rem 0.55rem;
+            border-radius: 999px;
+            background: #e0e7ff;
+            color: #3730a3;
+            margin-right: 0.35rem;
+        }
+        .flow-tag-status { background: #fef3c7; color: #92400e; }
+        .flow-tag-paid { background: #dcfce7; color: #166534; }
+        .flow-tag-outbound { background: #dbeafe; color: #1e40af; }
+        .flow-tag-inbound { background: #fce7f3; color: #9d174d; }
+        .flow-sublist {
+            margin: 0.35rem 0 0 1rem;
+            padding-left: 1rem;
+            color: #475569;
+            font-size: 0.92rem;
+        }
+        .flow-sublist li { margin-bottom: 0.15rem; }
+        .flow-sublist-ordered { list-style: decimal; }
+        .flow-heading {
+            margin: 1.5rem 0 0.75rem;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #334155;
+        }
+        .flow-heading:first-child { margin-top: 0; }
+        .flow-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 0.5rem;
+        }
+        .flow-card {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.9rem 1rem;
+        }
+        .flow-card strong { display: block; color: #0f172a; margin-bottom: 0.35rem; }
+        .flow-card p { margin: 0.25rem 0; font-size: 0.9rem; color: #475569; }
+
+        /* Diagram */
+        .diagram {
+            background: #fff;
+            border: 2px solid var(--border);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            font-family: 'SF Mono', Consolas, monospace;
+            font-size: 0.82rem;
+            line-height: 1.6;
+            overflow-x: auto;
+            white-space: pre;
+            color: var(--text);
+        }
+
+        /* ERD layout */
+        .erd {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        .erd-group {
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0 0 0.5rem;
+            background: #fff;
+            overflow: hidden;
+        }
+        .erd-group-title {
+            font-weight: 600;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #475569;
+            padding: 0.55rem 0.9rem;
+            background: #f1f5f9;
+            border-bottom: 1px solid var(--border);
+        }
+        .erd-entity {
+            display: flex;
+            flex-direction: column;
+            padding: 0.5rem 0.9rem;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .erd-entity:last-child { border-bottom: none; }
+        .erd-entity strong {
+            font-family: 'SF Mono', Consolas, monospace;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #0f172a;
+        }
+        .erd-entity span {
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-top: 2px;
+        }
+
+        .rel-badge {
+            display: inline-block;
+            font-family: 'SF Mono', Consolas, monospace;
+            font-size: 0.72rem;
+            padding: 2px 8px;
+            border-radius: 3px;
+            background: #f1f5f9;
+            color: #334155;
+            border: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            .sidebar-toggle {
+                display: flex;
+            }
+            .main {
+                margin-left: 0;
+            }
+            .content {
+                padding: 1.5rem 1rem 3rem;
+            }
+        }
+
+        /* Scroll offset for anchors */
+        [id] {
+            scroll-margin-top: 1rem;
+        }
+
+        /* Print */
+        @media print {
+            .sidebar, .sidebar-toggle { display: none; }
+            .main { margin-left: 0; }
+            pre { white-space: pre-wrap; }
+        }
+
+        /* Top bar meta */
+        .meta-bar {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+            margin-bottom: 2rem;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .meta-bar span {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        /* Endpoint row */
+        .endpoint {
+            display: flex;
+            align-items: baseline;
+            gap: 0.5rem;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.88rem;
+        }
+
+        .endpoint code {
+            background: none;
+            color: var(--text);
+            font-weight: 500;
+        }
+
+        .endpoint .desc {
+            color: var(--text-muted);
+            font-size: 0.82rem;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Mobile toggle -->
+<button class="sidebar-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')">&#9776;</button>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+    <div class="sidebar-header">
+        <div class="sidebar-logo">
+            <img src="../../storage/logos/o1kgln3CjuXaDRdk6b02P7VxtwrKTadzioRbhDtF.png" alt="Salon Logo">
+        </div>
+        <h2>Nail Salon App</h2>
+        <p>Developer Docs</p>
+    </div>
+    <nav>
+        <div class="nav-section">Overview</div>
+        <a href="#project-overview">Project Overview</a>
+        <a href="#tech-stack">Tech Stack</a>
+        <a href="#project-structure">Project Structure</a>
+
+        <div class="nav-section">Getting Started</div>
+        <a href="#setup-instructions">Setup Instructions</a>
+        <a href="#environment-variables">Environment Variables</a>
+
+        <div class="nav-section">Application</div>
+        <a href="#features-overview">Features Overview</a>
+        <a href="#authentication">Authentication</a>
+        <a href="#roles-permissions">Roles &amp; Permissions</a>
+
+        <div class="nav-section">Data Layer</div>
+        <a href="#database-structure">Database Structure</a>
+        <a href="#models-relationships">Models &amp; Relationships</a>
+
+        <div class="nav-section">API Reference</div>
+        <a href="#api-overview">API Overview</a>
+        <a href="#api-appointments">Appointments API</a>
+        <a href="#api-customers">Customers API</a>
+        <a href="#api-users">Users / Staff API</a>
+        <a href="#api-services">Services API</a>
+        <a href="#api-payments">Payments API</a>
+        <a href="#api-turn-tracker">Turn Tracker API</a>
+        <a href="#api-coupons-giftcards">Coupons &amp; Gift Cards API</a>
+        <a href="#api-settings">Settings API</a>
+        <a href="#api-webhooks">Webhooks</a>
+
+        <div class="nav-section">Core Flows</div>
+        <a href="#flow-walkin">Walk-In Flow</a>
+        <a href="#flow-booking">Booking Flow</a>
+        <a href="#flow-payment">Payment Flow</a>
+        <a href="#flow-credits">Customer Credits Flow</a>
+        <a href="#flow-ghl">GoHighLevel Sync</a>
+
+        <div class="nav-section">Operations</div>
+        <a href="#deployment-guide">Deployment Guide</a>
+        <a href="#known-issues">Known Issues</a>
+        <a href="#maintenance-notes">Maintenance Notes</a>
+    </nav>
+</aside>
+
+<!-- Main Content -->
+<div class="main">
+<div class="content">
+
+<!-- ============================================================ -->
+<!-- PROJECT OVERVIEW                                              -->
+<!-- ============================================================ -->
+<h1 id="project-overview">Nail Salon App <span class="version">v1.0</span></h1>
+
+<div class="meta-bar">
+    <span>Framework: Laravel 12</span>
+    <span>PHP 8.2+</span>
+    <span>MySQL</span>
+    <span>Tailwind CSS 4</span>
+    <span>Vite 7</span>
+</div>
+
+<div class="card">
+    <h3>What This App Does</h3>
+    <p>The Nail Salon App is a comprehensive salon management system designed to handle the day-to-day operations of a nail salon business. It manages the full lifecycle from customer walk-in or booking through service delivery, payment processing, and technician payroll.</p>
+
+    <h3>Purpose &amp; Goals</h3>
+    <ul>
+        <li>Replace manual paper-based tracking with a digital appointment and payment system</li>
+        <li>Automate technician commission calculation and payout tracking</li>
+        <li>Provide real-time visibility into salon operations (waiting list, tickets, calendar)</li>
+        <li>Integrate with GoHighLevel (GHL) CRM for customer and appointment synchronization</li>
+        <li>Support customer loyalty via credits, coupons, and gift cards</li>
+    </ul>
+
+    <h3>Main Users</h3>
+    <table>
+        <tr><th>Role</th><th>Description</th><th>Access Level</th></tr>
+        <tr><td><span class="badge badge-role">Superadmin</span></td><td>System owner with unrestricted access</td><td>Full</td></tr>
+        <tr><td><span class="badge badge-role">Admin</span></td><td>Salon manager, manages settings, staff, and payouts</td><td>Full</td></tr>
+        <tr><td><span class="badge badge-role">Receptionist</span></td><td>Front desk staff, handles check-ins and payments</td><td>Operational (no settings/users)</td></tr>
+        <tr><td><span class="badge badge-role">Technician</span></td><td>Nail technician, views own schedule and earnings</td><td>Limited (own data only)</td></tr>
+    </table>
+</div>
+
+
+<!-- ============================================================ -->
+<!-- TECH STACK                                                    -->
+<!-- ============================================================ -->
+<h2 id="tech-stack">Tech Stack</h2>
+
+<div class="card">
+    <table>
+        <tr><th>Layer</th><th>Technology</th><th>Version</th></tr>
+        <tr><td>Backend Framework</td><td>Laravel</td><td>12.0</td></tr>
+        <tr><td>Language</td><td>PHP</td><td>8.2+</td></tr>
+        <tr><td>Frontend</td><td>Blade Templates + Vanilla JS</td><td>&mdash;</td></tr>
+        <tr><td>CSS Framework</td><td>Tailwind CSS</td><td>4.0</td></tr>
+        <tr><td>Build Tool</td><td>Vite</td><td>7.0.7</td></tr>
+        <tr><td>Database</td><td>MySQL</td><td>5.7+ / 8.0+</td></tr>
+        <tr><td>Session Storage</td><td>Database</td><td>&mdash;</td></tr>
+        <tr><td>Queue Driver</td><td>Database</td><td>&mdash;</td></tr>
+        <tr><td>Cache Driver</td><td>Database</td><td>&mdash;</td></tr>
+        <tr><td>HTTP Client</td><td>Laravel HTTP Facade (Guzzle)</td><td>&mdash;</td></tr>
+        <tr><td>Third-Party Integration</td><td>GoHighLevel (Clickaio) CRM</td><td>REST API</td></tr>
+        <tr><td>Testing</td><td>PHPUnit</td><td>11.5.3</td></tr>
+        <tr><td>Code Style</td><td>Laravel Pint</td><td>1.24</td></tr>
+    </table>
+</div>
+
+
+<!-- ============================================================ -->
+<!-- PROJECT STRUCTURE                                             -->
+<!-- ============================================================ -->
+<h2 id="project-structure">Project Structure</h2>
+
+<div class="tree">
+<span class="folder">nailsalon-app/</span>
+├── <span class="folder">app/</span>
+│   ├── <span class="folder">Http/</span>
+│   │   ├── <span class="folder">Controllers/</span>          <span class="comment"># 14 controllers (Salon*, OnlineCheckin)</span>
+│   │   ├── <span class="folder">Middleware/</span>            <span class="comment"># EnsureSalonAuthenticated</span>
+│   │   └── <span class="folder">Requests/</span>              <span class="comment"># 23+ form request validation classes</span>
+│   ├── <span class="folder">Models/</span>                    <span class="comment"># 13 Eloquent models</span>
+│   ├── <span class="folder">Services/</span>                  <span class="comment"># Business logic (Customer, User, Service, GHL)</span>
+│   └── <span class="folder">Providers/</span>                 <span class="comment"># AppServiceProvider</span>
+│
+├── <span class="folder">routes/</span>
+│   ├── <span class="file">web.php</span>                    <span class="comment"># All web + API routes (single file)</span>
+│   └── <span class="file">console.php</span>                <span class="comment"># Scheduled commands (GHL token refresh)</span>
+│
+├── <span class="folder">database/</span>
+│   ├── <span class="folder">migrations/</span>                <span class="comment"># 50+ migration files</span>
+│   ├── <span class="folder">factories/</span>                 <span class="comment"># Model factories</span>
+│   └── <span class="folder">seeders/</span>                   <span class="comment"># Database seeders</span>
+│
+├── <span class="folder">resources/</span>
+│   ├── <span class="folder">views/</span>
+│   │   ├── <span class="folder">layouts/</span>               <span class="comment"># salon.blade.php (main layout)</span>
+│   │   ├── <span class="folder">components/</span>            <span class="comment"># header, sidebar, footer, modal</span>
+│   │   └── <span class="folder">salon/</span>                 <span class="comment"># All page views (37+ templates)</span>
+│   │       ├── <span class="folder">auth/</span>              <span class="comment"># login, forgot-password</span>
+│   │       ├── <span class="folder">dashboard/</span>         <span class="comment"># index + role-specific partials</span>
+│   │       ├── <span class="folder">booking/</span>           <span class="comment"># calendar, tickets, waiting-list, pay, etc.</span>
+│   │       ├── <span class="folder">customers/</span>         <span class="comment"># index, view</span>
+│   │       ├── <span class="folder">services/</span>          <span class="comment"># index</span>
+│   │       ├── <span class="folder">technicians/</span>       <span class="comment"># index, view</span>
+│   │       ├── <span class="folder">payments/</span>          <span class="comment"># index</span>
+│   │       ├── <span class="folder">payout/</span>            <span class="comment"># index</span>
+│   │       ├── <span class="folder">settings/</span>          <span class="comment"># index</span>
+│   │       └── <span class="folder">turn-tracker/</span>      <span class="comment"># index</span>
+│   ├── <span class="folder">css/</span>                       <span class="comment"># app.css (Tailwind entry)</span>
+│   └── <span class="folder">js/</span>                        <span class="comment"># app.js, bootstrap.js</span>
+│
+├── <span class="folder">public/</span>
+│   ├── <span class="folder">build/</span>                     <span class="comment"># Vite compiled assets</span>
+│   ├── <span class="folder">js/</span>                        <span class="comment"># Additional static JS</span>
+│   ├── <span class="folder">json/</span>                      <span class="comment"># Static JSON data files</span>
+│   └── <span class="file">storage</span> → symlink          <span class="comment"># Points to storage/app/public</span>
+│
+├── <span class="folder">config/</span>                        <span class="comment"># Laravel config files (10 files)</span>
+├── <span class="folder">storage/</span>                       <span class="comment"># Uploads, logs, cache</span>
+├── <span class="folder">tests/</span>                         <span class="comment"># PHPUnit tests</span>
+│
+├── <span class="file">composer.json</span>                  <span class="comment"># PHP dependencies</span>
+├── <span class="file">package.json</span>                   <span class="comment"># Node dependencies</span>
+├── <span class="file">vite.config.js</span>                 <span class="comment"># Vite build configuration</span>
+├── <span class="file">.env.example</span>                   <span class="comment"># Environment template</span>
+└── <span class="file">artisan</span>                        <span class="comment"># Laravel CLI entry point</span>
+</div>
+
+<h3>Key Files &amp; Their Purpose</h3>
+<table>
+    <tr><th>File / Directory</th><th>Purpose</th></tr>
+    <tr><td><code>routes/web.php</code></td><td>All application routes (web views + API endpoints) in a single file</td></tr>
+    <tr><td><code>app/Http/Middleware/EnsureSalonAuthenticated.php</code></td><td>Custom session-based authentication guard</td></tr>
+    <tr><td><code>app/Services/GoHighLevelService.php</code></td><td>All GoHighLevel CRM API integration logic</td></tr>
+    <tr><td><code>app/Services/CustomerService.php</code></td><td>Customer CRUD and credit ledger operations</td></tr>
+    <tr><td><code>app/Services/UserService.php</code></td><td>Staff CRUD and profile photo management</td></tr>
+    <tr><td><code>app/Services/ServiceService.php</code></td><td>Service CRUD and category sync</td></tr>
+    <tr><td><code>app/Models/Setting.php</code></td><td>Key-value config store (tax, currency, GHL tokens, etc.)</td></tr>
+    <tr><td><code>resources/views/layouts/salon.blade.php</code></td><td>Main application layout with sidebar navigation</td></tr>
+    <tr><td><code>routes/console.php</code></td><td>Scheduled tasks (hourly GHL token refresh)</td></tr>
+</table>
+
+
+<!-- ============================================================ -->
+<!-- SETUP INSTRUCTIONS                                           -->
+<!-- ============================================================ -->
+<h2 id="setup-instructions">Setup Instructions</h2>
+
+<h3>Prerequisites</h3>
+<ul>
+    <li>PHP 8.2 or higher</li>
+    <li>Composer (PHP package manager)</li>
+    <li>MySQL 5.7+ or 8.0+</li>
+    <li>XAMPP, WAMP, Laravel Valet, or similar local development environment</li>
+</ul>
+
+<h3>Quick Setup (Automated)</h3>
+<pre><code># Clone the repository
+git clone &lt;repository-url&gt; nailsalon-app
+cd nailsalon-app
+
+# Run the automated setup (installs deps, copies .env, generates key, runs migrations, builds assets)
+composer setup</code></pre>
+
+<h3>Manual Setup (Step by Step)</h3>
+<pre><code># 1. Install PHP dependencies
+composer install
+
+# 2. Copy environment file and generate app key
+cp .env.example .env
+php artisan key:generate
+
+# 3. Create the MySQL database
+mysql -u root -e "CREATE DATABASE nailsalon_app;"
+
+# 4. Update .env with your database credentials (see Environment Variables section)
+
+# 5. Run database migrations
+php artisan migrate
+
+# 6. Create the storage symlink (for file uploads)
+php artisan storage:link
+
+# 7. Install Node.js dependencies
+npm install
+
+# 8. Build frontend assets
+npm run build</code></pre>
+
+<h3>Running the Project Locally</h3>
+<pre><code># Option 1: Using the dev script (starts server + queue + vite concurrently)
+composer dev
+
+# Option 2: Manual start (run each in separate terminals)
+php artisan serve              # Laravel dev server at http://localhost:8000
+php artisan queue:listen       # Process background jobs
+npm run dev                    # Vite dev server with hot reload</code></pre>
+
+<div class="info-box note">
+    <strong>Note:</strong> If running via XAMPP, point the Apache document root to the <code>public/</code> directory. The app URL will be <code>http://localhost/nailsalon-app/public</code>.
+</div>
+
+<h3>Running Tests</h3>
+<pre><code>composer test
+# or directly:
+php artisan test</code></pre>
+
+
+<!-- ============================================================ -->
+<!-- ENVIRONMENT VARIABLES                                        -->
+<!-- ============================================================ -->
+<h2 id="environment-variables">Environment Variables</h2>
+
+<div class="card">
+    <table>
+        <tr><th>Variable</th><th>Description</th><th>Default</th></tr>
+        <tr><td><code>APP_NAME</code></td><td>Application name</td><td>Laravel</td></tr>
+        <tr><td><code>APP_ENV</code></td><td>Environment (local, production)</td><td>local</td></tr>
+        <tr><td><code>APP_DEBUG</code></td><td>Debug mode toggle</td><td>true</td></tr>
+        <tr><td><code>APP_URL</code></td><td>Base URL of the application</td><td>http://localhost</td></tr>
+        <tr><td><code>DB_CONNECTION</code></td><td>Database driver</td><td>mysql</td></tr>
+        <tr><td><code>DB_HOST</code></td><td>Database host</td><td>127.0.0.1</td></tr>
+        <tr><td><code>DB_PORT</code></td><td>Database port</td><td>3306</td></tr>
+        <tr><td><code>DB_DATABASE</code></td><td>Database name</td><td>nailsalon_app</td></tr>
+        <tr><td><code>DB_USERNAME</code></td><td>Database username</td><td>root</td></tr>
+        <tr><td><code>DB_PASSWORD</code></td><td>Database password</td><td><em>(empty)</em></td></tr>
+        <tr><td><code>BCRYPT_ROUNDS</code></td><td>Password hashing strength</td><td>12</td></tr>
+        <tr><td><code>SESSION_DRIVER</code></td><td>Session storage driver</td><td>database</td></tr>
+        <tr><td><code>SESSION_LIFETIME</code></td><td>Session timeout (minutes)</td><td>120</td></tr>
+        <tr><td><code>QUEUE_CONNECTION</code></td><td>Queue driver</td><td>database</td></tr>
+        <tr><td><code>CACHE_STORE</code></td><td>Cache driver</td><td>database</td></tr>
+        <tr><td><code>MAIL_MAILER</code></td><td>Mail driver</td><td>log</td></tr>
+    </table>
+
+    <div class="info-box warning">
+        <strong>Important:</strong> GoHighLevel (GHL) credentials are stored in the <code>settings</code> database table, not in the <code>.env</code> file. Configure them via the in-app Settings page after deployment.
+    </div>
+</div>
+
+
+<!-- ============================================================ -->
+<!-- FEATURES OVERVIEW                                            -->
+<!-- ============================================================ -->
+<h2 id="features-overview">Features Overview</h2>
+
+<div class="card">
+    <h3>1. Dashboard</h3>
+    <p>Role-aware control center showing daily stats (customer count, active technicians, tickets by status), latest tickets widget, and quick action shortcuts. Technicians see a simplified view with their own stats and clock-in/out controls.</p>
+
+    <h3>2. Appointment Management</h3>
+    <p>Supports both <strong>walk-in</strong> and <strong>booked</strong> appointment types. Multiple technicians can be assigned per appointment. Status lifecycle: <code>waiting</code> &rarr; <code>in-progress</code> &rarr; <code>unpaid</code> &rarr; <code>paid</code> (or <code>cancelled</code> / <code>refunded</code>). Includes no-show tracking.</p>
+
+    <h3>3. Calendar View</h3>
+    <p>Dual-view calendar (grid and technician list layout). Supports drag-and-drop rescheduling. Appointments color-coded by status. Unassigned appointments appear in "Not Assigned" column.</p>
+
+    <h3>4. Waiting List</h3>
+    <p>Queue management for walk-in and booked customers. Filter by type, search by name, assign technicians, and move to ticket workflow.</p>
+
+    <h3>5. Tickets</h3>
+    <p>Active service/payment records. Filterable by status tabs (Unpaid / Paid / Cancelled / Refunded). Each ticket tracks services, quantities, unit prices, and assigned technicians.</p>
+
+    <h3>6. Payment Processing</h3>
+    <p>Flexible payment breakdown supporting: subtotal, discount, customer credits, gift cards, tax, and tip. Tips are split per technician. Commission auto-calculated. Supports refunds with notes. Payment IDs are random strings (not auto-increment).</p>
+
+    <h3>7. Customer Management</h3>
+    <p>Customer profiles with visit history, contact information, profile photos, and credit balance. Credit ledger is immutable (append-only audit trail). GoHighLevel contact sync supported.</p>
+
+    <h3>8. Technician Management</h3>
+    <p>Staff profiles with commission/transaction history by date range. Clock in/out time tracking. Service count tracking for fair work distribution.</p>
+
+    <h3>9. Turn Tracker</h3>
+    <p>Real-time view of which technicians are clocked in and their service load. Configurable ordering rule (lowest-first or highest-first) for fair assignment.</p>
+
+    <h3>10. Services &amp; Categories</h3>
+    <p>Service catalog with prices, descriptions, images, and color tags. Many-to-many relationship with service categories. Active/inactive toggle.</p>
+
+    <h3>11. Coupons</h3>
+    <p>Discount code system with percentage or fixed-amount discounts. Optional minimum order amount. Active/inactive toggle.</p>
+
+    <h3>12. Gift Cards</h3>
+    <p>Gift card issuance with PIN codes. Balance tracking (initial value and current balance). Applied during payment checkout.</p>
+
+    <h3>13. Customer Credits</h3>
+    <p>Loyalty point system configurable as fixed-unit or percentage-based earning. Credits can be earned and redeemed during payment. Full audit trail via immutable ledger.</p>
+
+    <h3>14. Payout Reports</h3>
+    <p>Technician earnings summary showing commissions, tips, and totals by date range. Used for payroll processing.</p>
+
+    <h3>15. User Management</h3>
+    <p>Staff account CRUD with role assignment. Admin can impersonate other users ("Login As") for troubleshooting. Active/inactive status control.</p>
+
+    <h3>16. Settings</h3>
+    <p>Key-value configuration store for: tax rate, currency, commission rates, credit earning rules, business info, logo, and GoHighLevel integration tokens.</p>
+
+    <h3>17. GoHighLevel (GHL) Integration</h3>
+    <p>Bidirectional sync with GoHighLevel CRM. OAuth-based authentication with hourly token refresh. Syncs contacts and appointments. Webhook handlers for incoming data. Non-blocking (failures logged, never interrupt main flow).</p>
+
+    <h3>18. Online Check-In</h3>
+    <p>Public-facing pre-appointment form. Customers can submit their name, phone, and notes without authentication.</p>
+
+    <h3>19. In-App Documentation</h3>
+    <p>Role-based user guide accessible within the application. Separate instructions for Admin, Receptionist, and Technician roles.</p>
+</div>
+
+
+<!-- ============================================================ -->
+<!-- AUTHENTICATION                                               -->
+<!-- ============================================================ -->
+<h2 id="authentication">Authentication</h2>
+
+<div class="card">
+    <h3>How Authentication Works</h3>
+    <p>The app uses a <strong>custom session-based authentication system</strong> (not Laravel Sanctum or Passport). Authentication state is stored in the server-side session.</p>
+
+    <h4>Login Flow</h4>
+    <ol>
+        <li>User submits <code>POST /login</code> with email/username + password</li>
+        <li>System queries <code>users</code> table by email or username</li>
+        <li>Password verified with <code>Hash::check()</code> (bcrypt, 12 rounds)</li>
+        <li>On success, session keys are set:
+            <ul>
+                <li><code>salon_authenticated</code> = true</li>
+                <li><code>salon_user_email</code> = user's email</li>
+                <li><code>salon_role</code> = user's role</li>
+            </ul>
+        </li>
+        <li><code>last_login_at</code> timestamp updated on user record</li>
+        <li>User redirected to <code>/dashboard</code></li>
+    </ol>
+
+    <h4>Middleware: <code>EnsureSalonAuthenticated</code></h4>
+    <p>Applied to all protected routes. Checks for <code>salon_authenticated</code> session key. Returns:</p>
+    <ul>
+        <li><strong>Web requests:</strong> Redirects to <code>/login</code></li>
+        <li><strong>API requests:</strong> Returns <code>401 Unauthorized</code> JSON</li>
+    </ul>
+
+    <h4>Admin Impersonation</h4>
+    <p>Admins can "Login As" another user via <code>POST /api/salon/users/{user}/login-as</code>. The original admin's credentials are preserved in:</p>
+    <ul>
+        <li><code>salon_impersonator_email</code></li>
+        <li><code>salon_impersonator_role</code></li>
+    </ul>
+    <p>Impersonation ends via <code>POST /impersonation/stop</code>, restoring the original session.</p>
+</div>
+
+
+<!-- ============================================================ -->
+<!-- ROLES & PERMISSIONS                                          -->
+<!-- ============================================================ -->
+<h2 id="roles-permissions">Roles &amp; Permissions</h2>
+
+<div class="card">
+    <table>
+        <tr><th>Feature</th><th>Superadmin</th><th>Admin</th><th>Receptionist</th><th>Technician</th></tr>
+        <tr><td>Dashboard</td><td>Full</td><td>Full</td><td>Full</td><td>Own stats only</td></tr>
+        <tr><td>Waiting List</td><td>Yes</td><td>Yes</td><td>Yes</td><td>No</td></tr>
+        <tr><td>Tickets</td><td>Yes</td><td>Yes</td><td>Yes</td><td>No</td></tr>
+        <tr><td>Calendar</td><td>Yes</td><td>Yes</td><td>Yes</td><td>Own schedule</td></tr>
+        <tr><td>Payments</td><td>Yes</td><td>Yes</td><td>Yes</td><td>No</td></tr>
+        <tr><td>Payout</td><td>Yes</td><td>Yes</td><td>View only</td><td>Own data</td></tr>
+        <tr><td>Customers</td><td>Yes</td><td>Yes</td><td>Yes</td><td>No</td></tr>
+        <tr><td>Services</td><td>CRUD</td><td>CRUD</td><td>View only</td><td>No</td></tr>
+        <tr><td>Users / Staff</td><td>CRUD</td><td>CRUD</td><td>No</td><td>No</td></tr>
+        <tr><td>Technicians</td><td>Yes</td><td>Yes</td><td>View</td><td>No</td></tr>
+        <tr><td>Turn Tracker</td><td>Yes</td><td>Yes</td><td>Yes</td><td>No</td></tr>
+        <tr><td>Settings</td><td>Yes</td><td>Yes</td><td>No</td><td>No</td></tr>
+        <tr><td>Impersonation</td><td>Yes</td><td>Yes</td><td>No</td><td>No</td></tr>
+    </table>
+
+    <div class="info-box note">
+        <strong>Implementation Note:</strong> Authorization is enforced at the view/controller level. There is no centralized policy or gate system. Role checks happen inline via the session <code>salon_role</code> value.
+    </div>
+</div>
+
+
+<!-- ============================================================ -->
+<!-- DATABASE STRUCTURE                                           -->
+<!-- ============================================================ -->
+<h2 id="database-structure">Database Structure</h2>
+
+<h3>Entity Relationship Diagram</h3>
+<p>Tables grouped by the domain they belong to. Follow the relationships table below to see how each group connects.</p>
+
+<div class="erd">
+    <div class="erd-group g-staff">
+        <div class="erd-group-title">Staff Domain</div>
+        <div class="erd-entity"><strong>users</strong><span>Staff &amp; admin accounts</span></div>
+        <div class="erd-entity"><strong>turn_trackers</strong><span>Technician rotation queue</span></div>
+    </div>
+
+    <div class="erd-group g-customer">
+        <div class="erd-group-title">Customer Domain</div>
+        <div class="erd-entity"><strong>customers</strong><span>End-user customers</span></div>
+        <div class="erd-entity"><strong>customer_credit_ledgers</strong><span>Loyalty credit history</span></div>
+    </div>
+
+    <div class="erd-group g-appointment">
+        <div class="erd-group-title">Appointment Domain</div>
+        <div class="erd-entity"><strong>appointments</strong><span>Central booking record</span></div>
+        <div class="erd-entity"><strong>appointment_technician</strong><span>Pivot: appointment ↔ technician</span></div>
+        <div class="erd-entity"><strong>appointment_services</strong><span>Line items per appointment</span></div>
+    </div>
+
+    <div class="erd-group g-catalog">
+        <div class="erd-group-title">Service Catalog</div>
+        <div class="erd-entity"><strong>services</strong><span>Offered services</span></div>
+        <div class="erd-entity"><strong>service_categories</strong><span>Groupings for services</span></div>
+    </div>
+
+    <div class="erd-group g-transaction">
+        <div class="erd-group-title">Transactions</div>
+        <div class="erd-entity"><strong>payments</strong><span>Completed payment records</span></div>
+    </div>
+
+    <div class="erd-group g-standalone">
+        <div class="erd-group-title">Standalone (no FK)</div>
+        <div class="erd-entity"><strong>coupons</strong></div>
+        <div class="erd-entity"><strong>gift_cards</strong></div>
+        <div class="erd-entity"><strong>online_checkins</strong></div>
+        <div class="erd-entity"><strong>settings</strong></div>
+    </div>
+</div>
+
+<h4>Relationships</h4>
+<table>
+    <tr><th>From</th><th>Relation</th><th>To</th><th>Meaning</th></tr>
+    <tr><td><code>users</code></td><td><span class="rel-badge">hasOne</span></td><td><code>turn_trackers</code></td><td>Each technician has one rotation record</td></tr>
+    <tr><td><code>users</code></td><td><span class="rel-badge">belongsToMany</span></td><td><code>appointments</code></td><td>Technicians are assigned to many appointments (via <code>appointment_technician</code>)</td></tr>
+    <tr><td><code>users</code></td><td><span class="rel-badge">hasMany</span></td><td><code>customer_credit_ledgers</code></td><td>Staff who issued credit entries</td></tr>
+    <tr><td><code>customers</code></td><td><span class="rel-badge">hasMany</span></td><td><code>appointments</code></td><td>A customer can have many appointments</td></tr>
+    <tr><td><code>customers</code></td><td><span class="rel-badge">hasMany</span></td><td><code>customer_credit_ledgers</code></td><td>Customer loyalty credit history</td></tr>
+    <tr><td><code>appointments</code></td><td><span class="rel-badge">hasOne</span></td><td><code>payments</code></td><td>One appointment has one payment record</td></tr>
+    <tr><td><code>appointments</code></td><td><span class="rel-badge">hasMany</span></td><td><code>appointment_services</code></td><td>Services performed in the appointment</td></tr>
+    <tr><td><code>appointments</code></td><td><span class="rel-badge">belongsToMany</span></td><td><code>users</code></td><td>Multiple technicians can serve one appointment</td></tr>
+    <tr><td><code>appointment_services</code></td><td><span class="rel-badge">belongsTo</span></td><td><code>services</code></td><td>Each line item references one service</td></tr>
+    <tr><td><code>services</code></td><td><span class="rel-badge">belongsToMany</span></td><td><code>service_categories</code></td><td>Many-to-many between services and categories</td></tr>
+</table>
+
+<div class="info-box note">
+    <strong>Standalone tables:</strong> <code>coupons</code>, <code>gift_cards</code>, <code>online_checkins</code>, and <code>settings</code> do not have direct foreign-key relationships to the core domain — they are referenced by value (code, key, etc.) rather than by FK.
+</div>
+
+<h3>Core Tables</h3>
+
+<h4>users</h4>
+<p>Stores all salon staff accounts (admin, receptionist, technician).</p>
+<table>
+    <tr><th>Column</th><th>Type</th><th>Description</th></tr>
+    <tr><td>id</td><td>bigint PK</td><td>Auto-increment primary key</td></tr>
+    <tr><td>username</td><td>string</td><td>Unique login identifier</td></tr>
+    <tr><td>name</td><td>string</td><td>Display name</td></tr>
+    <tr><td>email</td><td>string (unique)</td><td>Email address (used for login)</td></tr>
+    <tr><td>password</td><td>string</td><td>Bcrypt hashed password</td></tr>
+    <tr><td>first_name, last_name</td><td>string</td><td>Name components</td></tr>
+    <tr><td>phone</td><td>string</td><td>Contact phone</td></tr>
+    <tr><td>role</td><td>enum</td><td>superadmin | admin | receptionist | technician</td></tr>
+    <tr><td>status</td><td>string</td><td>active | inactive</td></tr>
+    <tr><td>initials</td><td>string</td><td>Display initials</td></tr>
+    <tr><td>profile_photo</td><td>string</td><td>Path to uploaded photo</td></tr>
+    <tr><td>ghl_staff_id</td><td>string</td><td>GoHighLevel staff ID</td></tr>
+    <tr><td>ghl_calendar_id</td><td>string</td><td>GoHighLevel calendar ID</td></tr>
+    <tr><td>last_login_at</td><td>datetime</td><td>Last login timestamp</td></tr>
+</table>
+
+<h4>customers</h4>
+<p>Stores salon customers (end users who receive services).</p>
+<table>
+    <tr><th>Column</th><th>Type</th><th>Description</th></tr>
+    <tr><td>id</td><td>bigint PK</td><td>Auto-increment primary key</td></tr>
+    <tr><td>first_name, last_name</td><td>string</td><td>Customer name</td></tr>
+    <tr><td>phone</td><td>string</td><td>Phone number</td></tr>
+    <tr><td>email</td><td>string (indexed)</td><td>Email address</td></tr>
+    <tr><td>credit_balance</td><td>decimal(10,2)</td><td>Current loyalty credit balance</td></tr>
+    <tr><td>profile_photo</td><td>string</td><td>Path to uploaded photo</td></tr>
+    <tr><td>ghl_contact_id</td><td>string</td><td>GoHighLevel contact ID</td></tr>
+</table>
+
+<h4>appointments</h4>
+<p>The central table for all bookings and walk-ins.</p>
+<table>
+    <tr><th>Column</th><th>Type</th><th>Description</th></tr>
+    <tr><td>id</td><td>bigint PK</td><td>Auto-increment primary key</td></tr>
+    <tr><td>customer_id</td><td>FK &rarr; customers</td><td>Which customer this appointment belongs to</td></tr>
+    <tr><td>type</td><td>string</td><td>walk-in | booked</td></tr>
+    <tr><td>status</td><td>string</td><td>unpaid | paid | refunded | waiting | completed | in-progress | cancelled</td></tr>
+    <tr><td>appointment_datetime</td><td>datetime</td><td>Scheduled date and time</td></tr>
+    <tr><td>no_show</td><td>boolean</td><td>Whether customer was a no-show</td></tr>
+    <tr><td>color</td><td>string</td><td>Display color on calendar</td></tr>
+    <tr><td>ghl_appointment_id</td><td>string</td><td>GoHighLevel appointment ID</td></tr>
+    <tr><td>ghl_calendar_id</td><td>string</td><td>GoHighLevel calendar ID</td></tr>
+</table>
+
+<h4>appointment_technician (Pivot)</h4>
+<p>Links appointments to technicians with financial data per technician.</p>
+<table>
+    <tr><th>Column</th><th>Type</th><th>Description</th></tr>
+    <tr><td>appointment_id</td><td>FK &rarr; appointments</td><td>Appointment reference</td></tr>
+    <tr><td>user_id</td><td>FK &rarr; users</td><td>Technician reference</td></tr>
+    <tr><td>tip</td><td>decimal(12,2)</td><td>Tip amount for this technician</td></tr>
+    <tr><td>total_service</td><td>decimal(12,2)</td><td>Total service amount</td></tr>
+    <tr><td>commission</td><td>decimal(12,2)</td><td>Calculated commission</td></tr>
+    <tr><td>total</td><td>decimal(12,2)</td><td>Overall total (service + tip)</td></tr>
+    <tr><td>currency</td><td>string</td><td>Currency code</td></tr>
+</table>
+<p><em>Unique constraint on (appointment_id, user_id).</em></p>
+
+<h4>appointment_services</h4>
+<p>Line items: which services were performed in each appointment.</p>
+<table>
+    <tr><th>Column</th><th>Type</th><th>Description</th></tr>
+    <tr><td>appointment_id</td><td>FK &rarr; appointments</td><td>Parent appointment</td></tr>
+    <tr><td>service_id</td><td>FK &rarr; services</td><td>Which service</td></tr>
+    <tr><td>service_category_id</td><td>FK &rarr; service_categories</td><td>Category at time of service</td></tr>
+    <tr><td>user_id</td><td>FK &rarr; users</td><td>Technician who performed it</td></tr>
+    <tr><td>quantity</td><td>integer</td><td>Number of units</td></tr>
+    <tr><td>unit_price</td><td>decimal(10,2)</td><td>Price per unit at time of service</td></tr>
+    <tr><td>currency</td><td>string</td><td>Currency code</td></tr>
+</table>
+
+<h4>payments</h4>
+<p>Transaction records for completed payments.</p>
+<table>
+    <tr><th>Column</th><th>Type</th><th>Description</th></tr>
+    <tr><td>id</td><td>string(30) PK</td><td><strong>Non-incrementing</strong> random string ID</td></tr>
+    <tr><td>appointment_id</td><td>FK &rarr; appointments</td><td>Related appointment</td></tr>
+    <tr><td>amount</td><td>decimal(12,2)</td><td>Final amount charged</td></tr>
+    <tr><td>sub_total</td><td>decimal(12,2)</td><td>Subtotal before adjustments</td></tr>
+    <tr><td>discount</td><td>decimal(12,2)</td><td>Discount applied</td></tr>
+    <tr><td>credits</td><td>decimal(12,2)</td><td>Customer credits applied</td></tr>
+    <tr><td>gift_card</td><td>decimal(12,2)</td><td>Gift card amount applied</td></tr>
+    <tr><td>tax</td><td>decimal(12,2)</td><td>Tax amount</td></tr>
+    <tr><td>tip</td><td>decimal(12,2)</td><td>Total tip amount</td></tr>
+    <tr><td>method</td><td>string</td><td>Payment method used</td></tr>
+    <tr><td>status</td><td>string</td><td>Payment status</td></tr>
+    <tr><td>paid_at</td><td>datetime</td><td>When payment was completed</td></tr>
+    <tr><td>refund_notes</td><td>text</td><td>Notes if refunded</td></tr>
+    <tr><td>refunded_at</td><td>datetime</td><td>When refund occurred</td></tr>
+</table>
+
+<div class="info-box warning">
+    <strong>Note on Payment IDs:</strong> The <code>payments</code> table uses a <strong>string primary key</strong> (random 30-char string), not auto-increment. This is set via <code>$incrementing = false</code> and <code>$keyType = 'string'</code> on the model.
+</div>
+
+<h4>services</h4>
+<table>
+    <tr><th>Column</th><th>Type</th><th>Description</th></tr>
+    <tr><td>id</td><td>bigint PK</td><td>Auto-increment</td></tr>
+    <tr><td>name</td><td>string</td><td>Service name</td></tr>
+    <tr><td>description</td><td>text</td><td>Description</td></tr>
+    <tr><td>price</td><td>decimal(10,2)</td><td>Default price</td></tr>
+    <tr><td>active</td><td>boolean</td><td>Available for selection</td></tr>
+    <tr><td>image</td><td>string</td><td>Image path</td></tr>
+    <tr><td>color</td><td>string</td><td>Display color</td></tr>
+    <tr><td>service_count</td><td>decimal(15,4)</td><td>Usage counter</td></tr>
+</table>
+
+<h4>service_categories</h4>
+<table>
+    <tr><th>Column</th><th>Type</th><th>Description</th></tr>
+    <tr><td>id</td><td>bigint PK</td><td>Auto-increment</td></tr>
+    <tr><td>slug</td><td>string (unique)</td><td>URL-friendly identifier</td></tr>
+    <tr><td>name</td><td>string</td><td>Display name</td></tr>
+</table>
+<p><em>Many-to-many with services via <code>service_service_category</code> pivot table.</em></p>
+
+<h4>customer_credit_ledgers</h4>
+<p>Immutable audit trail for all customer credit operations.</p>
+<table>
+    <tr><th>Column</th><th>Type</th><th>Description</th></tr>
+    <tr><td>id</td><td>bigint PK</td><td>Auto-increment</td></tr>
+    <tr><td>user_id</td><td>FK &rarr; users</td><td>Staff who performed the operation</td></tr>
+    <tr><td>customer_id</td><td>FK &rarr; customers</td><td>Customer whose credits changed</td></tr>
+    <tr><td>operation</td><td>string</td><td>add | subtract | redeem | earned | set</td></tr>
+    <tr><td>amount</td><td>decimal(10,2)</td><td>Credit amount changed</td></tr>
+    <tr><td>remaining_balance</td><td>decimal(10,2)</td><td>Balance before operation</td></tr>
+    <tr><td>new_balance</td><td>decimal(10,2)</td><td>Balance after operation</td></tr>
+    <tr><td>created_at</td><td>timestamp</td><td>When the operation occurred</td></tr>
+</table>
+<p><em>No <code>updated_at</code> column &mdash; records are never modified.</em></p>
+
+<h4>Other Tables</h4>
+<table>
+    <tr><th>Table</th><th>Purpose</th></tr>
+    <tr><td><code>coupons</code></td><td>Discount codes (code, type, value, min order, active flag)</td></tr>
+    <tr><td><code>gift_cards</code></td><td>Gift cards (code, PIN, initial value, balance, active flag)</td></tr>
+    <tr><td><code>turn_trackers</code></td><td>Technician clock-in/out and service count (one row per user)</td></tr>
+    <tr><td><code>online_checkins</code></td><td>Pre-appointment customer check-ins (name, phone, notes)</td></tr>
+    <tr><td><code>settings</code></td><td>Key-value configuration store (option_key, option_value)</td></tr>
+    <tr><td><code>sessions</code></td><td>Laravel database sessions</td></tr>
+    <tr><td><code>cache</code></td><td>Laravel database cache</td></tr>
+    <tr><td><code>jobs</code></td><td>Laravel queue jobs</td></tr>
+</table>
+
+
+<!-- ============================================================ -->
+<!-- MODELS & RELATIONSHIPS                                       -->
+<!-- ============================================================ -->
+<h2 id="models-relationships">Models &amp; Relationships</h2>
+
+<div class="card">
+    <table>
+        <tr><th>Model</th><th>Table</th><th>Key Relationships</th></tr>
+        <tr>
+            <td><code>User</code></td>
+            <td>users</td>
+            <td>
+                <code>belongsToMany(Appointment)</code> via appointment_technician<br>
+                <code>hasOne(TurnTracker)</code><br>
+                Scopes: <code>salonStaff()</code>, <code>technicians()</code>
+            </td>
+        </tr>
+        <tr>
+            <td><code>Customer</code></td>
+            <td>customers</td>
+            <td>
+                <code>hasMany(Appointment)</code><br>
+                <code>hasMany(CustomerCreditLedger)</code><br>
+                <code>hasManyThrough(Payment)</code>
+            </td>
+        </tr>
+        <tr>
+            <td><code>Appointment</code></td>
+            <td>appointments</td>
+            <td>
+                <code>belongsTo(Customer)</code><br>
+                <code>belongsToMany(User)</code> (technicians) with pivot<br>
+                <code>hasMany(AppointmentService)</code><br>
+                <code>hasOne(Payment)</code>
+            </td>
+        </tr>
+        <tr>
+            <td><code>AppointmentService</code></td>
+            <td>appointment_services</td>
+            <td>
+                <code>belongsTo(Appointment)</code><br>
+                <code>belongsTo(Service)</code><br>
+                <code>belongsTo(ServiceCategory)</code><br>
+                <code>belongsTo(User)</code> (technician)
+            </td>
+        </tr>
+        <tr>
+            <td><code>Service</code></td>
+            <td>services</td>
+            <td><code>belongsToMany(ServiceCategory)</code></td>
+        </tr>
+        <tr>
+            <td><code>ServiceCategory</code></td>
+            <td>service_categories</td>
+            <td>
+                <code>belongsToMany(Service)</code><br>
+                <code>hasMany(AppointmentService)</code>
+            </td>
+        </tr>
+        <tr>
+            <td><code>Payment</code></td>
+            <td>payments</td>
+            <td>
+                <code>belongsTo(Appointment)</code><br>
+                <em>String PK, non-incrementing</em>
+            </td>
+        </tr>
+        <tr>
+            <td><code>TurnTracker</code></td>
+            <td>turn_trackers</td>
+            <td><code>belongsTo(User)</code></td>
+        </tr>
+        <tr>
+            <td><code>CustomerCreditLedger</code></td>
+            <td>customer_credit_ledgers</td>
+            <td>
+                <code>belongsTo(Customer)</code><br>
+                <code>belongsTo(User)</code>
+            </td>
+        </tr>
+        <tr>
+            <td><code>Coupon</code></td>
+            <td>coupons</td>
+            <td>Standalone</td>
+        </tr>
+        <tr>
+            <td><code>GiftCard</code></td>
+            <td>gift_cards</td>
+            <td>Standalone</td>
+        </tr>
+        <tr>
+            <td><code>OnlineCheckin</code></td>
+            <td>online_checkins</td>
+            <td>Optional FK to customer and appointment</td>
+        </tr>
+        <tr>
+            <td><code>Setting</code></td>
+            <td>settings</td>
+            <td>Standalone (key-value store with whitelist validation)</td>
+        </tr>
+    </table>
+</div>
+
+
+<!-- ============================================================ -->
+<!-- API DOCUMENTATION                                            -->
+<!-- ============================================================ -->
+<h2 id="api-overview">API Documentation</h2>
+
+<div class="card">
+    <h3>Overview</h3>
+    <p>All API endpoints are defined in <code>routes/web.php</code> (not a separate api.php). They are grouped under two prefixes:</p>
+
+    <table>
+        <tr><th>Prefix</th><th>Auth Required</th><th>Purpose</th></tr>
+        <tr><td><code>/api/salon/*</code></td><td>Yes (salon.auth)</td><td>CRUD operations for all entities</td></tr>
+        <tr><td><code>/api/salon/data/*</code></td><td>No</td><td>Read-only data endpoints</td></tr>
+    </table>
+
+    <h4>Authentication Method</h4>
+    <p>All protected endpoints use session-based authentication via the <code>salon.auth</code> middleware. The session cookie is sent automatically by the browser. For API-style access, ensure the request includes the session cookie and CSRF token.</p>
+
+    <h4>Response Format</h4>
+    <p>All API responses return JSON. Successful operations return:</p>
+    <pre><code>{
+    "success": true,
+    "message": "Operation completed successfully",
+    "data": { ... }
+}</code></pre>
+    <p>Validation errors return <code>422</code> with Laravel's standard error format:</p>
+    <pre><code>{
+    "message": "The given data was invalid.",
+    "errors": {
+        "field_name": ["Error message"]
+    }
+}</code></pre>
+</div>
+
+<!-- Appointments API -->
+<h3 id="api-appointments">Appointments API</h3>
+<div class="card">
+    <div class="endpoint"><span class="badge badge-post">POST</span> <code>/api/salon/appointments</code> <span class="desc">Create a new appointment</span></div>
+    <div class="endpoint"><span class="badge badge-put">PUT</span> <code>/api/salon/appointments/{appointment}</code> <span class="desc">Update an appointment</span></div>
+    <div class="endpoint"><span class="badge badge-put">PUT</span> <code>/api/salon/appointments/{appointment}/services</code> <span class="desc">Update services for an appointment</span></div>
+    <div class="endpoint"><span class="badge badge-delete">DELETE</span> <code>/api/salon/appointments/{appointment}</code> <span class="desc">Delete an appointment</span></div>
+    <div class="endpoint"><span class="badge badge-post">POST</span> <code>/api/salon/appointments/{appointment}/sync-calendar</code> <span class="desc">Sync appointment to GHL calendar</span></div>
+
+    <h4>Create Appointment Example</h4>
+    <pre><code>POST /api/salon/appointments
+Content-Type: application/json
+
+{
+    "customer_id": 1,
+    "type": "walk-in",
+    "status": "waiting",
+    "appointment_datetime": "2026-04-21 14:30:00",
+    "services": [
+        {
+            "service_id": 5,
+            "service_category_id": 2,
+            "user_id": 3,
+            "quantity": 1,
+            "unit_price": 45.00
+        }
+    ],
+    "technicians": [3]
+}</code></pre>
+
+    <h4>Response</h4>
+    <pre><code>{
+    "success": true,
+    "message": "Appointment created",
+    "data": {
+        "id": 42,
+        "customer_id": 1,
+        "type": "walk-in",
+        "status": "waiting",
+        "appointment_datetime": "2026-04-21 14:30:00",
+        ...
+    }
+}</code></pre>
+</div>
+
+<!-- Customers API -->
+<h3 id="api-customers">Customers API</h3>
+<div class="card">
+    <div class="endpoint"><span class="badge badge-post">POST</span> <code>/api/salon/customers</code> <span class="desc">Create a new customer</span></div>
+    <div class="endpoint"><span class="badge badge-put">PUT</span> <code>/api/salon/customers/{customer}</code> <span class="desc">Update customer details</span></div>
+    <div class="endpoint"><span class="badge badge-delete">DELETE</span> <code>/api/salon/customers/{customer}</code> <span class="desc">Delete a customer</span></div>
+    <div class="endpoint"><span class="badge badge-post">POST</span> <code>/api/salon/customers/{customer}/credits</code> <span class="desc">Adjust customer credits</span></div>
+    <div class="endpoint"><span class="badge badge-post">POST</span> <code>/api/salon/customers/{customer}/ghl-lookup</code> <span class="desc">Look up customer in GoHighLevel</span></div>
+
+    <h4>Create Customer Example</h4>
+    <pre><code>POST /api/salon/customers
+Content-Type: application/json
+
+{
+    "first_name": "Jane",
+    "last_name": "Doe",
+    "phone": "555-0123",
+    "email": "jane@example.com"
+}</code></pre>
+
+    <h4>Adjust Credits Example</h4>
+    <pre><code>POST /api/salon/customers/1/credits
+Content-Type: application/json
+
+{
+    "operation": "add",
+    "amount": 25.00
+}</code></pre>
+</div>
+
+<!-- Users API -->
+<h3 id="api-users">Users / Staff API</h3>
+<div class="card">
+    <div class="endpoint"><span class="badge badge-get">GET</span> <code>/api/salon/profile</code> <span class="desc">Get current user's profile</span></div>
+    <div class="endpoint"><span class="badge badge-put">PUT</span> <code>/api/salon/profile</code> <span class="desc">Update current user's profile</span></div>
+    <div class="endpoint"><span class="badge badge-post">POST</span> <code>/api/salon/users</code> <span class="desc">Create a new staff user</span></div>
+    <div class="endpoint"><span class="badge badge-put">PUT</span> <code>/api/salon/users/{user}</code> <span class="desc">Update staff user</span></div>
+    <div class="endpoint"><span class="badge badge-delete">DELETE</span> <code>/api/salon/users/{user}</code> <span class="desc">Delete staff user</span></div>
+    <div class="endpoint"><span class="badge badge-put">PUT</span> <code>/api/salon/users/{user}/calendar</code> <span class="desc">Update GHL calendar settings</span></div>
+    <div class="endpoint"><span class="badge badge-post">POST</span> <code>/api/salon/users/{user}/login-as</code> <span class="desc">Admin impersonation</span></div>
+    <div class="endpoint"><span class="badge badge-post">POST</span> <code>/api/salon/users/sync-ghl-fetch</code> <span class="desc">Fetch staff from GHL</span></div>
+    <div class="endpoint"><span class="badge badge-post">POST</span> <code>/api/salon/users/sync-ghl-upsert</code> <span class="desc">Upsert staff to/from GHL</span></div>
+    <div class="endpoint"><span class="badge badge-post">POST</span> <code>/api/salon/users/sync-ghl-to</code> <span class="desc">Push staff to GHL</span></div>
+
+    <h4>Create User Example</h4>
+    <pre><code>POST /api/salon/users
+Content-Type: application/json
+
+{
+    "username": "janedoe",
+    "name": "Jane Doe",
+    "email": "jane@salon.com",
+    "password": "securePassword123",
+    "first_name": "Jane",
+    "last_name": "Doe",
+    "phone": "555-0100",
+    "role": "technician",
+    "status": "active"
+}</code></pre>
+</div>
+
+<!-- Services API -->
+<h3 id="api-services">Services API</h3>
+<div class="card">
+    <div class="endpoint"><span class="badge badge-post">POST</span> <code>/api/salon/services</code> <span class="desc">Create a new service</span></div>
+    <div class="endpoint"><span class="badge badge-put">PUT</span> <code>/api/salon/services/{service}</code> <span class="desc">Update a service</span></div>
+    <div class="endpoint"><span class="badge badge-delete">DELETE</span> <code>/api/salon/services/{service}</code> <span class="desc">Delete a service</span></div>
+    <div class="endpoint"><span class="badge badge-post">POST</span> <code>/api/salon/service-categories</code> <span class="desc">Create a service category</span></div>
+    <div class="endpoint"><span class="badge badge-put">PUT</span> <code>/api/salon/service-categories/{id}</code> <span class="desc">Update a service category</span></div>
+    <div class="endpoint"><span class="badge badge-delete">DELETE</span> <code>/api/salon/service-categories/{id}</code> <span class="desc">Delete a service category</span></div>
+</div>
+
+<!-- Payments API -->
+<h3 id="api-payments">Payments API</h3>
+<div class="card">
+    <div class="endpoint"><span class="badge badge-post">POST</span> <code>/api/salon/payments</code> <span class="desc">Process a payment</span></div>
+    <div class="endpoint"><span class="badge badge-put">PUT</span> <code>/api/salon/payments/{payment}</code> <span class="desc">Update a payment (e.g., refund)</span></div>
+
+    <h4>Process Payment Example</h4>
+    <pre><code>POST /api/salon/payments
+Content-Type: application/json
+
+{
+    "appointment_id": 42,
+    "amount": 95.00,
+    "sub_total": 90.00,
+    "discount": 0.00,
+    "credits": 0.00,
+    "gift_card": 0.00,
+    "tax": 5.00,
+    "tip": 10.00,
+    "method": "credit_card",
+    "status": "paid",
+    "paid_at": "2026-04-21 15:00:00",
+    "currency": "USD"
+}</code></pre>
+</div>
+
+<!-- Turn Tracker API -->
+<h3 id="api-turn-tracker">Turn Tracker API</h3>
+<div class="card">
+    <div class="endpoint"><span class="badge badge-get">GET</span> <code>/api/salon/turn-tracker</code> <span class="desc">Get all turn tracker data</span></div>
+    <div class="endpoint"><span class="badge badge-put">PUT</span> <code>/api/salon/turn-tracker</code> <span class="desc">Sync/update turn tracker</span></div>
+    <div class="endpoint"><span class="badge badge-post">POST</span> <code>/api/salon/technicians/{user}/clock-in</code> <span class="desc">Clock in a technician</span></div>
+    <div class="endpoint"><span class="badge badge-post">POST</span> <code>/api/salon/technicians/{user}/clock-out</code> <span class="desc">Clock out a technician</span></div>
+</div>
+
+<!-- Coupons & Gift Cards API -->
+<h3 id="api-coupons-giftcards">Coupons &amp; Gift Cards API</h3>
+<div class="card">
+    <h4>Coupons</h4>
+    <div class="endpoint"><span class="badge badge-get">GET</span> <code>/api/salon/coupons</code> <span class="desc">List all coupons</span></div>
+    <div class="endpoint"><span class="badge badge-post">POST</span> <code>/api/salon/coupons</code> <span class="desc">Create a coupon</span></div>
+    <div class="endpoint"><span class="badge badge-put">PUT</span> <code>/api/salon/coupons/{coupon}</code> <span class="desc">Update a coupon</span></div>
+    <div class="endpoint"><span class="badge badge-delete">DELETE</span> <code>/api/salon/coupons/{coupon}</code> <span class="desc">Delete a coupon</span></div>
+
+    <h4>Gift Cards</h4>
+    <div class="endpoint"><span class="badge badge-get">GET</span> <code>/api/salon/gift-cards</code> <span class="desc">List all gift cards</span></div>
+    <div class="endpoint"><span class="badge badge-post">POST</span> <code>/api/salon/gift-cards</code> <span class="desc">Create a gift card</span></div>
+    <div class="endpoint"><span class="badge badge-put">PUT</span> <code>/api/salon/gift-cards/{gift_card}</code> <span class="desc">Update a gift card</span></div>
+    <div class="endpoint"><span class="badge badge-delete">DELETE</span> <code>/api/salon/gift-cards/{gift_card}</code> <span class="desc">Delete a gift card</span></div>
+
+    <h4>Create Coupon Example</h4>
+    <pre><code>POST /api/salon/coupons
+Content-Type: application/json
+
+{
+    "code": "SUMMER20",
+    "description": "Summer 20% off",
+    "discount_type": "percent",
+    "discount_value": 20.00,
+    "min_order_amount": 50.00,
+    "active": true
+}</code></pre>
+</div>
+
+<!-- Settings API -->
+<h3 id="api-settings">Settings API</h3>
+<div class="card">
+    <div class="endpoint"><span class="badge badge-get">GET</span> <code>/api/salon/settings</code> <span class="desc">Get all settings</span></div>
+    <div class="endpoint"><span class="badge badge-put">PUT</span> <code>/api/salon/settings</code> <span class="desc">Update settings</span></div>
+    <div class="endpoint"><span class="badge badge-post">POST</span> <code>/api/salon/settings/upload-logo</code> <span class="desc">Upload business logo</span></div>
+    <div class="endpoint"><span class="badge badge-delete">DELETE</span> <code>/api/salon/settings/remove-logo</code> <span class="desc">Remove business logo</span></div>
+    <div class="endpoint"><span class="badge badge-post">POST</span> <code>/api/salon/settings/webhook</code> <span class="desc">Send a test webhook</span></div>
+    <div class="endpoint"><span class="badge badge-post">POST</span> <code>/api/salon/settings/clickaio/refresh</code> <span class="desc">Refresh GHL OAuth token</span></div>
+    <div class="endpoint"><span class="badge badge-post">POST</span> <code>/api/salon/settings/clickaio/test-api</code> <span class="desc">Test GHL API connection</span></div>
+    <div class="endpoint"><span class="badge badge-post">POST</span> <code>/api/salon/settings/clickaio/bulk-action</code> <span class="desc">Bulk GHL sync action</span></div>
+    <div class="endpoint"><span class="badge badge-get">GET</span> <code>/api/salon/settings/clickaio/calendars</code> <span class="desc">Fetch GHL calendars list</span></div>
+
+    <h4>Key Setting Keys</h4>
+    <table>
+        <tr><th>Key</th><th>Description</th></tr>
+        <tr><td><code>tax_rate</code></td><td>Tax percentage applied to payments</td></tr>
+        <tr><td><code>currency</code></td><td>Default currency (e.g., USD)</td></tr>
+        <tr><td><code>commission_rate</code></td><td>Default technician commission rate</td></tr>
+        <tr><td><code>credit_earning_type</code></td><td>fixed_unit or percentage</td></tr>
+        <tr><td><code>credit_earning_value</code></td><td>Amount or percentage of credits earned per transaction</td></tr>
+        <tr><td><code>turn_tracker_order</code></td><td>lowest or highest (for assignment priority)</td></tr>
+        <tr><td><code>business_name</code></td><td>Salon business name</td></tr>
+        <tr><td><code>business_logo</code></td><td>Path to uploaded logo</td></tr>
+        <tr><td><code>clickaio_access_token</code></td><td>GHL OAuth access token</td></tr>
+        <tr><td><code>clickaio_refresh_token</code></td><td>GHL OAuth refresh token</td></tr>
+        <tr><td><code>clickaio_location_id</code></td><td>GHL location identifier</td></tr>
+    </table>
+</div>
+
+<!-- Webhooks -->
+<h3 id="api-webhooks">Webhooks (External Incoming)</h3>
+<div class="card">
+    <div class="endpoint"><span class="badge badge-post">POST</span> <code>/check-in</code> <span class="desc">Online customer check-in form submission</span></div>
+    <div class="endpoint"><span class="badge badge-post">POST</span> <code>/api/customers/update/{ghl_contact_id}</code> <span class="desc">GHL customer sync webhook</span></div>
+    <div class="endpoint"><span class="badge badge-post">POST</span> <code>/api/appointments/webhook/create</code> <span class="desc">GHL appointment creation webhook</span></div>
+
+    <div class="info-box note">
+        <strong>Note:</strong> These webhook endpoints have no authentication. GHL sends data here when contacts or appointments are created/updated in the CRM.
+    </div>
+</div>
+
+
+<!-- ============================================================ -->
+<!-- BUSINESS LOGIC / CORE FLOWS                                  -->
+<!-- ============================================================ -->
+<h2 id="flow-walkin">Business Logic / Core Flows</h2>
+
+<h3>Walk-In Customer Flow</h3>
+<div class="card">
+    <ol class="flow-steps">
+        <li>
+            <strong>Customer arrives</strong>
+            <p>Receptionist opens the <em>Waiting List</em> screen.</p>
+        </li>
+        <li>
+            <strong>Create or select customer</strong>
+            <p>Search existing records, or add a new customer on the fly.</p>
+        </li>
+        <li>
+            <strong>Create appointment</strong>
+            <p>
+                <span class="flow-tag">type: walk-in</span>
+                <span class="flow-tag flow-tag-status">status: waiting</span>
+            </p>
+        </li>
+        <li>
+            <strong>Add services &amp; assign technician(s)</strong>
+            <p>Select one or more services and assign the technicians who will perform them.</p>
+        </li>
+        <li>
+            <strong>Service begins</strong>
+            <p>Technician starts work <span class="flow-tag flow-tag-status">status: in-progress</span></p>
+        </li>
+        <li>
+            <strong>Move to Tickets</strong>
+            <p>Service complete, ready for checkout <span class="flow-tag flow-tag-status">status: unpaid</span></p>
+        </li>
+        <li>
+            <strong>Process payment</strong>
+            <p>Collect payment and close out the visit <span class="flow-tag flow-tag-status flow-tag-paid">status: paid</span></p>
+        </li>
+    </ol>
+</div>
+
+<h3 id="flow-booking">Booking Flow</h3>
+<div class="card">
+    <ol class="flow-steps">
+        <li>
+            <strong>Customer books appointment</strong>
+            <p>Booking comes in via the in-app Calendar or through GoHighLevel.</p>
+        </li>
+        <li>
+            <strong>Create appointment</strong>
+            <p>
+                <span class="flow-tag">type: booked</span>
+                <span class="flow-tag flow-tag-status">status: waiting</span>
+                <span class="flow-tag">appointment_datetime set</span>
+            </p>
+        </li>
+        <li>
+            <strong>GHL Sync (if configured)</strong>
+            <p>Non-blocking: creates the matching event in the GHL calendar. Failures are logged and do not abort the booking.</p>
+        </li>
+        <li>
+            <strong>Continue with walk-in flow</strong>
+            <p>From technician assignment onward, the booked appointment follows the same lifecycle as a walk-in: assign &rarr; in-progress &rarr; unpaid &rarr; paid.</p>
+        </li>
+    </ol>
+</div>
+
+<h3 id="flow-payment">Payment Flow</h3>
+<div class="card">
+    <ol class="flow-steps">
+        <li>
+            <strong>Start from an unpaid ticket</strong>
+            <p>Ticket is in <span class="flow-tag flow-tag-status">status: unpaid</span></p>
+        </li>
+        <li>
+            <strong>Open Pay / Checkout</strong>
+            <p>Review services, quantities, technicians, and subtotal before collecting payment.</p>
+        </li>
+        <li>
+            <strong>Apply adjustments</strong>
+            <ul class="flow-sublist">
+                <li>Discount (coupon code)</li>
+                <li>Customer credits</li>
+                <li>Gift card</li>
+                <li>Tax (from settings)</li>
+                <li>Tip (split per technician)</li>
+            </ul>
+        </li>
+        <li>
+            <strong>Commit in a single DB transaction</strong>
+            <ol class="flow-sublist flow-sublist-ordered">
+                <li>Create Payment record</li>
+                <li>Update appointment status</li>
+                <li>Update technician pivot (tip, commission, totals)</li>
+                <li>Deduct customer credits</li>
+                <li>Deduct gift card balance</li>
+                <li>Award new credits (earned)</li>
+                <li>Sync to GHL (non-blocking)</li>
+            </ol>
+        </li>
+        <li>
+            <strong>Payment complete</strong>
+            <p>Ticket moves to <span class="flow-tag flow-tag-status flow-tag-paid">status: paid</span></p>
+        </li>
+    </ol>
+
+    <div class="info-box danger">
+        <strong>Critical:</strong> Payment and credit operations use <code>lockForUpdate()</code> for database-level concurrency control. This prevents race conditions when multiple users attempt to process the same payment simultaneously.
+    </div>
+</div>
+
+<h3 id="flow-credits">Customer Credits Flow</h3>
+<div class="card">
+    <h4 class="flow-heading">How credits are triggered</h4>
+    <div class="flow-grid">
+        <div class="flow-card">
+            <strong>Manual</strong>
+            <p>Admin adjusts via API.</p>
+            <p><code>POST /api/salon/customers/{id}/credits</code></p>
+            <p>
+                <span class="flow-tag">add</span>
+                <span class="flow-tag">subtract</span>
+                <span class="flow-tag">set</span>
+            </p>
+        </div>
+        <div class="flow-card">
+            <strong>Automatic</strong>
+            <p>Earned during payment based on settings:</p>
+            <ul class="flow-sublist">
+                <li><code>credit_earning_type = "fixed_unit"</code> &mdash; fixed credits per transaction</li>
+                <li><code>credit_earning_type = "percentage"</code> &mdash; % of subtotal</li>
+            </ul>
+        </div>
+    </div>
+
+    <h4 class="flow-heading">Transaction steps (all operations)</h4>
+    <ol class="flow-steps">
+        <li><strong>Lock customer record</strong><p>Uses <code>lockForUpdate()</code> to prevent concurrent writes.</p></li>
+        <li><strong>Calculate new balance</strong><p>Apply the operation against current balance.</p></li>
+        <li><strong>Insert into <code>customer_credit_ledgers</code></strong><p>Immutable audit row for the adjustment.</p></li>
+        <li><strong>Update <code>customer.credit_balance</code></strong><p>Write the new running balance.</p></li>
+        <li><strong>Commit transaction</strong><p>All writes succeed together or roll back together.</p></li>
+    </ol>
+</div>
+
+<h3 id="flow-ghl">GoHighLevel (GHL) Integration Flow</h3>
+<div class="card">
+    <h4 class="flow-heading"><span class="flow-tag flow-tag-outbound">OUTBOUND</span> App &rarr; GHL</h4>
+    <ol class="flow-steps">
+        <li>
+            <strong>Appointment created, updated, or deleted</strong>
+            <p>Trigger fires from the local appointment event.</p>
+        </li>
+        <li>
+            <strong><code>GoHighLevelService::syncAppointment()</code></strong>
+            <p>Orchestrates the outbound call.</p>
+        </li>
+        <li>
+            <strong>Resolve GHL contact</strong>
+            <ul class="flow-sublist">
+                <li><code>findGhlContact()</code> &mdash; look up by phone / email</li>
+                <li>otherwise <code>createGhlContact()</code></li>
+            </ul>
+        </li>
+        <li>
+            <strong>Push appointment to GHL</strong>
+            <ul class="flow-sublist">
+                <li><code>createGhlAppointment()</code> on create/update</li>
+                <li><code>deleteGhlAppointment()</code> on delete</li>
+            </ul>
+        </li>
+    </ol>
+    <div class="info-box note">
+        <strong>Fault tolerance:</strong> All outbound calls are wrapped in <code>try/catch</code>. Failures are logged but never thrown &mdash; GHL sync will never block a local appointment.
+    </div>
+
+    <h4 class="flow-heading"><span class="flow-tag flow-tag-inbound">INBOUND</span> GHL &rarr; App</h4>
+    <div class="flow-grid">
+        <div class="flow-card">
+            <strong>Customer sync</strong>
+            <p><code>POST /api/customers/update/{ghl_id}</code></p>
+            <p>&rarr; <code>SalonCustomerController@syncFromGhl</code></p>
+            <p>Updates the local customer record.</p>
+        </div>
+        <div class="flow-card">
+            <strong>Appointment webhook</strong>
+            <p><code>POST /api/appointments/webhook/create</code></p>
+            <p>&rarr; <code>SalonAppointmentController@webhook</code></p>
+            <p>Creates a local appointment from the GHL event.</p>
+        </div>
+    </div>
+
+    <h4 class="flow-heading"><span class="flow-tag">TOKEN REFRESH</span></h4>
+    <ul class="flow-sublist">
+        <li>Scheduled hourly via <code>routes/console.php</code>.</li>
+        <li>Runs the <code>clickaio:refresh-token</code> Artisan command.</li>
+        <li>Refreshes OAuth tokens stored in the <code>settings</code> table.</li>
+    </ul>
+</div>
+
+
+<!-- ============================================================ -->
+<!-- DEPLOYMENT GUIDE                                             -->
+<!-- ============================================================ -->
+<h2 id="deployment-guide">Deployment Guide</h2>
+
+<div class="card">
+    <h3>Server Requirements</h3>
+    <ul>
+        <li>PHP 8.2+ with extensions: OpenSSL, PDO, Mbstring, Tokenizer, XML, Ctype, JSON, BCMath, Fileinfo</li>
+        <li>Composer 2.x</li>
+        <li>Node.js 18+ (for building assets)</li>
+        <li>MySQL 5.7+ or 8.0+</li>
+        <li>Apache or Nginx web server</li>
+        <li>Minimum 1GB RAM, 1 CPU core</li>
+    </ul>
+
+    <h3>Deployment Steps</h3>
+    <pre><code># 1. Clone the repository on the server
+git clone &lt;repository-url&gt; /var/www/nailsalon-app
+cd /var/www/nailsalon-app
+
+# 2. Install PHP dependencies (production)
+composer install --no-dev --optimize-autoloader
+
+# 3. Copy and configure environment
+cp .env.example .env
+# Edit .env: set APP_ENV=production, APP_DEBUG=false, APP_URL, DB credentials
+
+# 4. Generate application key
+php artisan key:generate
+
+# 5. Run migrations
+php artisan migrate --force
+
+# 6. Create storage symlink
+php artisan storage:link
+
+# 7. Install Node dependencies and build assets
+npm ci
+npm run build
+
+# 8. Optimize Laravel for production
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+
+# 9. Set file permissions
+chmod -R 775 storage bootstrap/cache
+chown -R www-data:www-data storage bootstrap/cache
+
+# 10. Set up the queue worker (systemd or supervisor)
+# See Queue Worker section below
+
+# 11. Set up the scheduler (cron)
+# See Scheduler section below</code></pre>
+
+    <h3>Web Server Configuration</h3>
+    <h4>Apache (.htaccess)</h4>
+    <p>The <code>public/.htaccess</code> file is included. Ensure <code>mod_rewrite</code> is enabled and the document root points to <code>/var/www/nailsalon-app/public</code>.</p>
+
+    <h4>Nginx</h4>
+    <pre><code>server {
+    listen 80;
+    server_name your-domain.com;
+    root /var/www/nailsalon-app/public;
+    index index.php;
+
+    location / {
+        try_files $uri $uri/ /index.php?$query_string;
+    }
+
+    location ~ \.php$ {
+        fastcgi_pass unix:/run/php/php8.2-fpm.sock;
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;
+        include fastcgi_params;
+    }
+
+    location ~ /\.(?!well-known).* {
+        deny all;
+    }
+}</code></pre>
+
+    <h3>Queue Worker</h3>
+    <p>The app uses a database queue. Set up a process manager to keep the worker running:</p>
+    <pre><code># Supervisor config (/etc/supervisor/conf.d/nailsalon-worker.conf)
+[program:nailsalon-worker]
+process_name=%(program_name)s_%(process_num)02d
+command=php /var/www/nailsalon-app/artisan queue:work --tries=3 --timeout=90
+autostart=true
+autorestart=true
+numprocs=1
+user=www-data
+redirect_stderr=true
+stdout_logfile=/var/www/nailsalon-app/storage/logs/worker.log</code></pre>
+
+    <h3>Scheduler (Cron)</h3>
+    <p>Add this cron entry for the Laravel scheduler (handles hourly GHL token refresh):</p>
+    <pre><code>* * * * * cd /var/www/nailsalon-app && php artisan schedule:run >> /dev/null 2>&1</code></pre>
+</div>
+
+
+<!-- ============================================================ -->
+<!-- KNOWN ISSUES                                                 -->
+<!-- ============================================================ -->
+<h2 id="known-issues">Known Issues / Limitations</h2>
+
+<div class="card">
+    <table>
+        <tr><th>#</th><th>Issue</th><th>Impact</th><th>Workaround</th></tr>
+        <tr>
+            <td>1</td>
+            <td>Public data API endpoints have no authentication</td>
+            <td><span class="badge badge-delete">HIGH</span> Data exposure risk if app is internet-facing</td>
+            <td>Add <code>salon.auth</code> middleware to <code>/api/salon/data/*</code> routes, or restrict via firewall</td>
+        </tr>
+        <tr>
+            <td>2</td>
+            <td>Webhook endpoints have no signature verification</td>
+            <td><span class="badge badge-put">MEDIUM</span> Potential for spoofed webhook calls</td>
+            <td>Add HMAC signature validation for GHL webhooks</td>
+        </tr>
+        <tr>
+            <td>3</td>
+            <td>No rate limiting on login endpoint</td>
+            <td><span class="badge badge-put">MEDIUM</span> Brute-force login risk</td>
+            <td>Add Laravel's <code>throttle</code> middleware to login route</td>
+        </tr>
+        <tr>
+            <td>4</td>
+            <td>No file upload validation on photo uploads</td>
+            <td><span class="badge badge-put">MEDIUM</span> Potential for malicious file uploads</td>
+            <td>Add MIME type and file size validation in form requests</td>
+        </tr>
+        <tr>
+            <td>5</td>
+            <td>Session lifetime set to 525600 min (1 year) in production .env</td>
+            <td><span class="badge badge-get">LOW</span> Sessions rarely expire</td>
+            <td>Reduce to a reasonable value (e.g., 480 min for 8-hour shift)</td>
+        </tr>
+        <tr>
+            <td>6</td>
+            <td>No soft deletes on any model</td>
+            <td><span class="badge badge-get">LOW</span> Deleted records cannot be recovered</td>
+            <td>Add SoftDeletes trait to critical models if recovery is needed</td>
+        </tr>
+        <tr>
+            <td>7</td>
+            <td>Authorization is not centralized (no policies/gates)</td>
+            <td><span class="badge badge-get">LOW</span> Harder to audit and maintain permissions</td>
+            <td>Consider migrating to Laravel Policies for consistent enforcement</td>
+        </tr>
+        <tr>
+            <td>8</td>
+            <td>Orders page is a placeholder (no functional backend)</td>
+            <td><span class="badge badge-get">LOW</span> UI element with no functionality</td>
+            <td>Remove from navigation or implement as needed</td>
+        </tr>
+    </table>
+</div>
+
+
+<!-- ============================================================ -->
+<!-- MAINTENANCE NOTES                                            -->
+<!-- ============================================================ -->
+<h2 id="maintenance-notes">Maintenance Notes</h2>
+
+<div class="card">
+    <h3>Things to Watch Out For</h3>
+
+    <h4>1. GoHighLevel Token Expiry</h4>
+    <p>The GHL OAuth token is refreshed hourly via a scheduled command. If the scheduler cron job stops running, the token will expire and all GHL sync operations will silently fail. Check <code>storage/logs/laravel.log</code> for GHL-related errors.</p>
+
+    <h4>2. Database Queue</h4>
+    <p>The app uses a database-backed queue. The <code>jobs</code> table can grow large over time. Monitor and prune failed jobs periodically:</p>
+    <pre><code>php artisan queue:prune-failed --hours=168  # Remove failed jobs older than 7 days</code></pre>
+
+    <h4>3. Session Table</h4>
+    <p>With the long session lifetime, the <code>sessions</code> table can accumulate stale records. Consider periodic cleanup:</p>
+    <pre><code>DELETE FROM sessions WHERE last_activity < UNIX_TIMESTAMP(NOW() - INTERVAL 30 DAY);</code></pre>
+
+    <h4>4. Payment ID Generation</h4>
+    <p>Payment IDs are random strings. While collision probability is extremely low, monitor for any duplicate key errors in logs.</p>
+
+    <h4>5. Financial Precision</h4>
+    <p>All monetary values use <code>decimal(12,2)</code> or <code>decimal(10,2)</code>. Never change these to float or double types. Eloquent casts are configured to maintain decimal precision.</p>
+
+    <h4>6. Credit Ledger Immutability</h4>
+    <p>The <code>customer_credit_ledgers</code> table has no <code>updated_at</code> column by design. Records are append-only. Never update or delete ledger entries &mdash; create corrective entries instead.</p>
+
+    <h4>7. Cache / Config Clearing</h4>
+    <p>After deploying changes to config or routes:</p>
+    <pre><code>php artisan config:cache
+php artisan route:cache
+php artisan view:cache</code></pre>
+
+    <h4>8. Storage Link</h4>
+    <p>The <code>public/storage</code> symlink must exist for file uploads to be accessible. If it breaks after deployment, recreate it:</p>
+    <pre><code>php artisan storage:link</code></pre>
+</div>
+
+
+<br>
+<hr style="border: none; border-top: 2px solid var(--border); margin: 2rem 0;">
+<p style="text-align: center; color: var(--text-muted); font-size: 0.85rem;">
+    Nail Salon App &mdash; Developer Documentation
+</p>
+
+</div>
+</div>
+
+</body>
+</html>

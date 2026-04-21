@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nail Salon App — User Guide</title>
+    <style>
+        :root {
+            --primary: #003047;
+            --primary-light: #004a6e;
+            --accent: #0077b6;
+            --bg: #f8fafc;
+            --sidebar-bg: #003047;
+            --sidebar-text: #cbd5e1;
+            --sidebar-active: #ffffff;
+            --card-bg: #ffffff;
+            --text: #1e293b;
+            --text-muted: #64748b;
+            --border: #e2e8f0;
+            --code-bg: #f1f5f9;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #3b82f6;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            color: var(--text);
+            background: var(--bg);
+            line-height: 1.7;
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar */
+        aside {
+            width: 300px;
+            background: var(--sidebar-bg);
+            color: var(--sidebar-text);
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            padding: 0 0 2rem;
+        }
+        aside .sidebar-logo {
+            display: block;
+            text-align: center;
+            padding: 1.5rem 1.5rem 0;
+        }
+        aside .sidebar-logo-inner {
+            display: inline-block;
+            background: #fff;
+            padding: 0.5rem;
+            border-radius: 10px;
+        }
+        aside .sidebar-logo img {
+            max-width: 80px;
+            max-height: 80px;
+            width: auto;
+            height: auto;
+            display: block;
+            object-fit: contain;
+        }
+        aside h1 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #fff;
+            text-align: center;
+            padding: 0 1.5rem 0.25rem;
+        }
+        aside .subtitle {
+            font-size: 0.75rem;
+            color: var(--sidebar-text);
+            text-align: center;
+            padding: 0 1.5rem 1rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 0.5rem;
+        }
+        nav a {
+            display: block;
+            padding: 0.5rem 1.5rem;
+            color: var(--sidebar-text);
+            text-decoration: none;
+            font-size: 0.85rem;
+            border-left: 3px solid transparent;
+            transition: all 0.2s;
+        }
+        nav a:hover {
+            color: var(--sidebar-active);
+            background: rgba(255,255,255,0.05);
+            border-left-color: var(--accent);
+        }
+        .nav-section {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: rgba(255,255,255,0.35);
+            padding: 0.75rem 1.5rem 0.35rem;
+            font-weight: 700;
+            margin-top: 0.5rem;
+        }
+
+        /* Main */
+        .main {
+            flex: 1;
+            padding: 2.5rem 3rem;
+            max-width: 960px;
+        }
+
+        h1.page-title {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 3px solid var(--primary);
+        }
+        .lead {
+            font-size: 1.05rem;
+            color: var(--text-muted);
+            margin-bottom: 2rem;
+        }
+
+        h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 2.5rem 0 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--border);
+            scroll-margin-top: 1rem;
+        }
+        h3 {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: var(--accent);
+            margin: 1.5rem 0 0.6rem;
+        }
+        h4 {
+            font-size: 1rem;
+            color: var(--text);
+            margin: 1rem 0 0.4rem;
+        }
+
+        p { margin-bottom: 0.85rem; }
+
+        ul, ol { margin: 0 0 1rem 1.5rem; }
+        li { margin-bottom: 0.35rem; }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem 1.75rem;
+            margin-bottom: 1.25rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+
+        .tip {
+            background: #ecfdf5;
+            border-left: 4px solid var(--success);
+            padding: 0.85rem 1.1rem;
+            border-radius: 6px;
+            margin: 0.75rem 0;
+        }
+        .warning {
+            background: #fffbeb;
+            border-left: 4px solid var(--warning);
+            padding: 0.85rem 1.1rem;
+            border-radius: 6px;
+            margin: 0.75rem 0;
+        }
+        .note {
+            background: #eff6ff;
+            border-left: 4px solid #3b82f6;
+            padding: 0.85rem 1.1rem;
+            border-radius: 6px;
+            margin: 0.75rem 0;
+        }
+        .example {
+            background: #f0f9ff;
+            border: 1px dashed var(--accent);
+            border-radius: 8px;
+            padding: 1rem 1.2rem;
+            margin: 0.85rem 0;
+        }
+        .example .label {
+            display: inline-block;
+            background: var(--accent);
+            color: #fff;
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 0.15rem 0.55rem;
+            border-radius: 999px;
+            margin-bottom: 0.5rem;
+            letter-spacing: 0.05em;
+        }
+
+        .steps {
+            counter-reset: step;
+            list-style: none;
+            padding: 0;
+            margin: 0.75rem 0;
+        }
+        .steps > li {
+            counter-increment: step;
+            position: relative;
+            padding: 0.6rem 1rem 0.6rem 3rem;
+            margin-bottom: 0.4rem;
+            background: #f1f5f9;
+            border-radius: 8px;
+        }
+        .steps > li::before {
+            content: counter(step);
+            position: absolute;
+            left: 0.75rem;
+            top: 0.7rem;
+            width: 1.6rem;
+            height: 1.6rem;
+            border-radius: 50%;
+            background: var(--accent);
+            color: #fff;
+            font-weight: 700;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .role-badge {
+            display: inline-block;
+            font-size: 0.75rem;
+            padding: 0.12rem 0.6rem;
+            border-radius: 999px;
+            font-weight: 600;
+            margin-right: 0.3rem;
+        }
+        .role-admin { background: #ede9fe; color: #5b21b6; }
+        .role-reception { background: #dbeafe; color: #1e40af; }
+        .role-tech { background: #dcfce7; color: #166534; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 0.75rem 0;
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        th, td {
+            text-align: left;
+            padding: 0.7rem 0.9rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.93rem;
+        }
+        th {
+            background: #e2e8f0;
+            color: var(--primary);
+            font-weight: 700;
+        }
+        tr:last-child td { border-bottom: none; }
+
+        .faq-item {
+            border-bottom: 1px solid var(--border);
+            padding: 0.85rem 0;
+        }
+        .faq-item:last-child { border-bottom: none; }
+        .faq-q { font-weight: 600; color: var(--text); margin-bottom: 0.3rem; }
+        .faq-a { color: var(--text-muted); }
+
+        hr.divider {
+            border: none;
+            border-top: 2px solid var(--border);
+            margin: 3rem 0 1.5rem;
+        }
+        .footer {
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            padding-bottom: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            aside { width: 100%; height: auto; position: static; }
+            .main { padding: 1.5rem 1.25rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside>
+    <div class="sidebar-logo">
+        <div class="sidebar-logo-inner">
+            <img src="../../storage/logos/o1kgln3CjuXaDRdk6b02P7VxtwrKTadzioRbhDtF.png" alt="Salon Logo">
+        </div>
+    </div>
+    <h1>Nail Salon App</h1>
+    <div class="subtitle">User Guide</div>
+
+    <nav>
+        <div class="nav-section">Start Here</div>
+        <a href="#introduction">Introduction</a>
+        <a href="#getting-started">Getting Started</a>
+        <a href="#dashboard">Dashboard Overview</a>
+
+        <div class="nav-section">Using the App</div>
+        <a href="#waiting-list">Waiting List</a>
+        <a href="#calendar">Calendar &amp; Bookings</a>
+        <a href="#tickets">Tickets</a>
+        <a href="#payments">Payments</a>
+        <a href="#customers">Customers</a>
+        <a href="#technicians">Technicians</a>
+        <a href="#turn-tracker">Turn Tracker</a>
+        <a href="#services">Services</a>
+        <a href="#coupons-giftcards">Coupons &amp; Gift Cards</a>
+        <a href="#credits">Customer Credits</a>
+        <a href="#payout">Payout Reports</a>
+
+        <div class="nav-section">Your Account</div>
+        <a href="#account">Account Settings</a>
+        <a href="#notifications">Notifications</a>
+
+        <div class="nav-section">Help</div>
+        <a href="#common-tasks">Common Tasks</a>
+        <a href="#troubleshooting">Troubleshooting</a>
+        <a href="#faqs">FAQs</a>
+        <a href="#tips">Tips &amp; Best Practices</a>
+        <a href="#support">Support</a>
+    </nav>
+</aside>
+
+<!-- Main -->
+<div class="main">
+
+    <h1 class="page-title">Nail Salon App — User Guide</h1>
+    <p class="lead">Welcome! This guide will walk you through everything you need to know to run your day-to-day work in the Nail Salon App. No technical knowledge required.</p>
+
+    <!-- INTRODUCTION -->
+    <h2 id="introduction">Introduction</h2>
+    <div class="card">
+        <h3>What is the Nail Salon App?</h3>
+        <p>The Nail Salon App is an all-in-one system for managing your nail salon. It helps you handle customers, appointments, technicians, payments, and reports — all in one place.</p>
+
+        <h3>What problem does it solve?</h3>
+        <p>Instead of using paper booking sheets, separate calculators for tips and commissions, and different tools for customer records, everything you need is bundled into one easy-to-use app. You can:</p>
+        <ul>
+            <li>Keep track of walk-in and booked customers</li>
+            <li>Assign technicians fairly based on turn order</li>
+            <li>Process payments, tips, and discounts quickly</li>
+            <li>Keep a full history of every customer visit</li>
+            <li>See how much each technician has earned</li>
+        </ul>
+
+        <h3>Who is it for?</h3>
+        <p>The app is designed for three types of users:</p>
+        <ul>
+            <li><span class="role-badge role-admin">Admin</span> The salon owner or manager — has full access to everything.</li>
+            <li><span class="role-badge role-reception">Receptionist</span> Front-desk staff who greet customers, book appointments, and process payments.</li>
+            <li><span class="role-badge role-tech">Technician</span> Nail technicians who clock in/out and see their own appointments and earnings.</li>
+        </ul>
+    </div>
+
+
+    <!-- GETTING STARTED -->
+    <h2 id="getting-started">Getting Started</h2>
+    <div class="card">
+        <h3>How to access the app</h3>
+        <p>Open your web browser (Chrome, Edge, Firefox, or Safari) and go to the address given to you by your manager — for example:</p>
+        <div class="example">
+            <span class="label">Example</span>
+            <p><strong>https://yoursalon.com</strong></p>
+        </div>
+
+        <h3>Logging in</h3>
+        <ol class="steps">
+            <li>Go to the login page.</li>
+            <li>Enter your <strong>email (or username)</strong> and <strong>password</strong>.</li>
+            <li>Click the <strong>Login</strong> button.</li>
+            <li>You'll be taken to your dashboard.</li>
+        </ol>
+
+        <div class="note">
+            <strong>Who creates my account?</strong> Accounts are created by the salon admin. If you don't have one yet, please ask your manager.
+        </div>
+
+        <h3>Forgot your password?</h3>
+        <ol class="steps">
+            <li>On the login page, click <strong>Forgot Password</strong>.</li>
+            <li>Enter the email address linked to your account.</li>
+            <li>Follow the instructions on the screen to set a new password.</li>
+        </ol>
+
+        <h3>First-time setup (for Admins)</h3>
+        <p>If you're setting up the app for the first time as an admin, we recommend doing these steps in order:</p>
+        <ol>
+            <li>Go to <strong>Settings</strong> and fill in your salon name, currency, tax rate, and business hours.</li>
+            <li>Add your <strong>Services</strong> (for example: Gel Manicure, Pedicure, Nail Art) with prices.</li>
+            <li>Add your <strong>Technicians</strong> and staff under <strong>User Management</strong>.</li>
+            <li>Set up <strong>Commission rates</strong> in Settings.</li>
+            <li>Optional: connect to <strong>GoHighLevel (GHL)</strong> if you use it for bookings.</li>
+        </ol>
+    </div>
+
+
+    <!-- DASHBOARD -->
+    <h2 id="dashboard">Dashboard Overview</h2>
+    <div class="card">
+        <p>The Dashboard is the first screen you see after logging in. It gives you a quick snapshot of the day.</p>
+
+        <h3>What you'll see</h3>
+        <ul>
+            <li><strong>Today's numbers:</strong> total customers, technicians on duty, and the number of tickets waiting, in progress, or unpaid.</li>
+            <li><strong>Latest Tickets:</strong> the most recent tickets created — you can jump to any of them with one click.</li>
+            <li><strong>Quick actions:</strong> shortcuts to create an appointment, open the waiting list, or go to the calendar.</li>
+        </ul>
+
+        <h3>Technicians see a simpler view</h3>
+        <p>If you're a technician, your dashboard focuses on <em>your</em> day: your assigned customers, the services you've completed, your tips and commissions, plus a big <strong>Clock In / Clock Out</strong> button.</p>
+
+        <div class="tip">
+            <strong>Tip:</strong> Use the sidebar menu on the left to move between sections at any time.
+        </div>
+    </div>
+
+
+    <!-- WAITING LIST -->
+    <h2 id="waiting-list">Waiting List</h2>
+    <div class="card">
+        <h3>What it does</h3>
+        <p>The Waiting List is where you add walk-in customers who have just arrived, and where booked customers appear when they arrive for their appointment.</p>
+
+        <h3>Adding a walk-in customer</h3>
+        <ol class="steps">
+            <li>Open the <strong>Waiting List</strong> from the sidebar.</li>
+            <li>Click <strong>+ Add Customer</strong>.</li>
+            <li>Search for the customer by name or phone. If they're new, click <strong>Create new customer</strong> and enter their name and phone number.</li>
+            <li>Pick the services they want.</li>
+            <li>(Optional) Assign a technician now, or leave it unassigned and decide later.</li>
+            <li>Click <strong>Save</strong>. The customer now appears in the waiting list.</li>
+        </ol>
+
+        <h3>Filtering and searching</h3>
+        <ul>
+            <li>Use the tabs at the top to filter by <strong>Walk-in</strong> or <strong>Booked</strong>.</li>
+            <li>Use the search box to find a customer by name.</li>
+        </ul>
+
+        <div class="example">
+            <span class="label">Example Use Case</span>
+            <p>A customer walks in at 2:00 PM asking for a pedicure. You add them to the Waiting List with the "Pedicure" service. A minute later, Technician Anna becomes available, so you assign Anna to the customer and move them to Tickets.</p>
+        </div>
+    </div>
+
+
+    <!-- CALENDAR -->
+    <h2 id="calendar">Calendar &amp; Bookings</h2>
+    <div class="card">
+        <h3>What it does</h3>
+        <p>The Calendar shows all booked appointments for the day, week, or month. You can create new bookings, move them to a new time, or cancel them.</p>
+
+        <h3>Switching views</h3>
+        <p>At the top of the Calendar you can pick between:</p>
+        <ul>
+            <li><strong>Grid view</strong> — a traditional calendar layout.</li>
+            <li><strong>Technician view</strong> — one column per technician, which makes it easy to see who is busy when.</li>
+        </ul>
+
+        <h3>Creating a booking</h3>
+        <ol class="steps">
+            <li>Click an empty time slot on the calendar.</li>
+            <li>Select or create a customer.</li>
+            <li>Pick the services and date/time.</li>
+            <li>(Optional) Assign a technician.</li>
+            <li>Click <strong>Save</strong>.</li>
+        </ol>
+
+        <h3>Rescheduling an appointment</h3>
+        <p>Simply <strong>click and drag</strong> an appointment to its new time slot. The change is saved automatically.</p>
+
+        <h3>Understanding the colors</h3>
+        <ul>
+            <li>Each appointment is color-coded by its status (waiting, in-progress, unpaid, paid, cancelled).</li>
+            <li>Appointments with no technician yet appear in a <strong>"Not Assigned"</strong> column.</li>
+        </ul>
+
+        <div class="tip">
+            <strong>Tip:</strong> Click any appointment to see its full details — customer info, services, technician, and payment status.
+        </div>
+    </div>
+
+
+    <!-- TICKETS -->
+    <h2 id="tickets">Tickets</h2>
+    <div class="card">
+        <h3>What is a Ticket?</h3>
+        <p>A Ticket is created when a customer's service is finished and they're ready to pay. Think of it as the bill or receipt in progress.</p>
+
+        <h3>Ticket statuses</h3>
+        <table>
+            <tr><th>Status</th><th>Meaning</th></tr>
+            <tr><td>Unpaid</td><td>Service is done, waiting for the customer to pay.</td></tr>
+            <tr><td>Paid</td><td>Payment has been collected.</td></tr>
+            <tr><td>Cancelled</td><td>The service was cancelled before finishing.</td></tr>
+            <tr><td>Refunded</td><td>Payment was taken, then returned to the customer.</td></tr>
+        </table>
+
+        <h3>Viewing tickets</h3>
+        <p>Go to <strong>Tickets</strong> from the sidebar. Use the tabs at the top to switch between Unpaid, Paid, Cancelled, and Refunded.</p>
+
+        <h3>Editing a ticket</h3>
+        <ol class="steps">
+            <li>Click the ticket you want to change.</li>
+            <li>Add or remove services, update quantities, or change the technician.</li>
+            <li>Click <strong>Save</strong>.</li>
+        </ol>
+
+        <div class="warning">
+            <strong>Heads up:</strong> Once a ticket is marked Paid, changes are limited. For mistakes after payment, use the Refund option.
+        </div>
+    </div>
+
+
+    <!-- PAYMENTS -->
+    <h2 id="payments">Payments</h2>
+    <div class="card">
+        <h3>Taking a payment</h3>
+        <ol class="steps">
+            <li>Open the unpaid ticket.</li>
+            <li>Click <strong>Pay</strong> or <strong>Checkout</strong>.</li>
+            <li>Review the services, quantities, and totals.</li>
+            <li>Add any of the following as needed:
+                <ul>
+                    <li><strong>Discount</strong> — apply a coupon code.</li>
+                    <li><strong>Customer credits</strong> — use loyalty credits the customer has saved up.</li>
+                    <li><strong>Gift card</strong> — enter the gift card PIN to deduct the balance.</li>
+                    <li><strong>Tip</strong> — enter the amount the customer is tipping.</li>
+                </ul>
+            </li>
+            <li>Confirm the final total.</li>
+            <li>Click <strong>Complete Payment</strong>.</li>
+        </ol>
+
+        <h3>How tips are split</h3>
+        <p>If more than one technician worked on the appointment, tips are split evenly between them by default. You can adjust the split per technician on the payment screen.</p>
+
+        <h3>Refunds</h3>
+        <ol class="steps">
+            <li>Open the paid ticket.</li>
+            <li>Click <strong>Refund</strong>.</li>
+            <li>Enter a short note explaining the reason.</li>
+            <li>Confirm. The ticket moves to the <strong>Refunded</strong> tab.</li>
+        </ol>
+
+        <div class="example">
+            <span class="label">Example Use Case</span>
+            <p>A customer gets a $40 manicure and tips $8. Two technicians shared the work. The system automatically splits the tip as $4 each, and calculates commission on the service amount for each technician.</p>
+        </div>
+    </div>
+
+
+    <!-- CUSTOMERS -->
+    <h2 id="customers">Customers</h2>
+    <div class="card">
+        <h3>What you can do</h3>
+        <ul>
+            <li>Keep a list of every customer who has ever visited.</li>
+            <li>Store phone numbers, emails, and photos.</li>
+            <li>See a customer's full visit history and total spend.</li>
+            <li>Track loyalty credits earned.</li>
+        </ul>
+
+        <h3>Adding a new customer</h3>
+        <ol class="steps">
+            <li>Go to <strong>Customers</strong> in the sidebar.</li>
+            <li>Click <strong>+ Add Customer</strong>.</li>
+            <li>Fill in their name, phone, and any other details you want.</li>
+            <li>Click <strong>Save</strong>.</li>
+        </ol>
+
+        <h3>Viewing a customer</h3>
+        <p>Click any customer in the list to see their profile — past visits, services they usually get, credit balance, and contact info.</p>
+
+        <div class="tip">
+            <strong>Tip:</strong> Use the search bar at the top of the Customers page to find someone quickly by name or phone number.
+        </div>
+    </div>
+
+
+    <!-- TECHNICIANS -->
+    <h2 id="technicians">Technicians</h2>
+    <div class="card">
+        <h3>What you'll find here</h3>
+        <p>The Technicians page lists everyone who performs services at the salon. For each one you can see:</p>
+        <ul>
+            <li>Commission earned (for a selected date range)</li>
+            <li>Total tips</li>
+            <li>Number of services completed</li>
+            <li>Clock-in / clock-out history</li>
+        </ul>
+
+        <h3>Clocking in / out <span class="role-badge role-tech">Technician</span></h3>
+        <ol class="steps">
+            <li>Go to your Dashboard.</li>
+            <li>Click the <strong>Clock In</strong> button when you start your shift.</li>
+            <li>At the end of your shift, click <strong>Clock Out</strong>.</li>
+        </ol>
+
+        <div class="note">
+            <strong>Why it matters:</strong> Clocking in tells the system you're available so the receptionist can assign customers to you through the Turn Tracker.
+        </div>
+    </div>
+
+
+    <!-- TURN TRACKER -->
+    <h2 id="turn-tracker">Turn Tracker</h2>
+    <div class="card">
+        <h3>What it does</h3>
+        <p>The Turn Tracker helps distribute walk-in customers fairly among technicians. It shows who is clocked in right now and how many services each has already done today.</p>
+
+        <h3>How assignment works</h3>
+        <p>Based on your Settings, the app can suggest the next technician either by:</p>
+        <ul>
+            <li><strong>Lowest-first:</strong> the technician with the fewest services today gets the next customer (most common — keeps the workload even).</li>
+            <li><strong>Highest-first:</strong> the opposite, used in some salons that prioritize seniority.</li>
+        </ul>
+
+        <div class="example">
+            <span class="label">Example Use Case</span>
+            <p>Three technicians clock in at 10:00 AM. By noon, Anna has done 3 services, Ben has done 1, and Cara has done 2. The Turn Tracker suggests <strong>Ben</strong> for the next walk-in, because he has the lowest count.</p>
+        </div>
+    </div>
+
+
+    <!-- SERVICES -->
+    <h2 id="services">Services</h2>
+    <div class="card">
+        <h3>Managing your service menu <span class="role-badge role-admin">Admin</span></h3>
+        <p>The Services page is where you list everything your salon offers: Manicure, Pedicure, Gel, Nail Art, and so on.</p>
+
+        <h3>Adding a service</h3>
+        <ol class="steps">
+            <li>Go to <strong>Services</strong>.</li>
+            <li>Click <strong>+ Add Service</strong>.</li>
+            <li>Enter a name, price, description, and pick a category (e.g. "Manicure", "Pedicure").</li>
+            <li>Upload a photo if you'd like.</li>
+            <li>Pick a color so it stands out on the calendar.</li>
+            <li>Click <strong>Save</strong>.</li>
+        </ol>
+
+        <h3>Hiding a service temporarily</h3>
+        <p>You don't have to delete a service you're not offering right now. Simply toggle it to <strong>Inactive</strong> — it will no longer appear when creating a new appointment, but its history is preserved.</p>
+    </div>
+
+
+    <!-- COUPONS & GIFT CARDS -->
+    <h2 id="coupons-giftcards">Coupons &amp; Gift Cards</h2>
+    <div class="card">
+        <h3>Coupons</h3>
+        <p>Coupons are discount codes you can apply at checkout.</p>
+        <ol class="steps">
+            <li>Go to <strong>Coupons</strong> in the sidebar.</li>
+            <li>Click <strong>+ Add Coupon</strong>.</li>
+            <li>Choose the discount type: <strong>Percentage</strong> (e.g. 10% off) or <strong>Fixed amount</strong> (e.g. $5 off).</li>
+            <li>(Optional) Set a minimum order amount.</li>
+            <li>Save. The coupon code is now ready to use during payment.</li>
+        </ol>
+
+        <h3>Gift Cards</h3>
+        <p>Gift cards work like prepaid balances — a customer buys one, gets a PIN, and can spend it on services later.</p>
+        <ol class="steps">
+            <li>Go to <strong>Gift Cards</strong>.</li>
+            <li>Click <strong>+ New Gift Card</strong>.</li>
+            <li>Enter the starting amount (e.g. $50).</li>
+            <li>Give the auto-generated PIN to the customer.</li>
+            <li>When the customer uses it at checkout, enter the PIN on the payment screen and the balance is deducted automatically.</li>
+        </ol>
+
+        <div class="tip">
+            <strong>Tip:</strong> A gift card can be used across multiple visits until its balance reaches zero.
+        </div>
+    </div>
+
+
+    <!-- CUSTOMER CREDITS -->
+    <h2 id="credits">Customer Credits (Loyalty)</h2>
+    <div class="card">
+        <h3>What they are</h3>
+        <p>Customer credits are loyalty rewards. Customers earn credits automatically when they pay, and can use those credits to pay for future services.</p>
+
+        <h3>How credits are earned</h3>
+        <p>The way credits are earned is set in <strong>Settings</strong>. You can pick one of two rules:</p>
+        <ul>
+            <li><strong>Fixed amount per visit</strong> — e.g. 5 credits every time a customer pays.</li>
+            <li><strong>Percentage of the bill</strong> — e.g. 10% of the subtotal becomes credits.</li>
+        </ul>
+
+        <h3>Using credits at checkout</h3>
+        <p>On the payment screen, type in how many credits to apply and the app deducts them from the customer's balance and from the total due.</p>
+
+        <h3>Adjusting manually <span class="role-badge role-admin">Admin</span></h3>
+        <p>If you need to give bonus credits (e.g. a "sorry for the wait" gesture), open the customer's profile and add credits directly.</p>
+    </div>
+
+
+    <!-- PAYOUT -->
+    <h2 id="payout">Payout Reports</h2>
+    <div class="card">
+        <h3>What it's for <span class="role-badge role-admin">Admin</span></h3>
+        <p>The Payout Report shows how much each technician has earned in commissions and tips — exactly what you need for payday.</p>
+
+        <h3>Running a payout report</h3>
+        <ol class="steps">
+            <li>Go to <strong>Payout</strong> in the sidebar.</li>
+            <li>Pick a date range (for example "Last week" or pick custom dates).</li>
+            <li>The page shows every technician and their totals.</li>
+            <li>You can print or export the report to share with your accountant.</li>
+        </ol>
+    </div>
+
+
+    <!-- ACCOUNT -->
+    <h2 id="account">Account Settings</h2>
+    <div class="card">
+        <h3>Updating your profile</h3>
+        <ol class="steps">
+            <li>Click your name or profile picture in the top-right corner.</li>
+            <li>Choose <strong>Profile</strong> (or <strong>My Account</strong>).</li>
+            <li>Change your name, email, or profile photo.</li>
+            <li>Click <strong>Save</strong>.</li>
+        </ol>
+
+        <h3>Changing your password</h3>
+        <ol class="steps">
+            <li>Open your profile page.</li>
+            <li>Click <strong>Change Password</strong>.</li>
+            <li>Enter your current password, then your new password twice.</li>
+            <li>Click <strong>Save</strong>.</li>
+        </ol>
+
+        <div class="warning">
+            <strong>Keep your password private:</strong> don't share your login with coworkers. Every user should have their own account.
+        </div>
+
+        <h3>Logging out</h3>
+        <p>Click your name in the top-right corner and choose <strong>Logout</strong>. Always log out if you're using a shared computer.</p>
+    </div>
+
+
+    <!-- NOTIFICATIONS -->
+    <h2 id="notifications">Notifications &amp; Alerts</h2>
+    <div class="card">
+        <p>The app shows small pop-up messages (called "toasts") at the top or bottom of the screen when something happens, for example:</p>
+        <ul>
+            <li><strong>Green</strong> — success (your change was saved).</li>
+            <li><strong>Yellow</strong> — a warning you should notice.</li>
+            <li><strong>Red</strong> — an error that needs your attention.</li>
+        </ul>
+
+        <div class="note">
+            <strong>Example Use Case:</strong> After you finish a payment, a green message saying "Payment completed" appears. If the internet drops out mid-save, you'll see a red error and the app will ask you to try again.
+        </div>
+    </div>
+
+
+    <!-- COMMON TASKS -->
+    <h2 id="common-tasks">Common Tasks</h2>
+    <div class="card">
+        <h3>"A customer just walked in"</h3>
+        <ol>
+            <li>Open the <strong>Waiting List</strong>.</li>
+            <li>Click <strong>+ Add Customer</strong>.</li>
+            <li>Search or create the customer and pick their services.</li>
+            <li>Assign a technician (or leave unassigned for now).</li>
+        </ol>
+
+        <h3>"The service is done, they want to pay"</h3>
+        <ol>
+            <li>Find the customer's ticket under the <strong>Unpaid</strong> tab.</li>
+            <li>Click <strong>Pay</strong>.</li>
+            <li>Add any discount, tip, or gift card.</li>
+            <li>Complete the payment.</li>
+        </ol>
+
+        <h3>"Customer wants to book for next week"</h3>
+        <ol>
+            <li>Open the <strong>Calendar</strong>.</li>
+            <li>Click the time slot on the date they want.</li>
+            <li>Add the customer and services.</li>
+            <li>Save.</li>
+        </ol>
+
+        <h3>"I need to move an appointment"</h3>
+        <ol>
+            <li>Open the <strong>Calendar</strong>.</li>
+            <li>Click and drag the appointment to the new time.</li>
+            <li>Let go — it saves automatically.</li>
+        </ol>
+
+        <h3>"I clocked in at the wrong time"</h3>
+        <ol>
+            <li>Ask an admin to adjust your clock-in on the Technicians page.</li>
+            <li>Admins can fix entries under the technician's profile.</li>
+        </ol>
+
+        <h3>"Customer wants to add another service midway"</h3>
+        <ol>
+            <li>Open their ticket from the <strong>Tickets</strong> page (or from the Waiting List if still waiting).</li>
+            <li>Click <strong>Edit</strong> and add the extra service.</li>
+            <li>Adjust the technician if someone else is doing the new service.</li>
+            <li>Save — the new total will show automatically.</li>
+        </ol>
+
+        <h3>"Customer is a no-show"</h3>
+        <ol>
+            <li>Open the Calendar or Waiting List and find the booking.</li>
+            <li>Click the appointment and choose <strong>Mark as No-Show</strong>.</li>
+            <li>The appointment is kept in the customer's history so you can track repeat no-shows.</li>
+        </ol>
+
+        <h3>"Customer wants to pay partly with a gift card and partly with cash"</h3>
+        <ol>
+            <li>On the payment screen, enter the gift card PIN first — the balance is deducted.</li>
+            <li>The remaining amount shows as the cash (or other) total to collect.</li>
+            <li>Complete the payment as usual.</li>
+        </ol>
+
+        <h3>"Customer wants to use their saved loyalty credits"</h3>
+        <ol>
+            <li>Open their ticket and click <strong>Pay</strong>.</li>
+            <li>In the <strong>Credits</strong> field, type the amount of credits to apply.</li>
+            <li>The total due drops by the same amount.</li>
+            <li>Complete the payment.</li>
+        </ol>
+
+        <h3>"Split tip between two technicians"</h3>
+        <ol>
+            <li>On the payment screen, enter the total tip amount.</li>
+            <li>Below, adjust each technician's share so the amounts add up to the total.</li>
+            <li>Complete the payment.</li>
+        </ol>
+
+        <h3>"Customer wants a receipt"</h3>
+        <ol>
+            <li>Open the paid ticket from the <strong>Tickets</strong> page.</li>
+            <li>Click <strong>Print Receipt</strong> (or <strong>View Receipt</strong>).</li>
+            <li>You can print it for them or share the view on screen.</li>
+        </ol>
+
+        <h3>"Undo a wrong payment"</h3>
+        <ol>
+            <li>Open the paid ticket.</li>
+            <li>Click <strong>Refund</strong>.</li>
+            <li>Add a short note (e.g. "Wrong amount, reprocessing").</li>
+            <li>Create a new payment with the correct details.</li>
+        </ol>
+
+        <h3>"Add a new staff member"</h3>
+        <p><span class="role-badge role-admin">Admin</span></p>
+        <ol>
+            <li>Go to <strong>User Management</strong>.</li>
+            <li>Click <strong>+ Add User</strong>.</li>
+            <li>Enter their name, email, and pick a role (Admin, Receptionist, or Technician).</li>
+            <li>Set a temporary password — ask them to change it on first login.</li>
+            <li>Save. They can now log in.</li>
+        </ol>
+
+        <h3>"Issue a new gift card"</h3>
+        <ol>
+            <li>Go to <strong>Gift Cards</strong>.</li>
+            <li>Click <strong>+ New Gift Card</strong>.</li>
+            <li>Enter the starting amount.</li>
+            <li>Hand the customer the generated PIN (or print the card).</li>
+        </ol>
+
+        <h3>"Add a walk-in with no service yet"</h3>
+        <ol>
+            <li>Open the Waiting List and add the customer without selecting a service.</li>
+            <li>When they decide, edit the entry and add the service.</li>
+            <li>Then move to Tickets as usual.</li>
+        </ol>
+
+        <h3>"See today's earnings for a technician"</h3>
+        <ol>
+            <li>Go to <strong>Technicians</strong> and click the name.</li>
+            <li>Set the date range to "Today".</li>
+            <li>Their commissions, tips, and service count are shown at the top.</li>
+        </ol>
+
+        <h3>"End of day — close out the shift"</h3>
+        <ol>
+            <li>Make sure every Unpaid ticket is either paid or cancelled.</li>
+            <li>Technicians click <strong>Clock Out</strong> from their dashboard.</li>
+            <li>Admin can run a Payout Report to see the day's totals.</li>
+        </ol>
+    </div>
+
+
+    <!-- TROUBLESHOOTING -->
+    <h2 id="troubleshooting">Troubleshooting</h2>
+    <div class="card">
+        <h3>"I can't log in"</h3>
+        <ul>
+            <li>Double-check your email and password. Passwords are case-sensitive.</li>
+            <li>Make sure Caps Lock is off.</li>
+            <li>Click <strong>Forgot Password</strong> to reset it.</li>
+            <li>If that doesn't work, ask your admin to verify your account is active.</li>
+        </ul>
+
+        <h3>"The page won't load"</h3>
+        <ul>
+            <li>Check your internet connection.</li>
+            <li>Refresh the page (press <strong>F5</strong> or the circular arrow in your browser).</li>
+            <li>If nothing changes, try again in a minute — the server might be restarting.</li>
+        </ul>
+
+        <h3>"I get an error when I save"</h3>
+        <ul>
+            <li>Make sure all required fields are filled in. Required fields are marked with a red asterisk (*).</li>
+            <li>Check the error message — it will usually tell you which field is wrong.</li>
+            <li>If it keeps happening, contact support (see below).</li>
+        </ul>
+
+        <h3>"The wrong technician got the tip"</h3>
+        <ul>
+            <li>Open the ticket and click <strong>Edit</strong>.</li>
+            <li>Adjust the technician list or the tip split.</li>
+            <li>Save. If the ticket is already paid, an admin may need to refund and reissue.</li>
+        </ul>
+
+        <h3>"I don't see a menu item my coworker has"</h3>
+        <p>Some features are only visible to certain roles. For example, <strong>Payout Reports</strong> and <strong>User Management</strong> are Admin-only. If you need access, ask your manager.</p>
+
+        <h3>"The Calendar is blank or missing appointments"</h3>
+        <ul>
+            <li>Make sure the correct date range is selected at the top of the page.</li>
+            <li>Clear any filters (technician, status) that might be hiding appointments.</li>
+            <li>Refresh the page (F5). If still empty, switch between Grid view and Technician view.</li>
+        </ul>
+
+        <h3>"I clicked Save but nothing happened"</h3>
+        <ul>
+            <li>Scroll up — there may be a red error message at the top of the form.</li>
+            <li>Look for fields highlighted in red; those need to be fixed.</li>
+            <li>If everything looks correct, try once more. A slow connection can delay the save.</li>
+        </ul>
+
+        <h3>"A customer's credit balance looks wrong"</h3>
+        <ul>
+            <li>Open the customer's profile and check the <strong>Credit Ledger</strong> — it lists every credit added or used.</li>
+            <li>The ledger is a full audit trail, so the balance is always the sum of entries.</li>
+            <li>If you spot a mistake, an admin can add a manual adjustment with a note.</li>
+        </ul>
+
+        <h3>"A gift card PIN isn't working"</h3>
+        <ul>
+            <li>Make sure you're typing the PIN exactly as printed — watch for the number 0 vs letter O.</li>
+            <li>Check under <strong>Gift Cards</strong> that the card isn't already fully used (balance = 0).</li>
+            <li>Confirm the card is still marked Active.</li>
+        </ul>
+
+        <h3>"A coupon code says 'invalid'"</h3>
+        <ul>
+            <li>Double-check the spelling — codes are case-sensitive.</li>
+            <li>Check the <strong>minimum order</strong> amount on the coupon; the ticket total may be below it.</li>
+            <li>Make sure the coupon is still Active (not expired or disabled by an admin).</li>
+        </ul>
+
+        <h3>"My profile photo won't upload"</h3>
+        <ul>
+            <li>Photos must be in JPG or PNG format.</li>
+            <li>Keep the file size small — under 5&nbsp;MB works best.</li>
+            <li>If the upload seems stuck, refresh the page and try again.</li>
+        </ul>
+
+        <h3>"Two people are editing the same ticket"</h3>
+        <ul>
+            <li>Whoever saves last will overwrite earlier changes.</li>
+            <li>To avoid this, only one person should edit a ticket at a time — usually the receptionist handling that customer.</li>
+            <li>If something got overwritten, check the customer's history; the previous payment or edit may still be there.</li>
+        </ul>
+
+        <h3>"The Turn Tracker is suggesting the wrong technician"</h3>
+        <ul>
+            <li>Make sure the technician you expected is actually clocked in.</li>
+            <li>Check Settings — the ordering rule may be set to "highest-first" instead of "lowest-first".</li>
+            <li>The counter resets daily, so early in the day it only reflects today's services.</li>
+        </ul>
+
+        <h3>"I'm logged out unexpectedly"</h3>
+        <ul>
+            <li>For security, the app signs you out after a period of inactivity.</li>
+            <li>Simply log back in — your unsaved work from the last form may be lost, but saved records are safe.</li>
+            <li>If it keeps happening every few minutes, ask your admin to check session settings.</li>
+        </ul>
+
+        <h3>"GoHighLevel bookings aren't syncing"</h3>
+        <p><span class="role-badge role-admin">Admin</span></p>
+        <ul>
+            <li>Go to <strong>Settings</strong> and confirm the GHL integration is connected.</li>
+            <li>Tokens refresh automatically every hour. If disconnected, reconnect from Settings.</li>
+            <li>Synced bookings will appear in the Calendar a few seconds after being created in GHL.</li>
+        </ul>
+    </div>
+
+
+    <!-- FAQS -->
+    <h2 id="faqs">Frequently Asked Questions</h2>
+    <div class="card">
+        <div class="faq-item">
+            <div class="faq-q">Do I need to install anything?</div>
+            <div class="faq-a">No. The app runs in your web browser. Just open the website address and log in.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-q">Can I use the app on my phone?</div>
+            <div class="faq-a">Yes. The app works on phones and tablets. For comfort, a tablet or laptop is recommended for front-desk staff.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-q">Will I lose data if the internet goes out?</div>
+            <div class="faq-a">Anything you saved is already stored on the server. If the connection drops while you're typing, you may need to re-enter the last few changes.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-q">Can two receptionists use it at the same time?</div>
+            <div class="faq-a">Yes. Multiple people can be logged in and working at once. Each person should log in with their own account.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-q">How do I give a customer a discount?</div>
+            <div class="faq-a">Apply a <strong>Coupon code</strong> at checkout. If you don't have a coupon code yet, an admin can create one under the Coupons page.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-q">A customer wants a refund. What should I do?</div>
+            <div class="faq-a">Open the paid ticket and click <strong>Refund</strong>. Add a short note so there's a record of why.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-q">Can I delete a customer from the system?</div>
+            <div class="faq-a">Admins can, but we don't recommend it — deleting a customer also removes their visit history. It's usually better to mark them inactive.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-q">How does the commission get calculated?</div>
+            <div class="faq-a">Commission is based on the commission rate set in Settings, applied to the services each technician performed. The app does this automatically when you complete a payment.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-q">Can I use the app offline?</div>
+            <div class="faq-a">No. The app needs an internet connection so your data stays up to date for everyone working at the same time.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-q">What if a customer has two people on the same bill?</div>
+            <div class="faq-a">Each person should have their own ticket so services, tips, and payments are tracked correctly. You can ring up both tickets together at checkout.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-q">Can I assign more than one technician to a single appointment?</div>
+            <div class="faq-a">Yes. When creating or editing the appointment, add all technicians who will be working on the service. Tips and commission can be split between them at payment time.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-q">What happens if I forget to clock out?</div>
+            <div class="faq-a">An admin can correct your clock-out time from your technician profile. Try to clock out before you leave so your hours stay accurate.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-q">How do I print the day's report?</div>
+            <div class="faq-a">Open the <strong>Payout</strong> page, pick "Today" as the date range, then press <strong>Ctrl + P</strong> (Windows) or <strong>Cmd + P</strong> (Mac) to print. You can also print from the Tickets page if you want the detailed list.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-q">Can a technician see other technicians' earnings?</div>
+            <div class="faq-a">No. Technicians only see their own commissions and tips. The full payout report is Admin-only.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-q">How do I change the tax rate or currency?</div>
+            <div class="faq-a">Go to <strong>Settings</strong> (Admin only). Tax rate, currency, and business info are at the top of that page.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-q">Can I change a ticket's technician after payment?</div>
+            <div class="faq-a">Not directly — once a ticket is paid, the commission is locked in. If it's truly wrong, refund the ticket and re-create it with the correct technician.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-q">What happens if a coupon and a gift card are used together?</div>
+            <div class="faq-a">The coupon discount is applied first, then the gift card balance is used against the reduced total. Any remainder is collected normally.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-q">Can I send appointment reminders to customers?</div>
+            <div class="faq-a">If the salon uses GoHighLevel, reminders can be set up there and synced to the app. Otherwise, the app doesn't send reminders directly — your admin can confirm your salon's setup.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-q">How do I search for a customer quickly?</div>
+            <div class="faq-a">Use the search box at the top of the <strong>Customers</strong> page. You can search by name, phone number, or email.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-q">What if the customer's name already exists?</div>
+            <div class="faq-a">Pick the existing profile instead of creating a new one — that keeps their visit history and credits in one place.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-q">How do I mark a service unavailable for today?</div>
+            <div class="faq-a">Go to <strong>Services</strong>, open the service, and toggle it to <strong>Inactive</strong>. Turn it back on when you're ready.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-q">Why don't I see the Payout or Settings page?</div>
+            <div class="faq-a">Those are Admin-only sections. Receptionists and technicians have a focused menu that hides management tools they don't need.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-q">How long is my data kept?</div>
+            <div class="faq-a">Visit history, payments, and ledger entries are kept permanently unless an admin deletes them. This helps you pull up a customer's history even years later.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-q">Is my password safe?</div>
+            <div class="faq-a">Yes. Passwords are stored securely (encrypted) and no one — not even the admin — can view your actual password. If you forget it, you can reset it.</div>
+        </div>
+    </div>
+
+
+    <!-- TIPS -->
+    <h2 id="tips">Tips &amp; Best Practices</h2>
+    <div class="card">
+        <ul>
+            <li><strong>Clock in every day.</strong> If you forget, your services won't count toward your fair-share turn order.</li>
+            <li><strong>Keep customer info up to date.</strong> A correct phone number means you can reach them about appointment changes.</li>
+            <li><strong>Use the Waiting List, not the Calendar, for walk-ins.</strong> The Calendar is for scheduled bookings.</li>
+            <li><strong>Double-check tip amounts before you click Complete Payment.</strong> Changes after payment are harder to fix.</li>
+            <li><strong>Log out on shared computers.</strong> It protects your account and the customer's data.</li>
+            <li><strong>Use clear coupon codes.</strong> "WEEKEND10" is easier to remember than random letters.</li>
+            <li><strong>Review the Payout Report weekly.</strong> Catching any mistakes early is easier than fixing them months later.</li>
+        </ul>
+    </div>
+
+
+    <!-- SUPPORT -->
+    <h2 id="support">Support &amp; Contact</h2>
+    <div class="card">
+        <h3>Need help?</h3>
+        <ul>
+            <li><strong>Ask your admin / manager first.</strong> They can reset passwords, fix account issues, and answer most questions.</li>
+            <li><strong>Check the FAQs above.</strong> The most common questions are answered there.</li>
+            <li><strong>Report a bug.</strong> If something isn't working right, let your admin know with:
+                <ul>
+                    <li>What you were trying to do</li>
+                    <li>What happened instead (a screenshot helps!)</li>
+                    <li>The date and time it happened</li>
+                </ul>
+            </li>
+        </ul>
+
+        <div class="tip">
+            <strong>Reminder:</strong> The more detail you give when reporting a problem, the faster it can be fixed.
+        </div>
+    </div>
+
+    <hr class="divider">
+    <p class="footer">
+        Nail Salon App — User Guide
+    </p>
+
+</div>
+
+</body>
+</html>
